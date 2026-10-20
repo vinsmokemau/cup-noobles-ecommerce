@@ -1,0 +1,22 @@
+# local media, emails, mock provider stores, e2e manifest
+var/
+
+# secrets come only from the environment (CR-50)
+.env
+.env.*
+!.env.example
+
+# tooling caches
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+node_modules/
+.nuxt/
+.output/
+playwright-report/
+test-results/
