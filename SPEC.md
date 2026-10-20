@@ -1222,7 +1222,7 @@ Work arrives through `/task`, so the spec and the skill must be in the repositor
 
 #### Tasks
 
-- [ ] **T1.1 — Repository structure**
+- [x] **T1.1 — Repository structure** (2026-10-19, bdf10df)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: directories and placeholders only; T1.12a to T1.14b add the tests]
