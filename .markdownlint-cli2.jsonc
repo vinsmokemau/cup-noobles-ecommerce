@@ -1,0 +1,10 @@
+{
+  // SPEC.md repeats "Tasks" and "Verify — test specification" under every phase,
+  // so a heading may repeat when its parent heading differs.
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD024": { "siblings_only": true }
+  },
+  "ignores": ["**/node_modules/**", "web/.nuxt/**", "web/.output/**", "var/**", ".claude/**", ".agents/**"]
+}
