@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.1 |
+| Spec version | 1.2 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -53,6 +53,7 @@ There are two reports. Every task produces a **task report**. The last in-scope 
 - [ ] OpenAPI: snapshot unchanged, OR updated with `make schema-update`, with types regenerated
 - [ ] Coverage (reported, gated at phase close): critical <x>% · backend <y>% · composables <z>%
 - [ ] Sources: no business or brand value was added without a source (§2, an ADR, or the owner). New unknowns are registered in §2.4.
+- [ ] Judgment calls: technical choices made without `/decide` (OA-18), each with the reason and how to undo it, or none
 - [ ] Reviews: `/review` and `/ui-review` ran where §0.5 requires; each finding is fixed or registered
 - [ ] Docs: README, RUNBOOK and §4.7 updated if commands, env vars or operations changed
 - [ ] 🔒 Blocking items: none met, OR stopped and asked (<ID>)
@@ -450,6 +451,7 @@ Each item is built in the DS repository under its own SPEC and released as a DS 
 | DSR-07 | The scope of the photo rule "no text inside the image" for product packaging (C-10) | Phase 12 | R1 | Open |
 | DSR-08 | An order timeline | Phase 14 | R2 | Deferred (R2) |
 | DSR-09 | Make the raw-value lint rule of DS:REQ-016 available to consuming apps, so the storefront runs the same check as the DS. Until then, P12-V26 is the storefront's check. | Phase 12 | R1 | Open |
+| DSR-10 | `CnMediaCard.vue` (DS 1.0.0, line 81) fails `vue-tsc` with TS2352: `EventTarget \| null` converted to `Picture`. Found in T1.5 with `nuxt typecheck`; `make test` runs `vue-tsc`. | Phase 1 (T1.8) | R1 | Open |
 
 ### 2.5 Dev defaults
 
@@ -487,6 +489,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-15 | 2026-10-20 | Do the three private DS packages on GitHub Packages grant this repository read access (S8)? | Yes, already done. |
 | OA-16 | 2026-10-20 | T1.3: which provider values does `prod.py` reject as mocks? | No strong opinion; follow Claude's suggestion: only `PAYMENT_PROVIDER=mock`, `CARRIER_PROVIDER=mock` and `EMAIL_PROVIDER=file`. `MEDIA_STORAGE=local`, `POSTAL_CODE_DATASET=sample` and `ERROR_TRACKING=off` stay accepted until Phases 18, 22 and 21, and the Phase 22 launch checklist makes them mandatory. |
 | OA-17 | 2026-10-20 | T1.3: which apps does `INSTALLED_APPS` hold now? | No strong opinion; follow Claude's suggestion: keep it minimal, and each later task adds its own app. |
+| OA-18 | 2026-10-20 | `/decide` slows execution. Which decisions still need it? | Option A: `/decide` only for owner-only decisions (business values, brand and visual choices, conflicts between SPEC, an ADR and a DS doc). The agent decides technical choices that change no requirement, Verify ID or business value, and lists them as "Judgment calls" in the task report. New gaps and DSR items are registered in §2.4 without an ADR; an ADR is written only for a choice costly to reverse. |
 
 ---
 
@@ -5305,6 +5308,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 0.4 | 2026-10-19 | Stage 4: Appendix B (ADR index) and Appendix D (effort, no dates); the bootstrap pack (agent files, skills, pinned guidelines, PR template, lint config) named in Phase 1; T1.8 adds markdownlint; T1.9 keeps the bootstrap PR template. | OA-12, OA-13 |
 | 1.0 | 2026-10-19 | Approved by the owner. Status set to approved for Part A; Part B stays draft until P15-V14 passes. No requirement or task changes. | OA-14 |
 | 1.1 | 2026-10-20 | S8 resolved (read access granted); T1.5 no longer blocked. T1.3 names the mock values `prod.py` rejects. No requirement, Verify ID or schema change. | OA-15, OA-16, OA-17; ADR-0026, ADR-0027 |
+| 1.2 | 2026-10-20 | Lighter decision process: `/decide` only for owner-only decisions; "Judgment calls" item added to the task report (§0.2); DSR-10 registered (`CnMediaCard` type error). No requirement, Verify ID or schema change. | OA-18 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 

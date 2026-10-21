@@ -28,6 +28,9 @@ The owner is not a designer, and is both the developer and the business owner.
 - When the owner must decide something (an open item in §2.4, or a question a task raises), present the options in plain language, mark what can be measured as pass or fail, give a recommendation, and ask for a one-letter reply. A design gap's proposed resolution is labelled as a proposal, never applied before the answer.
 - For a visual choice, show the options on a comparison page the owner can open, built with the real Design System components and es-MX copy. In Claude Code, publish it as a private Artifact; other agents write a standalone HTML file outside the repository. Label every value that is not a brand value as an example.
 - Record every answer with `/decide`: an owner answer in §2.6, an ADR, the register row, and the spec version.
+- `/decide` is for decisions only the owner can make (OA-18): business values, brand and visual choices, and conflicts between SPEC.md, an ADR and a Design System doc. Everything else is the agent's call.
+- Technical choices that change no requirement, Verify ID or business value (a version pin, a config layout) need no `/decide`. List each in the task report under "Judgment calls", with the reason and how to undo it.
+- A new gap or Design System request is added to §2.4 by the agent and reported to the owner, without an ADR. An ADR is written only for a choice that is costly to reverse: a dependency swap, a data model change, a provider choice.
 
 ## Skills and tools
 
