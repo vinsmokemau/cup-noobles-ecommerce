@@ -1386,7 +1386,7 @@ Set `PASSWORD_HASHERS` with `Argon2PasswordHasher` first (absorbs plan 1.4).
 }
 ```
 
-- [ ] **T1.17 — Design System 1.0.1**
+- [x] **T1.17 — Design System 1.0.1** (2026-10-20, e109ea2)
   - Release: R1 · Gate: task
   - REQs: REQ-050
   - Verifies: [no-test: `nuxt typecheck` passes; the pin is checked by P12-V27 (T12.14)]
