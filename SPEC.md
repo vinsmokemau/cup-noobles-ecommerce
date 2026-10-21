@@ -1356,7 +1356,7 @@ Set `PASSWORD_HASHERS` with `Argon2PasswordHasher` first (absorbs plan 1.4).
 - Dev dependencies: `openapi-typescript`, `vitest`, `@nuxt/test-utils`, `@vue/test-utils`, `happy-dom`, `@vitest/coverage-v8`, `@playwright/test`, `@axe-core/playwright`, `@lhci/cli`, `vue-tsc`.
 - No `main.css` and no `ui.colors` override (CR-27).
 
-- [ ] **T1.6 — Local stack**
+- [x] **T1.6 — Local stack** (2026-10-20, da56925)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: P1-V01 and P1-V02 (T1.13b) test the stack through the proxy]
