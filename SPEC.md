@@ -1321,7 +1321,7 @@ factory-boy hypothesis time-machine schemathesis django-test-migrations syrupy
 ruff mypy django-stubs
 ```
 
-- [ ] **T1.3 — Settings, secrets and password hashing**
+- [x] **T1.3 — Settings, secrets and password hashing** (2026-10-20, bc2f8a7)
   - Release: R1 · Gate: task
   - REQs: REQ-040
   - Verifies: P1-V14, P1-V16, P1-V18
