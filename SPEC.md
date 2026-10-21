@@ -1292,7 +1292,7 @@ cupnoobles/
 └── README.md
 ```
 
-- [ ] **T1.2 — Backend dependencies**
+- [x] **T1.2 — Backend dependencies** (2026-10-20, fa20577)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: dependency manifest; exercised by every later backend test]
