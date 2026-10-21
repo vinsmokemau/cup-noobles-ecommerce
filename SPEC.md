@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.0 |
+| Spec version | 1.1 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -364,7 +364,7 @@ Status values: **Open**; **Decided** (an owner answer exists; its ADR is written
 | S5 | **Rewritten.** Public GitHub repository, created by the owner. Name pending. | Phase 1 | R1 | Decided (OA-10); name open |
 | S6 | Sentry (free tier) | Phase 21 | R1 | Open |
 | S7 | Carrier or aggregator account for buying labels by hand | Phase 19 | R1 | Open |
-| S8 | **New.** Read access to the three private DS packages on GitHub Packages: in each package's settings, grant this repository Actions read access; for local installs, a classic personal access token with `read:packages` in the user-level `.npmrc` (DS:using-the-system.md) | T1.5 | R1 | Open |
+| S8 | **New.** Read access to the three private DS packages on GitHub Packages: in each package's settings, grant this repository Actions read access; for local installs, a classic personal access token with `read:packages` in the user-level `.npmrc` (DS:using-the-system.md) | T1.5 | R1 | Resolved (ADR-0026) |
 
 #### Business decisions (D)
 
@@ -484,6 +484,9 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-12 | 2026-10-19 | Defaults proposed by Claude | Not objected to: the plan's technology choices and decision log become accepted ADRs; the DS is pinned at exactly 1.0.0; `web/` uses pnpm; the spec is written in four stages. |
 | OA-13 | 2026-10-19 | Which third-party skills to adopt? | The verdicts in §0.5 are accepted. |
 | OA-14 | 2026-10-19 | Do you approve SPEC.md v0.4? | Approved. The spec becomes version 1.0, approved for Part A. |
+| OA-15 | 2026-10-20 | Do the three private DS packages on GitHub Packages grant this repository read access (S8)? | Yes, already done. |
+| OA-16 | 2026-10-20 | T1.3: which provider values does `prod.py` reject as mocks? | No strong opinion; follow Claude's suggestion: only `PAYMENT_PROVIDER=mock`, `CARRIER_PROVIDER=mock` and `EMAIL_PROVIDER=file`. `MEDIA_STORAGE=local`, `POSTAL_CODE_DATASET=sample` and `ERROR_TRACKING=off` stay accepted until Phases 18, 22 and 21, and the Phase 22 launch checklist makes them mandatory. |
+| OA-17 | 2026-10-20 | T1.3: which apps does `INSTALLED_APPS` hold now? | No strong opinion; follow Claude's suggestion: keep it minimal, and each later task adds its own app. |
 
 ---
 
@@ -1328,7 +1331,7 @@ ruff mypy django-stubs
   - Depends on: T1.2
   - Context: §4.3 (Boundaries), §4.7
 
-`config/settings/` split into `base.py`, `dev.py`, `test.py`, `prod.py` (`test.py` as specified in §4.6). All secrets from the environment via `django-environ` (CR-50). `prod.py` must set: `DEBUG=False`, `SECURE_HSTS_SECONDS`, `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`, `SESSION_COOKIE_SAMESITE="Lax"`, `SECURE_PROXY_SSL_HEADER`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`. The provider switches from §4.3 are read in `base.py`. `dev.py` and the test settings default every one to its mock (`INVOICE_PROVIDER=manual`). `prod.py` rejects mock values at startup and forces `DEV_TOOLS_ENABLED` to false (CR-20).
+`config/settings/` split into `base.py`, `dev.py`, `test.py`, `prod.py` (`test.py` as specified in §4.6). All secrets from the environment via `django-environ` (CR-50). `prod.py` must set: `DEBUG=False`, `SECURE_HSTS_SECONDS`, `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`, `SESSION_COOKIE_SAMESITE="Lax"`, `SECURE_PROXY_SSL_HEADER`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`. The provider switches from §4.3 are read in `base.py`. `dev.py` and the test settings default every one to its mock (`INVOICE_PROVIDER=manual`). `prod.py` rejects mock values at startup and forces `DEV_TOOLS_ENABLED` to false (CR-20). The mock values are `PAYMENT_PROVIDER=mock`, `CARRIER_PROVIDER=mock` and `EMAIL_PROVIDER=file`; `MEDIA_STORAGE=local`, `POSTAL_CODE_DATASET=sample` and `ERROR_TRACKING=off` stay accepted until their phases (ADR-0027).
 
 Set `PASSWORD_HASHERS` with `Argon2PasswordHasher` first (absorbs plan 1.4).
 
@@ -1340,7 +1343,7 @@ Set `PASSWORD_HASHERS` with `Argon2PasswordHasher` first (absorbs plan 1.4).
   - Verifies: [no-test: the app renders and passes axe in P1-V09 (T1.13b); the pin is checked by P12-V27 (T12.14)]
   - Depends on: T1.1, S8
   - Context: §4.5
-  - Open items: S8 (blocking)
+  - Open items: ~~S8 (blocking)~~ resolved (ADR-0026)
 
 `web/` — create a Nuxt 4 app with pnpm, pinned to the Nuxt version of the DS consumer fixture (4.5.2). Follow §4.5 to install from GitHub Packages: commit `web/.npmrc` with the scope line only, keep the token in the user-level `~/.npmrc`, and set `allowBuilds` in `web/pnpm-workspace.yaml`.
 
@@ -5271,7 +5274,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 
 | Needed by | Items |
 |---|---|
-| Before Phase 1 | S5 (repository name), S8 |
+| Before Phase 1 | S5 (repository name), ~~S8~~ |
 | Phase 1 | G1, G29 |
 | Before Phase 2 (schema) | D14 (types), D16 (fields); the R1 schema items G3, G5, G28, G31, G33, G34 (§4.4) |
 | Phase 3 | G12, G39 |
@@ -5301,6 +5304,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 0.3 | 2026-10-19 | Stage 3 draft: §6 with all 22 phases (210 tasks, 361 Verify IDs, Part B checklists converted to IDs); Appendix A generated; Appendix E legacy map. §3.9 moved into the phase tables; REQ-041, REQ-051, REQ-064, REQ-065 and REQ-073 cite the final IDs. §2.4 adds G37–G39 and D18; §0.3 and §4.6 add `make test-integrations`. | OA-02, OA-03, OA-11 |
 | 0.4 | 2026-10-19 | Stage 4: Appendix B (ADR index) and Appendix D (effort, no dates); the bootstrap pack (agent files, skills, pinned guidelines, PR template, lint config) named in Phase 1; T1.8 adds markdownlint; T1.9 keeps the bootstrap PR template. | OA-12, OA-13 |
 | 1.0 | 2026-10-19 | Approved by the owner. Status set to approved for Part A; Part B stays draft until P15-V14 passes. No requirement or task changes. | OA-14 |
+| 1.1 | 2026-10-20 | S8 resolved (read access granted); T1.5 no longer blocked. T1.3 names the mock values `prod.py` rejects. No requirement, Verify ID or schema change. | OA-15, OA-16, OA-17; ADR-0026, ADR-0027 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5375,6 +5379,8 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0023 | Agent skills policy | `docs/decisions/0023-agent-skills-policy.md` | OA-13 |
 | ADR-0024 | Price format | `docs/decisions/0024-price-format.md` | G19, C-08 |
 | ADR-0025 | Brand assets from the Design System | `docs/decisions/0025-brand-assets.md` | D11 |
+| ADR-0026 | Read access to the Design System packages | `docs/decisions/0026-ds-package-read-access.md` | S8; OA-15 |
+| ADR-0027 | Which values `prod.py` rejects, and the installed apps | `docs/decisions/0027-prod-settings-mock-rejection.md` | T1.3; OA-16, OA-17 |
 
 ## Appendix C — Dated market facts
 
