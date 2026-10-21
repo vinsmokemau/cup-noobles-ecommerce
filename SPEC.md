@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.2 |
+| Spec version | 1.3 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
-| Design System | `@vinsmokemau/cup-noobles-tokens`, `-nuxt` and `-email`, pinned at exactly `1.0.0` (A17). Raised only by a DS upgrade task. |
+| Design System | `@vinsmokemau/cup-noobles-tokens`, `-nuxt` and `-email`, pinned at exactly `1.0.1` (A17). Raised only by a DS upgrade task. |
 | Normative files | `SPEC.md` and `spec/schema.sql` (the canonical schema, §4.4) |
 | Converted from | `cup-noobles-implementation-plan.md` (September 2026). Appendix E maps every old section to its new place. |
 
@@ -209,7 +209,7 @@ Tasks and Verify IDs tagged R2 keep their IDs and stay in §6. The traceability 
 
 ## 2. Rules, conflicts, assumptions and open items
 
-Source key: **plan** is `cup-noobles-implementation-plan.md`. **DS** is the Design System repository at version 1.0.0. **GE** is the owner's internal execution guide (v4), cited by ID only. **OA** is an owner answer in §2.6.
+Source key: **plan** is `cup-noobles-implementation-plan.md`. **DS** is the Design System repository at version 1.0.1. **GE** is the owner's internal execution guide (v4), cited by ID only. **OA** is an owner answer in §2.6.
 
 ### 2.1 Carried-forward rules
 
@@ -346,7 +346,7 @@ Each assumption is cheap to reverse unless its row says otherwise. A1–A14 keep
 | A14 | Each mock behaves exactly like its real provider at the interface level; the shared contract suites run against both | A mock easier than the real thing hides bugs until Part B | Medium | R1 |
 | A15 | One maintainer: the owner is the developer and the business owner. Governance is sized for one person, and decisions are recorded as owner answers and ADRs. | OA-04; DS:A-01 | n/a | R1 |
 | A16 | Guest checkout only in R1. A customer is identified by email, and also by phone and shipping address for purchase limits (G31). | OA-11 | Medium | R1 |
-| A17 | The three DS packages are pinned at an exact version, currently `1.0.0`. A DS upgrade is its own task. | OA-12; DS:R-01 | Low | R1 |
+| A17 | The three DS packages are pinned at an exact version, currently `1.0.1`. A DS upgrade is its own task. | OA-12; DS:R-01 | Low | R1 |
 | A18 | The repository is public on GitHub Free, created by the owner | OA-10 | Low | R1 |
 | A19 | The weekly dashboard and the monthly report are built by the owner from admin CSV exports. The store has no reporting screens. | GE:T34, GE:T43 | Low | R1 |
 
@@ -451,7 +451,7 @@ Each item is built in the DS repository under its own SPEC and released as a DS 
 | DSR-07 | The scope of the photo rule "no text inside the image" for product packaging (C-10) | Phase 12 | R1 | Open |
 | DSR-08 | An order timeline | Phase 14 | R2 | Deferred (R2) |
 | DSR-09 | Make the raw-value lint rule of DS:REQ-016 available to consuming apps, so the storefront runs the same check as the DS. Until then, P12-V26 is the storefront's check. | Phase 12 | R1 | Open |
-| DSR-10 | `CnMediaCard.vue` (DS 1.0.0, line 81) fails `vue-tsc` with TS2352: `EventTarget \| null` converted to `Picture`. Found in T1.5 with `nuxt typecheck`; `make test` runs `vue-tsc`. | Phase 1 (T1.8) | R1 | Open |
+| DSR-10 | `CnMediaCard.vue` (DS 1.0.0, line 81) fails `vue-tsc` with TS2352: `EventTarget \| null` converted to `Picture`. Found in T1.5 with `nuxt typecheck`; `make test` runs `vue-tsc`. | Phase 1 (T1.17) | R1 | Resolved (DS 1.0.1, T1.17) |
 
 ### 2.5 Dev defaults
 
@@ -490,6 +490,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-16 | 2026-10-20 | T1.3: which provider values does `prod.py` reject as mocks? | No strong opinion; follow Claude's suggestion: only `PAYMENT_PROVIDER=mock`, `CARRIER_PROVIDER=mock` and `EMAIL_PROVIDER=file`. `MEDIA_STORAGE=local`, `POSTAL_CODE_DATASET=sample` and `ERROR_TRACKING=off` stay accepted until Phases 18, 22 and 21, and the Phase 22 launch checklist makes them mandatory. |
 | OA-17 | 2026-10-20 | T1.3: which apps does `INSTALLED_APPS` hold now? | No strong opinion; follow Claude's suggestion: keep it minimal, and each later task adds its own app. |
 | OA-18 | 2026-10-20 | `/decide` slows execution. Which decisions still need it? | Option A: `/decide` only for owner-only decisions (business values, brand and visual choices, conflicts between SPEC, an ADR and a DS doc). The agent decides technical choices that change no requirement, Verify ID or business value, and lists them as "Judgment calls" in the task report. New gaps and DSR items are registered in §2.4 without an ADR; an ADR is written only for a choice costly to reverse. |
+| OA-19 | 2026-10-20 | DS 1.0.1 fixes DSR-10. When is the pin raised? | Option A: a new task T1.17 right now, before T1.6. T1.8 depends on it. |
 
 ---
 
@@ -901,7 +902,7 @@ The admin form, the storefront filters and the API validation all read `attribut
 
 ### 4.5 Storefront and the Design System
 
-**Packages.** `web/` consumes the three DS packages at one exact version, currently `1.0.0` (A17):
+**Packages.** `web/` consumes the three DS packages at one exact version, currently `1.0.1` (A17):
 
 | Package | What the storefront uses | Where |
 |---|---|---|
@@ -1385,11 +1386,21 @@ Set `PASSWORD_HASHERS` with `Argon2PasswordHasher` first (absorbs plan 1.4).
 }
 ```
 
+- [ ] **T1.17 — Design System 1.0.1**
+  - Release: R1 · Gate: task
+  - REQs: REQ-050
+  - Verifies: [no-test: `nuxt typecheck` passes; the pin is checked by P12-V27 (T12.14)]
+  - Depends on: T1.5
+  - Context: §4.5
+  - Open items: DSR-10 resolved by this task
+
+DS 1.0.0 fails `vue-tsc` in `CnMediaCard.vue` (DSR-10). Raise the three DS packages in `web/` to exactly `1.0.1`, which fixes it (A17). Refresh `pnpm-lock.yaml`. `nuxt typecheck` must pass. The vendored email HTML does not exist yet (Phase 11), so there is nothing to refresh.
+
 - [ ] **T1.8 — Linters and pre-commit**
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: the static checks run in `make test`]
-  - Depends on: T1.5
+  - Depends on: T1.5, T1.17
   - Context: §0.3
 
 `ruff` for lint and format (replaces black, isort and flake8). `eslint` and `prettier` through `@nuxt/eslint`. `markdownlint-cli2` on `SPEC.md`, `docs/` and `README.md`, with the bootstrap `.markdownlint-cli2.jsonc`, so every spec edit stays well-formed. A pre-commit hook running all three; `make test` runs them too.
@@ -5309,6 +5320,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.0 | 2026-10-19 | Approved by the owner. Status set to approved for Part A; Part B stays draft until P15-V14 passes. No requirement or task changes. | OA-14 |
 | 1.1 | 2026-10-20 | S8 resolved (read access granted); T1.5 no longer blocked. T1.3 names the mock values `prod.py` rejects. No requirement, Verify ID or schema change. | OA-15, OA-16, OA-17; ADR-0026, ADR-0027 |
 | 1.2 | 2026-10-20 | Lighter decision process: `/decide` only for owner-only decisions; "Judgment calls" item added to the task report (§0.2); DSR-10 registered (`CnMediaCard` type error). No requirement, Verify ID or schema change. | OA-18 |
+| 1.3 | 2026-10-20 | Design System pin raised to 1.0.1 (fixes DSR-10). New task T1.17; T1.8 depends on it. A17, §4.5 and the header cite 1.0.1. No requirement, Verify ID or schema change. | OA-19 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
