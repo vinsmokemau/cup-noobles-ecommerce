@@ -1,0 +1,50 @@
+[project]
+name = "cupnoobles-api"
+version = "0.1.0"
+description = "Cup Noobles e-commerce API"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "django>=5.1,<6",
+    "djangorestframework",
+    "django-environ",
+    "psycopg[binary]",
+    "argon2-cffi",
+    "drf-spectacular",
+    "django-cors-headers",  # local dev only; production is same-origin
+    "django-axes",  # login brute-force lockout
+    "jsonschema",  # validates product.attributes
+    "gunicorn",
+    "whitenoise",
+]
+
+[dependency-groups]
+# Vendor SDKs: production image only, never in the default sync (CR-23)
+integrations = [
+    "mercadopago",
+    "resend",
+    "boto3",
+    "django-storages",
+    "sentry-sdk",
+]
+dev = [
+    "pytest",
+    "pytest-django",
+    "pytest-socket",
+    "pytest-cov",
+    "pytest-xdist",
+    "pytest-randomly",
+    "pytest-timeout",
+    "factory-boy",
+    "hypothesis",
+    "time-machine",
+    "schemathesis",
+    "django-test-migrations",
+    "syrupy",
+    "ruff",
+    "mypy",
+    "django-stubs",
+]
+
+[tool.uv]
+package = false
+default-groups = ["dev"]
