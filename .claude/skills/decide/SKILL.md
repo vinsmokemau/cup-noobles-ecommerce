@@ -7,6 +7,10 @@ disable-model-invocation: true
 
 Record the owner's decision on $ARGUMENTS. The answer must come from the owner in this session; never infer it.
 
+## When to use
+
+Only for decisions the owner alone can make (OA-18): business values, brand and visual choices, and conflicts between SPEC.md, an ADR and a Design System doc. A technical choice that changes no requirement, Verify ID or business value is the agent's call, listed under "Judgment calls" in the task report.
+
 ## 1. Load
 
 - Read SPEC.md §0, §2 (the item's row in §2.4, and §2.5 and §2.6), §7.2 and §8.
