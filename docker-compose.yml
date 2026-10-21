@@ -1,0 +1,89 @@
+# Local development stack (SPEC.md §4.1, T1.6). Every provider is a mock (§4.3).
+#
+# The web image build needs NODE_AUTH_TOKEN in the environment, a GitHub token
+# with read:packages (S8, §4.5). It reaches the build as a secret, never as a
+# build argument, and never ends up in a layer.
+
+x-api-env: &api-env
+  DJANGO_SETTINGS_MODULE: config.settings.dev
+  SECRET_KEY: dev-only-not-a-secret
+  DATABASE_URL: postgres://cupnoobles:cupnoobles@db:5432/cupnoobles
+  ALLOWED_HOSTS: localhost,api
+  CSRF_TRUSTED_ORIGINS: http://localhost:8080
+  SITE_URL: http://localhost:8080
+
+secrets:
+  node_auth_token:
+    environment: NODE_AUTH_TOKEN
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: cupnoobles
+      POSTGRES_PASSWORD: cupnoobles
+      POSTGRES_DB: cupnoobles
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cupnoobles -d cupnoobles"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./api
+    image: cupnoobles-api
+    environment: *api-env
+    volumes:
+      - ./api:/app
+      - ./var:/app/var
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./web
+      secrets:
+        - node_auth_token
+    environment:
+      NUXT_PUBLIC_API_BASE: /api
+      # Bind mounts on Windows and macOS do not deliver file events.
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./web:/app
+      - web_node_modules:/app/node_modules
+    depends_on:
+      - api
+
+  # Caddy mirrors production routing (T1.7 writes proxy/Caddyfile).
+  proxy:
+    image: caddy:2.10-alpine
+    environment:
+      SITE_ADDRESS: ":8080"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - api
+      - web
+
+  # Runs the jobs of §4.8. Each job's task adds its line to infra/crontab.
+  scheduler:
+    build: ./api
+    image: cupnoobles-api
+    command: ["supercronic", "/infra/crontab"]
+    environment: *api-env
+    volumes:
+      - ./api:/app
+      - ./var:/app/var
+      - ./infra/crontab:/infra/crontab:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  web_node_modules:
