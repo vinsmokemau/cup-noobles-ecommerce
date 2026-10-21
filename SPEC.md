@@ -1337,7 +1337,7 @@ Set `PASSWORD_HASHERS` with `Argon2PasswordHasher` first (absorbs plan 1.4).
 
 - ~~**T1.4 — Argon2 password hasher**~~ Absorbed by T1.3.
 
-- [ ] **T1.5 — Storefront app on the Design System layer**
+- [x] **T1.5 — Storefront app on the Design System layer** (2026-10-20, b96c8fa)
   - Release: R1 · Gate: task
   - REQs: REQ-050
   - Verifies: [no-test: the app renders and passes axe in P1-V09 (T1.13b); the pin is checked by P12-V27 (T12.14)]
