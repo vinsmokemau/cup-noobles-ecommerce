@@ -13,9 +13,9 @@
   "dependencies": {
     "@nuxt/image": "2.2.0",
     "@nuxtjs/sitemap": "8.6.2",
-    "@vinsmokemau/cup-noobles-email": "1.0.0",
-    "@vinsmokemau/cup-noobles-nuxt": "1.0.0",
-    "@vinsmokemau/cup-noobles-tokens": "1.0.0",
+    "@vinsmokemau/cup-noobles-email": "1.0.1",
+    "@vinsmokemau/cup-noobles-nuxt": "1.0.1",
+    "@vinsmokemau/cup-noobles-tokens": "1.0.1",
     "nuxt": "4.5.2",
     "vue": "3.5.44",
     "vue-router": "5.4.0",

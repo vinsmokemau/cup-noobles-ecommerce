@@ -1,3 +1,7 @@
 allowBuilds:
   esbuild: false
   vue-demi: false
+minimumReleaseAgeExclude:
+  - '@vinsmokemau/cup-noobles-email@1.0.1'
+  - '@vinsmokemau/cup-noobles-nuxt@1.0.1'
+  - '@vinsmokemau/cup-noobles-tokens@1.0.1'
