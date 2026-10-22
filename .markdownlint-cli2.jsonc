@@ -4,7 +4,9 @@
   "config": {
     "default": true,
     "MD013": false,
-    "MD024": { "siblings_only": true }
+    "MD024": { "siblings_only": true },
+    // SPEC.md writes table separator rows as |---| over spaced rows; markdownlint 0.42 added MD060 to flag that.
+    "MD060": false
   },
   "ignores": ["**/node_modules/**", "web/.nuxt/**", "web/.output/**", "var/**", ".claude/**", ".agents/**"]
 }
