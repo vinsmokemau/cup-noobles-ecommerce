@@ -1396,7 +1396,7 @@ Set `PASSWORD_HASHERS` with `Argon2PasswordHasher` first (absorbs plan 1.4).
 
 DS 1.0.0 fails `vue-tsc` in `CnMediaCard.vue` (DSR-10). Raise the three DS packages in `web/` to exactly `1.0.1`, which fixes it (A17). Refresh `pnpm-lock.yaml`. `nuxt typecheck` must pass. The vendored email HTML does not exist yet (Phase 11), so there is nothing to refresh.
 
-- [ ] **T1.8 — Linters and pre-commit**
+- [x] **T1.8 — Linters and pre-commit** (2026-10-21, 9b6aeb2)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: the static checks run in `make test`]
