@@ -65,3 +65,9 @@ known-first-party = ["apps", "config", "tests"]
 [tool.ruff.lint.per-file-ignores]
 # Django settings layering: environment modules star-import base
 "config/settings/*.py" = ["F403", "F405"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+pythonpath = ["."]
+# Part A is offline (CR-41, A13): only the local database host may be reached.
+addopts = "--disable-socket --allow-hosts=127.0.0.1,localhost,db"
