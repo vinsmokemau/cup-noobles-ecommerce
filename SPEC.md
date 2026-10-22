@@ -1440,7 +1440,7 @@ Write `docs/decisions/0000-adr-template.md` (context, decision, consequences, st
 - `pyproject.toml`: pytest options (`--strict-markers`, `--reuse-db`, `-p randomly`, `timeout = 60`), markers `slow`, `concurrency` and `sandbox`, and coverage settings (`branch = true`, omits per §4.6).
 - `tests/conftest.py`: the Postgres-only guard; hypothesis profiles `dev` and `ci`; autouse `tmp_path` for `EMAIL_FILE_DIR` and `MOCK_STORE_DIR`; `api_client` and `auth_client` with CSRF enforced; `use_provider`; `clock`; `pytester`.
 
-- [ ] **T1.12b — Concurrency helper and code checkers**
+- [x] **T1.12b — Concurrency helper and code checkers** (2026-10-21, 3dc7693)
   - Release: R1 · Gate: task
   - REQs: REQ-011, REQ-020
   - Verifies: P1-V05
