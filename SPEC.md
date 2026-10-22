@@ -1430,7 +1430,7 @@ Integration scaffolding from §4.3:
 
 Write `docs/decisions/0000-adr-template.md` (context, decision, consequences, status, source) and one ADR per row of §4.2. Each ADR's context carries the plan's reasoning for that decision; dated prices stay in Appendix C. ADR-0001 records A1–A19 with their cost to change; ADR-0002 records that dev defaults are placeholders, never business values. Every source is an owner answer (§2.6) or a plan section; nothing new is decided here.
 
-- [ ] **T1.12a — Backend test configuration**
+- [x] **T1.12a — Backend test configuration** (2026-10-21, 8d6c0ba)
   - Release: R1 · Gate: task
   - REQs: REQ-042, REQ-072
   - Verifies: P1-V04, P1-V13
