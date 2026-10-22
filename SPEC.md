@@ -1470,7 +1470,7 @@ Write `docs/decisions/0000-adr-template.md` (context, decision, consequences, st
 
 Per G1's resolution (ADR-0028): `GET /api/health/` runs `SELECT 1` and returns 200 with `{"db": "ok"}`. If the database is unreachable, it returns 503. Phase 20 (20.4) keeps only the Lightsail health-check configuration.
 
-- [ ] **T1.13a — Frontend unit test configuration**
+- [x] **T1.13a — Frontend unit test configuration** (2026-10-21, ca3bbff)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: the configuration is exercised by the first unit test in Phase 12; `vue-tsc` and `eslint` already run in `make test`]
