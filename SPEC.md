@@ -1501,7 +1501,7 @@ Per G1's resolution (ADR-0028): `GET /api/health/` runs `SELECT 1` and returns 2
 - The `Makefile` targets from §0.3, each printing a short summary on success and the failing step's full output on failure.
 - `scripts/coverage_ratchet.py`, and an initial `coverage-baseline.json` captured from the first green run.
 
-- [ ] **T1.14b — Spec checks**
+- [x] **T1.14b — Spec checks** (2026-10-21, af55035)
   - Release: R1 · Gate: task
   - REQs: REQ-070
   - Verifies: P1-V10, P1-V21, P1-V22
