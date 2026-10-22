@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "drf_spectacular",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -89,3 +90,14 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# OpenAPI (§4.6). The harness needs a generator; T5.5 adds the schema endpoint and tags.
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Cup Noobles API",
+    "VERSION": "1.0.0",
+    "OAS_VERSION": "3.1.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
