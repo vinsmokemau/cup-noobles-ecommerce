@@ -15,6 +15,7 @@ __pycache__/
 .ruff_cache/
 .hypothesis/
 .coverage
+web/coverage/
 node_modules/
 .nuxt/
 .output/
