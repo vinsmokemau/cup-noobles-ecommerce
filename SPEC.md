@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.3 |
+| Spec version | 1.4 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -396,7 +396,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 
 | ID | Owning phase | Exposed by | Gap | Proposed resolution (not applied) | Release | Status |
 |---|---|---|---|---|---|---|
-| G1 | 1 | P1-V11, P1-V17 | `/api/health/` is verified in Phase 1 but specified only in 20.4 | Move the endpoint into Phase 1; 20.4 keeps the Lightsail health-check configuration | R1 | Open |
+| G1 | 1 | P1-V11, P1-V17 | `/api/health/` is verified in Phase 1 but specified only in 20.4 | Move the endpoint into Phase 1; 20.4 keeps the Lightsail health-check configuration | R1 | Resolved (ADR-0028) |
 | G2 | 4 | P4-V17, P8-V01 | The outbox writer is defined in 11.1, but Phases 4 and 8 already write outbox rows. Widened from the plan's Phase 6, which is now R2. | Move `enqueue_email()` (the write only, not sending) into Phase 4 | R1 | Open |
 | G3 | 8 | P8-V03, P8-V08 | 8.4 stores the `Idempotency-Key` "on the order", but no column holds it; reuse with a different body, the key's scope and its lifetime are undefined | `idempotency_key` plus a request fingerprint, with a partial unique index per cart token; a mismatched body returns 422 `idempotency_key_reused`. Schema change. | R1 | Open |
 | G4 | 8 | P8-V09, P13-V19 | A price change between the last view and "Pagar" applies silently | Checkout takes `expected_total_cents`; a mismatch returns 409 with fresh totals and reserves nothing | R1 | Open |
@@ -491,6 +491,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-17 | 2026-10-20 | T1.3: which apps does `INSTALLED_APPS` hold now? | No strong opinion; follow Claude's suggestion: keep it minimal, and each later task adds its own app. |
 | OA-18 | 2026-10-20 | `/decide` slows execution. Which decisions still need it? | Option A: `/decide` only for owner-only decisions (business values, brand and visual choices, conflicts between SPEC, an ADR and a DS doc). The agent decides technical choices that change no requirement, Verify ID or business value, and lists them as "Judgment calls" in the task report. New gaps and DSR items are registered in §2.4 without an ADR; an ADR is written only for a choice costly to reverse. |
 | OA-19 | 2026-10-20 | DS 1.0.1 fixes DSR-10. When is the pin raised? | Option A: a new task T1.17 right now, before T1.6. T1.8 depends on it. |
+| OA-20 | 2026-10-21 | G1: `/api/health/` is verified in Phase 1 but specified only in 20.4. Where does the endpoint live? | Option A: the proposed resolution. T1.16 builds `GET /api/health/` in Phase 1; Phase 20 keeps only the Lightsail health-check configuration. |
 
 ---
 
@@ -1466,9 +1467,8 @@ Write `docs/decisions/0000-adr-template.md` (context, decision, consequences, st
   - Verifies: P1-V11, P1-V17
   - Depends on: T1.12a
   - Context: §4.1
-  - Open items: G1 (tests xfail until decided)
 
-Per G1's proposed resolution: `GET /api/health/` runs `SELECT 1` and returns 200 with `{"db": "ok"}`. If the database is unreachable, it returns 503. Phase 20 (20.4) keeps only the Lightsail health-check configuration.
+Per G1's resolution (ADR-0028): `GET /api/health/` runs `SELECT 1` and returns 200 with `{"db": "ok"}`. If the database is unreachable, it returns 503. Phase 20 (20.4) keeps only the Lightsail health-check configuration.
 
 - [ ] **T1.13a — Frontend unit test configuration**
   - Release: R1 · Gate: task
@@ -1559,7 +1559,7 @@ Phase 1 also builds the frontend test harness, so several of its items are Playw
 | P1-V08 | E2E | `web/e2e/p1_guard.spec.ts` › `p1_v08 offline guard aborts external request` | A page request to `https://example.com` is aborted and marks the test failed (asserted in a self-test project with `test.fail()`). |
 | P1-V09 | E2E | `web/e2e/p1_smoke.spec.ts` › `p1_v09 index page loads and passes axe` | On both projects the app's index page loads and `expectNoA11yViolations` passes. |
 | P1-V10 | unit | `scripts/tests/test_check_traceability.py::test_p1_v10_missing_id_fails` | A spec fixture containing an ID with no matching collected test → exit 1 naming that ID. `[manual]` items are ignored. All IDs present → exit 0. |
-| P1-V11 | API | `api/tests/api/test_health.py::test_p1_v11_health_ok` | `GET /api/health/` → 200 with `{"db": "ok"}`. ⚠️ G1 |
+| P1-V11 | API | `api/tests/api/test_health.py::test_p1_v11_health_ok` | `GET /api/health/` → 200 with `{"db": "ok"}`. |
 | P1-V12 | architecture | `api/tests/architecture/test_vendor_imports.py::test_p1_v12_vendor_imports_confined` | The real tree passes. A checker self-test flags `import mercadopago` placed in `apps/orders/`. |
 | P1-V13 | integration | `api/tests/integration/test_harness.py::test_p1_v13_external_socket_blocked` | `socket.create_connection(("example.com", 443))` raises `SocketBlockedError`; a connection to `db` succeeds. |
 | P1-V14 | unit | `api/tests/unit/core/test_providers.py::test_p1_v14_prod_rejects_mock[switch]` | For each provider switch with a mock value, a subprocess running `django.setup()` with `config.settings.prod` exits non-zero with `ImproperlyConfigured`. |
@@ -1570,7 +1570,7 @@ Phase 1 also builds the frontend test harness, so several of its items are Playw
 |---|---|---|---|
 | P1-V15 | unit | `api/tests/unit/core/test_providers.py::test_p1_v15_unknown_provider_value_rejected[switch]` | Any unknown value (e.g. `PAYMENT_PROVIDER=stripe`) raises `ImproperlyConfigured` listing the allowed values, for every registry switch. |
 | P1-V16 | unit | `api/tests/unit/core/test_settings.py::test_p1_v16_prod_forces_dev_tools_off` | `prod.py` with `DEV_TOOLS_ENABLED=true` in the environment still yields `False`. |
-| P1-V17 | API | `api/tests/api/test_health.py::test_p1_v17_health_503_when_db_down` | When the DB cursor raises `OperationalError`, `/api/health/` returns 503. ⚠️ G1 |
+| P1-V17 | API | `api/tests/api/test_health.py::test_p1_v17_health_503_when_db_down` | When the DB cursor raises `OperationalError`, `/api/health/` returns 503. |
 | P1-V18 | unit | `api/tests/unit/core/test_settings.py::test_p1_v18_prod_hasher_is_argon2` | `prod.py` lists `Argon2PasswordHasher` first; `test.py` uses MD5 (§4.6). |
 | P1-V19 | architecture | `api/tests/architecture/test_provider_selection.py::test_p1_v19_implementations_imported_only_by_registry` | A self-test snippet importing `apps.payments.mock` from `apps/orders/` is flagged; the real tree passes. |
 
@@ -4894,7 +4894,7 @@ Running `migrate` in the entrypoint is safe with a single node and removes a who
 
 `infra/lightsail/containers.json` and `public-endpoint.json`. Public endpoint → `proxy`, port 80, health check path `/api/health/`, 3 healthy / 2 unhealthy thresholds. Every secret appears as a `${VAR}` placeholder filled by `envsubst` at deploy time (T20.6).
 
-- ~~**T20.4 — Health endpoint**~~ Absorbed by T1.16 (the endpoint) and T20.3 (the health-check configuration), per G1's proposed resolution. If G1 is decided otherwise, this task returns.
+- ~~**T20.4 — Health endpoint**~~ Absorbed by T1.16 (the endpoint) and T20.3 (the health-check configuration), per G1's resolution (ADR-0028).
 
 - [ ] **T20.10 — Production scheduler**
   - Release: R1 · Gate: task
@@ -5289,7 +5289,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Needed by | Items |
 |---|---|
 | Before Phase 1 | S5 (repository name), ~~S8~~ |
-| Phase 1 | G1, G29 |
+| Phase 1 | ~~G1~~, G29 |
 | Before Phase 2 (schema) | D14 (types), D16 (fields); the R1 schema items G3, G5, G28, G31, G33, G34 (§4.4) |
 | Phase 3 | G12, G39 |
 | Phase 4 | G2, G15, G20, G24, G34, G37, G38 |
@@ -5321,6 +5321,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.1 | 2026-10-20 | S8 resolved (read access granted); T1.5 no longer blocked. T1.3 names the mock values `prod.py` rejects. No requirement, Verify ID or schema change. | OA-15, OA-16, OA-17; ADR-0026, ADR-0027 |
 | 1.2 | 2026-10-20 | Lighter decision process: `/decide` only for owner-only decisions; "Judgment calls" item added to the task report (§0.2); DSR-10 registered (`CnMediaCard` type error). No requirement, Verify ID or schema change. | OA-18 |
 | 1.3 | 2026-10-20 | Design System pin raised to 1.0.1 (fixes DSR-10). New task T1.17; T1.8 depends on it. A17, §4.5 and the header cite 1.0.1. No requirement, Verify ID or schema change. | OA-19 |
+| 1.4 | 2026-10-21 | G1 resolved: the health endpoint moves into Phase 1 (T1.16); T20.4 stays absorbed by T1.16 and T20.3; T1.16 loses its `xfail` open item. No Verify ID or schema change. | OA-20; ADR-0028 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5397,6 +5398,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0025 | Brand assets from the Design System | `docs/decisions/0025-brand-assets.md` | D11 |
 | ADR-0026 | Read access to the Design System packages | `docs/decisions/0026-ds-package-read-access.md` | S8; OA-15 |
 | ADR-0027 | Which values `prod.py` rejects, and the installed apps | `docs/decisions/0027-prod-settings-mock-rejection.md` | T1.3; OA-16, OA-17 |
+| ADR-0028 | Health endpoint in Phase 1 | `docs/decisions/0028-health-endpoint-phase-1.md` | G1; OA-20 |
 
 ## Appendix C — Dated market facts
 
@@ -5528,7 +5530,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T1.13 | Split into T1.13a (Vitest) and T1.13b (Playwright harness); axe tags now WCAG 2.2 | One session each; CR-35 |
 | T1.14 | Split into T1.14a (Make targets, ratchet) and T1.14b (spec checks); copying the plan to `docs/` is dropped | One session each; §4.6 |
 | T1.15 | New: seed ADR-0001 to ADR-0025 | §4.2; OA-12 |
-| T1.16 | New: health endpoint per G1's proposal | G1 |
+| T1.16 | New: health endpoint per G1's resolution | G1; ADR-0028 |
 | P1-V03 | Assertion cites §0.3; the CI half is now P1-V23 instead of Phase 20 | G29 |
 | P1-V09 | "Nuxt welcome page" → "the app's index page" | The app extends the DS layer |
 | P1-V10 | "plan fixture" → "spec fixture" | The spec replaces the plan |
@@ -5913,7 +5915,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T20.1 | Notes that the `scheduler` container shares the image and must not run `migrate` | G23; R-07 |
 | T20.2 | `npm ci` → pnpm with `NODE_AUTH_TOKEN` as a build secret | §4.5; C-11 |
 | T20.3 | Secrets appear only as `${VAR}` placeholders | CR-50 |
-| T20.4 | Absorbed by T1.16 and T20.3 | G1's proposed resolution |
+| T20.4 | Absorbed by T1.16 and T20.3 | G1; ADR-0028 |
 | T20.5 | The owner creates the secrets; the agent lists them | §0.1 step 12 |
 | T20.6 | Moved last as the phase-close task; the smoke step also checks the HTTP redirect and HSTS; D1 listed as blocking | §0.2; plan checklist; §7.2 |
 | T20.9 | Struck: recorded as ADR-0015 | It is a decision, not a task |
