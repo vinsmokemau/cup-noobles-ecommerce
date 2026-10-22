@@ -1450,7 +1450,7 @@ Write `docs/decisions/0000-adr-template.md` (context, decision, consequences, st
 - `tests/concurrency.py::run_concurrently`, plus one self-test showing that two threads really hold separate connections.
 - `tests/architecture/test_no_direct_state_assignment.py` and `test_stock_mutation_boundary.py`, with the checkers exposed as `check_source(path, source)` for self-tests.
 
-- [ ] **T1.12c — Contract and migration harness**
+- [x] **T1.12c — Contract and migration harness** (2026-10-21, 35ec3db)
   - Release: R1 · Gate: task
   - REQs: REQ-054
   - Verifies: P1-V07
