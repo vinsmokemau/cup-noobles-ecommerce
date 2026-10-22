@@ -1491,7 +1491,7 @@ Per G1's resolution (ADR-0028): `GET /api/health/` runs `SELECT 1` and returns 2
 - `docker-compose.e2e.yml` and a first `manage.py seed_e2e`.
 - One smoke spec: the app's index page loads and passes axe.
 
-- [ ] **T1.14a — Make targets and coverage ratchet**
+- [x] **T1.14a — Make targets and coverage ratchet** (2026-10-21, 19f104d)
   - Release: R1 · Gate: task
   - REQs: REQ-071, REQ-073
   - Verifies: P1-V03, P1-V06
