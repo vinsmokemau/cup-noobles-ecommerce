@@ -69,5 +69,23 @@ known-first-party = ["apps", "config", "tests"]
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 pythonpath = ["."]
+testpaths = ["tests"]
+timeout = 60
 # Part A is offline (CR-41, A13): only the local database host may be reached.
-addopts = "--disable-socket --allow-hosts=127.0.0.1,localhost,db"
+addopts = "--strict-markers --reuse-db -p randomly --disable-socket --allow-hosts=127.0.0.1,localhost,db"
+markers = [
+    "slow: long-running tests, only in make test-all",
+    "concurrency: threads with separate database connections",
+    "sandbox: provider sandbox contract tests, sockets enabled (Phase 16)",
+    "integrations: vendor adapters against fake clients (Phase 16)",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["apps"]
+omit = [
+    "*/migrations/*",
+    "*/config/settings/*",
+    "*/manage.py",
+    "*/tests/*",
+]
