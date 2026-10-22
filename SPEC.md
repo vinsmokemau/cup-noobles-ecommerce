@@ -1421,7 +1421,7 @@ Integration scaffolding from §4.3:
 - `pytest-socket` configured with `--disable-socket --allow-hosts=127.0.0.1,localhost,db`
 - the ESLint `no-restricted-imports` rule for `@sentry/*`
 
-- [ ] **T1.15 — Seed the decision records**
+- [x] **T1.15 — Seed the decision records** (2026-10-21, 6d80c8a)
   - Release: R1 · Gate: task
   - REQs: REQ-070
   - Verifies: [no-test: documents; `check_register` (P1-V22, T1.14b) checks that every resolved item cites an existing ADR]
