@@ -2,5 +2,35 @@ openapi: 3.1.0
 info:
   title: Cup Noobles API
   version: 1.0.0
-paths: {}
-components: {}
+paths:
+  /api/health/:
+    get:
+      operationId: api_health_retrieve
+      description: '`GET /api/health/`: the database answers `SELECT 1`, or the service
+        is unhealthy.'
+      tags:
+      - api
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+          description: The database is reachable.
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+          description: The database is unreachable.
+components:
+  schemas:
+    Health:
+      type: object
+      properties:
+        db:
+          type: string
+      required:
+      - db

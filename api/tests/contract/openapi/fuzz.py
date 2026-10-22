@@ -4,6 +4,8 @@ from collections.abc import Callable
 
 import schemathesis
 import yaml
+from django.core.signals import request_finished, request_started
+from django.db import close_old_connections
 from hypothesis import HealthCheck, given, settings
 from schemathesis.checks import (
     content_type_conformance,
@@ -29,6 +31,19 @@ def fuzz_schema(
 
     Raises on the first failed check. A schema with no operations passes.
     """
+    # The Django test client does this too: a request must not close the test's connection.
+    request_started.disconnect(close_old_connections)
+    request_finished.disconnect(close_old_connections)
+    try:
+        return _fuzz(schema_text, app, max_examples=max_examples, headers=headers)
+    finally:
+        request_started.connect(close_old_connections)
+        request_finished.connect(close_old_connections)
+
+
+def _fuzz(
+    schema_text: str, app: Callable, *, max_examples: int, headers: dict | None
+) -> int:
     schema = schemathesis.openapi.from_dict(yaml.safe_load(schema_text))
     schema = schema.exclude(path_regex=EXCLUDED_PATH_REGEX)
     count = 0
