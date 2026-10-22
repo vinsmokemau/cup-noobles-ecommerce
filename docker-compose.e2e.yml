@@ -1,0 +1,60 @@
+# End-to-end stack (SPEC.md §4.6, T1.13b). Used with docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.e2e.yml up --wait
+# Every provider is pinned to its mock, whatever the shell says, webhooks fire at once,
+# and the api migrates and runs `seed_e2e` before it serves.
+
+# (Compose merges `environment` across files, so only the e2e values are set here.)
+x-e2e-env: &e2e-env
+  PAYMENT_PROVIDER: mock
+  CARRIER_PROVIDER: mock
+  EMAIL_PROVIDER: file
+  MEDIA_STORAGE: local
+  POSTAL_CODE_DATASET: sample
+  ERROR_TRACKING: "off"
+  INVOICE_PROVIDER: manual
+  DEV_TOOLS_ENABLED: "true"
+  MOCK_WEBHOOK_DELAY_SECONDS: "0"
+
+services:
+  api:
+    environment:
+      <<: *e2e-env
+    command:
+      - sh
+      - -c
+      - python manage.py migrate --noinput && python manage.py seed_e2e && python manage.py runserver 0.0.0.0:8000
+    healthcheck:
+      # The first schema request runs alone, here: drf-spectacular loads its extensions lazily and
+      # two concurrent first requests (the desktop and mobile projects) can crash it with a 500.
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request as u; [u.urlopen('http://localhost:8000' + p) for p in ('/api/health/', '/api/schema/')]"
+      interval: 3s
+      timeout: 5s
+      retries: 40
+
+  web:
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 5s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
+
+  proxy:
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8080/api/health/"]
+      interval: 3s
+      timeout: 5s
+      retries: 20

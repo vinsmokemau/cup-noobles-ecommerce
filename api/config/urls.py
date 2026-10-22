@@ -1,9 +1,14 @@
 """Root URL configuration. Each task adds its own routes."""
 
+from django.contrib import admin
 from django.urls import path
+from drf_spectacular.views import SpectacularAPIView
 
 from apps.core.views import HealthView
 
 urlpatterns = [
     path("api/health/", HealthView.as_view(), name="health"),
+    # T1.13b: the bare endpoint P1-V01 reads through the proxy; T5.5 extends the schema work.
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("admin/", admin.site.urls),
 ]

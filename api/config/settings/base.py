@@ -31,6 +31,7 @@ DEV_TOOLS_ENABLED = env.bool("DEV_TOOLS_ENABLED", default=False)
 DEBUG = False
 
 INSTALLED_APPS = [
+    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -38,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "drf_spectacular",
+    "apps.core",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -91,7 +93,7 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# OpenAPI (§4.6). The harness needs a generator; T5.5 adds the schema endpoint and tags.
+# OpenAPI (§4.6). The harness needs a generator; T1.13b mounts the bare schema endpoint; T5.5 adds tags.
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
@@ -100,4 +102,5 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "OAS_VERSION": "3.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "SCHEMA_PATH_PREFIX": "/",
 }
