@@ -20,6 +20,9 @@ STEP     := sh scripts/run_step.sh
 SKIP     := sh scripts/run_step.sh --skip
 
 RELEASE ?= R1
+# Verify IDs of later phases have no tests yet. `current` checks the phases up to the first one
+# whose phase-close task is open; `all` checks the whole release (the final acceptance).
+TRACE_THROUGH ?= current
 # Set to 1 at the close of a phase to enforce the coverage gates (§0.2, §4.6).
 PHASE_CLOSE ?= 0
 
@@ -152,4 +155,11 @@ coverage-ratchet-check:
 	@$(STEP) "coverage ratchet" $(API) $(RATCHET) --only ratchet
 
 traceability:
-	@if [ -f scripts/check_traceability.py ]; then $(STEP) "traceability $(RELEASE)" $(API) python /repo/scripts/check_traceability.py --release $(RELEASE); else $(SKIP) "traceability $(RELEASE)" "arrives with T1.14b"; fi
+	@if [ -f scripts/check_traceability.py ]; then \
+	  $(STEP) "collect pytest names" sh -c '$(API_TEST) pytest --collect-only -q > var/names-pytest.txt' && \
+	  $(STEP) "collect scripts names" sh -c '$(API) python -m pytest --collect-only -q -c /repo/scripts/pytest.ini -p no:django /repo/scripts/tests > var/names-scripts.txt' && \
+	  $(STEP) "collect vitest names" sh -c '$(WEB) pnpm exec vitest list > var/names-vitest.txt' && \
+	  $(STEP) "collect playwright names" sh -c 'cd web && pnpm exec playwright test --list > ../var/names-playwright.txt' && \
+	  $(STEP) "traceability $(RELEASE)" $(API) python /repo/scripts/check_traceability.py --release $(RELEASE) \
+	    --through-phase $(TRACE_THROUGH) --names /repo/var/names-pytest.txt /repo/var/names-scripts.txt /repo/var/names-vitest.txt /repo/var/names-playwright.txt; \
+	else $(SKIP) "traceability $(RELEASE)" "arrives with T1.14b"; fi
