@@ -1365,7 +1365,7 @@ Set `PASSWORD_HASHERS` with `Argon2PasswordHasher` first (absorbs plan 1.4).
 
 `docker-compose.yml` for local development: `postgres:16`, `api`, `web`, `caddy`, and `scheduler` (built from the `api` image, running `supercronic infra/crontab`; §4.8). `infra/crontab` starts empty; each job's task adds its line. The local Caddyfile mirrors production routing exactly — `/api/*` and `/admin/*` to Django, `/*` to Nuxt — so routing bugs surface locally. The `web` image build receives `NODE_AUTH_TOKEN` as a build secret, never as a build argument or layer (§4.5).
 
-- [ ] **T1.7 — Proxy routing**
+- [x] **T1.7 — Proxy routing** (2026-10-21, db5ce9c)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: P1-V01 and P1-V02 (T1.13b)]
