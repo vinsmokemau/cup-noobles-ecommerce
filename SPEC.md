@@ -1405,7 +1405,7 @@ DS 1.0.0 fails `vue-tsc` in `CnMediaCard.vue` (DSR-10). Raise the three DS packa
 
 `ruff` for lint and format (replaces black, isort and flake8). `eslint` and `prettier` through `@nuxt/eslint`. `markdownlint-cli2` on `SPEC.md`, `docs/` and `README.md`, with the bootstrap `.markdownlint-cli2.jsonc`, so every spec edit stays well-formed. A pre-commit hook running all three; `make test` runs them too.
 
-- [ ] **T1.11 — Integration scaffolding**
+- [x] **T1.11 — Integration scaffolding** (2026-10-21, db85f84)
   - Release: R1 · Gate: task
   - REQs: REQ-040
   - Verifies: P1-V12, P1-V15, P1-V19
