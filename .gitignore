@@ -21,3 +21,7 @@ node_modules/
 .output/
 playwright-report/
 test-results/
+
+# coverage reports
+coverage.json
+api/coverage.json

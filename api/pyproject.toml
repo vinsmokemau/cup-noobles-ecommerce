@@ -89,3 +89,14 @@ omit = [
     "*/manage.py",
     "*/tests/*",
 ]
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["mypy_django_plugin.main"]
+explicit_package_bases = true
+mypy_path = "$MYPY_CONFIG_FILE_DIR"
+exclude = ["/migrations/"]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "config.settings.test"

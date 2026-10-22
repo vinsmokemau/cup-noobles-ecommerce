@@ -54,7 +54,9 @@ def field_write_violations(
             and len(node.args) >= 2
             and _is_constant_str(node.args[1], fields)
         ):
-            found.append((node.lineno, f"setattr(…, {node.args[1].value!r}, …)"))
+            found.append(
+                (node.lineno, f"setattr(…, {ast.literal_eval(node.args[1])!r}, …)")
+            )
         if isinstance(node.func, ast.Attribute) and node.func.attr == "update":
             found += [
                 (node.lineno, f".update({kw.arg}=…)")

@@ -19,4 +19,4 @@ CSRF_TRUSTED_ORIGINS = ["http://localhost:8080"]
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
 # A missing template variable shows in the output.
-TEMPLATES[0]["OPTIONS"]["string_if_invalid"] = "⟦MISSING:%s⟧"
+TEMPLATES[0]["OPTIONS"]["string_if_invalid"] = "⟦MISSING:%s⟧"  # type: ignore[index]

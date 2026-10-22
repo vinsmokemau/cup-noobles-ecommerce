@@ -9,6 +9,7 @@ export default withNuxt(
       '.output/**',
       'playwright-report/**',
       'test-results/**',
+      'coverage/**',
       'app/types/api.d.ts',
     ],
   },

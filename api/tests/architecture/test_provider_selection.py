@@ -47,7 +47,7 @@ def imported_modules(path: str, source: str) -> set[str]:
     package = module_name(path)
     if not path.endswith("/__init__.py"):
         package = package.rpartition(".")[0]
-    found = set()
+    found: set[str] = set()
     for node in ast.walk(ast.parse(source)):
         if isinstance(node, ast.Import):
             found.update(alias.name for alias in node.names)

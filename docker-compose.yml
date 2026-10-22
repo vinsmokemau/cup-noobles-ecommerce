@@ -38,6 +38,8 @@ services:
     volumes:
       - ./api:/app
       - ./var:/app/var
+      # The repository root, so the suite can read the Makefile and run scripts/ (T1.14a).
+      - ./:/repo
     depends_on:
       db:
         condition: service_healthy

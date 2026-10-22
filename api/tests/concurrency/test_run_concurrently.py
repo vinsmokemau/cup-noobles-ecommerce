@@ -3,7 +3,7 @@
 import pytest
 from django.db import connection
 
-from tests.concurrency import run_concurrently
+from tests.concurrency import run_concurrently  # type: ignore[attr-defined]  # tests/concurrency/ is also a directory
 
 pytestmark = [pytest.mark.concurrency, pytest.mark.django_db(transaction=True)]
 

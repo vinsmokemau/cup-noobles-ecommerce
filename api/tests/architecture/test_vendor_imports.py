@@ -21,7 +21,7 @@ VENDOR_ALLOWLIST = {
 
 def imported_packages(source: str) -> set[str]:
     """Top-level package of every absolute import, wherever it sits in the file."""
-    found = set()
+    found: set[str] = set()
     for node in ast.walk(ast.parse(source)):
         if isinstance(node, ast.Import):
             found.update(alias.name.split(".")[0] for alias in node.names)

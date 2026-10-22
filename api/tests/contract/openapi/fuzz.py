@@ -1,6 +1,7 @@
 """In-process schemathesis runner for the live OpenAPI schema (SPEC.md §4.6)."""
 
 from collections.abc import Callable
+from typing import Any
 
 import schemathesis
 import yaml
@@ -44,7 +45,7 @@ def fuzz_schema(
 def _fuzz(
     schema_text: str, app: Callable, *, max_examples: int, headers: dict | None
 ) -> int:
-    schema = schemathesis.openapi.from_dict(yaml.safe_load(schema_text))
+    schema: Any = schemathesis.openapi.from_dict(yaml.safe_load(schema_text))
     schema = schema.exclude(path_regex=EXCLUDED_PATH_REGEX)
     count = 0
     for result in schema.get_all_operations():
