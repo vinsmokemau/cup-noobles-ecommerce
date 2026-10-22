@@ -1479,7 +1479,7 @@ Per G1's resolution (ADR-0028): `GET /api/health/` runs `SELECT 1` and returns 2
 
 `vitest.config.ts` with `environment: "nuxt"` and coverage thresholds for `app/composables/**`.
 
-- [ ] **T1.13b — End-to-end harness**
+- [x] **T1.13b — End-to-end harness** (2026-10-21, 20ce6fe)
   - Release: R1 · Gate: task
   - REQs: REQ-042, REQ-051
   - Verifies: P1-V01, P1-V02, P1-V08, P1-V09, P1-V20
