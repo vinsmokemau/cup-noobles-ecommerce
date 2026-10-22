@@ -1461,7 +1461,7 @@ Write `docs/decisions/0000-adr-template.md` (context, decision, consequences, st
 - `tests/contract/openapi/`: the snapshot test and the schemathesis test.
 - `tests/migrations/test_all_migrations_reversible.py`.
 
-- [ ] **T1.16 — Health endpoint**
+- [x] **T1.16 — Health endpoint** (2026-10-21, a8e301d)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P1-V11, P1-V17
