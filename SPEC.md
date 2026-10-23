@@ -1511,7 +1511,7 @@ Per G1's resolution (ADR-0028): `GET /api/health/` runs `SELECT 1` and returns 2
 - `scripts/check_traceability.py --release <R>`: reads the Verify tables of `SPEC.md` §6 and enforces §4.6. `make test-all` runs it with the release in progress.
 - `scripts/check_register.py`: the register check in §4.6. `make test` runs it.
 
-- [ ] **T1.10 — README**
+- [x] **T1.10 — README** (2026-10-22, 6a64766)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: documentation]
