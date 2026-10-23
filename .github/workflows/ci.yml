@@ -1,0 +1,96 @@
+# Continuous integration (SPEC.md §0.3, §4.5, T1.9). Runs `make test-all` on every push and
+# pull request. Branch protection on `main` requires the `test-all` check (an owner step).
+name: ci
+
+on:
+  push:
+  pull_request:
+
+# A run superseded by a newer push to the same branch is cancelled.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# The Design System packages are private on GitHub Packages (§4.5).
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  test-all:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.6.0
+
+      # Writes the `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}` line for the install.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://npm.pkg.github.com
+          scope: "@vinsmokemau"
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: api/uv.lock
+
+      - name: Cache hypothesis examples
+        uses: actions/cache@v4
+        with:
+          path: api/.hypothesis
+          key: hypothesis-${{ runner.os }}-${{ github.sha }}
+          restore-keys: hypothesis-${{ runner.os }}-
+
+      # The host runs the linters and Playwright; the images run everything else.
+      - name: Install web dependencies
+        working-directory: web
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Install API dependencies
+        working-directory: api
+        run: uv sync --frozen
+
+      - name: Install Playwright browsers
+        working-directory: web
+        run: pnpm exec playwright install --with-deps chromium
+
+      # The web image build reads NODE_AUTH_TOKEN as a build secret (docker-compose.yml).
+      - name: make test-all
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: make test-all
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml down --volumes
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: |
+            api/htmlcov/
+            web/coverage/
+          if-no-files-found: ignore
+
+      - name: Upload Playwright report and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            web/playwright-report/
+            web/test-results/
+          if-no-files-found: ignore
