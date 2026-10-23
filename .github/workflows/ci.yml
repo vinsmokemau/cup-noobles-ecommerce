@@ -65,11 +65,15 @@ jobs:
         working-directory: web
         run: pnpm exec playwright install --with-deps chromium
 
+      # `var/` is gitignored. If Docker creates it through the bind mount it is owned by root, and
+      # the Makefile's host-side redirects into it (traceability, ratchet) fail with "Permission denied".
       # The web image build reads NODE_AUTH_TOKEN as a build secret (docker-compose.yml).
       - name: make test-all
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: make test-all
+        run: |
+          mkdir -p var
+          make test-all
 
       - name: Stop the stack
         if: always()
