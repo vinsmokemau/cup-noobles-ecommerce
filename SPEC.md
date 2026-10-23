@@ -1520,7 +1520,7 @@ Per G1's resolution (ADR-0028): `GET /api/health/` runs `SELECT 1` and returns 2
 
 `README.md` with: how to start, how to install the DS packages (§4.5), how to run migrations, how to seed, how to run tests, where secrets live. Keep it current — it is the only onboarding doc besides this spec.
 
-- [ ] **T1.9 — Continuous integration**
+- [x] **T1.9 — Continuous integration** (2026-10-23, 9be4861)
   - Release: R1 · Gate: phase-close
   - REQs: REQ-073
   - Verifies: P1-V23 [manual]

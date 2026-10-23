@@ -141,6 +141,17 @@ def test_p1_v21_through_phase_limits_the_ids(tmp_path):
     assert run(tmp_path, spec, names, "--release", "R1") == 1  # P2-V01 has no test
 
 
+def test_p1_v21_current_enforces_a_phase_only_once_it_is_closed(tmp_path):
+    names = "test_p1_v01_a\ntest_p1_v02_b\n"
+    closed = spec_with(*ROWS, phase_close_done=True)
+    through = ("--release", "R1", "--through-phase", "current")
+    # Phase 1 closed, Phase 2 still being built: its missing P2-V01 must not fail the run.
+    assert tr.last_closed_phase(closed) == 1
+    assert run(tmp_path, closed, names, *through) == 0
+    # The closing commit enforces Phase 1: a missing P1 test fails.
+    assert run(tmp_path, closed, "test_p1_v01_a\n", *through) == 1
+
+
 def test_p1_v21_workflow_job_names_count(tmp_path):
     workflows = tmp_path / "wf"
     workflows.mkdir()
