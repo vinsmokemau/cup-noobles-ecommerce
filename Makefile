@@ -20,8 +20,8 @@ STEP     := sh scripts/run_step.sh
 SKIP     := sh scripts/run_step.sh --skip
 
 RELEASE ?= R1
-# Verify IDs of later phases have no tests yet. `current` checks the phases up to the first one
-# whose phase-close task is open; `all` checks the whole release (the final acceptance).
+# Verify IDs of later phases have no tests yet. `current` checks the phases up to the last one
+# whose phase-close task is done; `all` checks the whole release (the final acceptance).
 TRACE_THROUGH ?= current
 # Set to 1 at the close of a phase to enforce the coverage gates (§0.2, §4.6).
 PHASE_CLOSE ?= 0

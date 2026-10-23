@@ -9,7 +9,8 @@ has no collected test whose name contains the ID in lowercase with underscores
   [R2]       outside the release in progress (`--release R1`)
 
 `--through-phase N|current|all` limits the check to the Verify IDs of phases 1..N. `current` is the
-first phase whose `Gate: phase-close` task is not yet done, so the check grows as phases close.
+last phase whose `Gate: phase-close` task is done, so the check grows as phases close and a phase's
+IDs are enforced from the commit that closes it, never while it is still being built.
 `--appendix` prints Appendix A from §3 and §6 instead of checking.
 
 Test names come from the files given to `--names` (one per collector, written by `make`
@@ -54,6 +55,13 @@ def current_phase(spec: str) -> int:
     closing = [t for t in specmd.tasks(spec) if t.phase_close]
     open_phases = [t.phase for t in closing if not t.done]
     return min(open_phases) if open_phases else max(t.phase for t in closing)
+
+
+def last_closed_phase(spec: str) -> int:
+    """The last phase whose phase-close task is done; 0 while none is."""
+    return max(
+        (t.phase for t in specmd.tasks(spec) if t.phase_close and t.done), default=0
+    )
 
 
 def id_pattern(verify_id: str) -> re.Pattern[str]:
@@ -181,12 +189,12 @@ def main(argv: list[str] | None = None) -> int:
 
     through = None
     if args.through_phase in ("current", "all", None):
-        through = current_phase(spec) if args.through_phase == "current" else None
+        through = last_closed_phase(spec) if args.through_phase == "current" else None
     else:
         through = int(args.through_phase)
     result = check_traceability(spec, names, args.release, through)
 
-    scope = f" through phase {through}" if through else ""
+    scope = f" through phase {through}" if through is not None else ""
     summary = (
         f"traceability {args.release}{scope}: {len(result['found'])}/{len(result['required'])} IDs "
         f"have a test; {len(result['manual'])} manual, {len(result['deferred'])} deferred"
