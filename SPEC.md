@@ -1647,7 +1647,7 @@ Write the models and migrations for `"order"`, `order_line`, `order_event`, `pay
 
 - ~~**T2.3 — Custom user model**~~ Absorbed by T2.1a.
 
-- [ ] **T2.7 — Seed the states and the warehouse location**
+- [x] **T2.7 — Seed the states and the warehouse location** (2026-10-23, 4c2247b)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: P2-V15 (T2.8) asserts the states seed; P2-V18 (T2.9) checks the placeholder location]
