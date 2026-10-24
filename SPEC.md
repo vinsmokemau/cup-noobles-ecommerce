@@ -1756,7 +1756,7 @@ Execution order: T3.2, T3.1, T3.3, T3.4, T3.5, T3.6, T3.7. T3.2 comes first beca
 
 Slug generation: `slugify(name)`, append `-2`, `-3` on collision. Slugs are immutable after `published_at` is set — changing one breaks existing links and SEO. Enforce this in `save()`.
 
-- [ ] **T3.1 — Catalog services**
+- [x] **T3.1 — Catalog services** (2026-10-23, ea81176)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P3-V07, P3-V12
