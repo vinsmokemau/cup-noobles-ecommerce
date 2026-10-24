@@ -1612,7 +1612,7 @@ The Release 1 schema items in §4.4 (G3, G5, G28, G31, G33, G34) are best decide
 
 #### Tasks
 
-- [ ] **T2.1a — Customer model and catalog tables**
+- [x] **T2.1a — Customer model and catalog tables** (2026-10-23, 594fc38)
   - Release: R1 · Gate: task
   - REQs: REQ-013
   - Verifies: P2-V03, P2-V06, P2-V08, P2-V12
