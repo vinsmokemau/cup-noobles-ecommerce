@@ -13,6 +13,7 @@ from django.db import models
 from django.db.models import F, Q, Value
 from django.utils import timezone
 
+from apps.catalog.slugs import ensure_slug_unchanged, unique_slug
 from apps.catalog.validation import validate_attributes
 from apps.core.db import GEN_RANDOM_UUID, NOW
 from apps.core.fields import CITextField
@@ -195,6 +196,12 @@ class Product(models.Model):
         update_fields = kwargs.get("update_fields")
         if update_fields is None or {"attributes", "product_type"} & set(update_fields):
             self.clean()
+        if not self.slug:
+            self.slug = unique_slug(Product, self.name, exclude_pk=self.pk)
+            if update_fields is not None:
+                kwargs["update_fields"] = {*update_fields, "slug"}
+        if update_fields is None or "slug" in update_fields:
+            ensure_slug_unchanged(self)
         super().save(*args, **kwargs)
 
 
