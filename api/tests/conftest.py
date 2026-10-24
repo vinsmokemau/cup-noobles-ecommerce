@@ -2,14 +2,17 @@ import os
 import re
 from collections.abc import Sequence
 from contextlib import ExitStack
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
 import pytest
 import time_machine
+from django.core.files.base import ContentFile
 from django.db import connection
 from hypothesis import HealthCheck
 from hypothesis import settings as hypothesis_settings
+from PIL import Image
 from rest_framework.test import APIClient
 
 from apps.core import providers
@@ -44,6 +47,21 @@ def _isolated_file_stores(settings, tmp_path):
     """Emails and mock-provider state go to a per-test directory (§4.6)."""
     settings.EMAIL_FILE_DIR = str(tmp_path / "emails")
     settings.MOCK_STORE_DIR = str(tmp_path / "mock_store")
+    settings.MEDIA_ROOT = str(tmp_path / "media")
+
+
+@pytest.fixture
+def jpeg_image():
+    """`jpeg_image(width)`: a Pillow-generated in-memory JPEG, 2:3 portrait by default."""
+
+    def make(width: int, height: int | None = None) -> ContentFile:
+        buffer = BytesIO()
+        Image.new("RGB", (width, height or width * 3 // 2), (200, 30, 90)).save(
+            buffer, "JPEG"
+        )
+        return ContentFile(buffer.getvalue(), name="foto.jpg")
+
+    return make
 
 
 @pytest.fixture

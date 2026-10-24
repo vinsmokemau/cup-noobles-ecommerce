@@ -15,6 +15,7 @@ dependencies = [
     "jsonschema",  # validates product.attributes
     "gunicorn",
     "whitenoise",
+    "pillow>=13.0.0",
 ]
 
 [dependency-groups]

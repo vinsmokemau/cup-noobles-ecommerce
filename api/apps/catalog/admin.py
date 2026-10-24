@@ -31,6 +31,7 @@ from apps.catalog.attribute_fields import (
     build_attribute_fields,
     collect_attributes,
 )
+from apps.catalog.images import process_image
 from apps.catalog.models import (
     Brand,
     Category,
@@ -115,11 +116,38 @@ class VariantInline(admin.TabularInline):
     )
 
 
+class ProductImageForm(forms.ModelForm):
+    """The owner uploads a file; the storage key and size come from `process_image` (T3.5)."""
+
+    file = forms.ImageField(required=False, label="Imagen")
+
+    class Meta:
+        model = ProductImage
+        fields = ("alt", "variant", "position")
+
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
+        if not self.instance.storage_key and not cleaned.get("file"):
+            self.add_error("file", "Sube una imagen.")
+        return cleaned
+
+    def save(self, commit: bool = True) -> ProductImage:
+        upload = self.cleaned_data.get("file")
+        if upload:
+            stored = process_image(upload)
+            self.instance.storage_key = stored.storage_key
+            self.instance.width = stored.width
+            self.instance.height = stored.height
+        return super().save(commit)
+
+
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
+    form = ProductImageForm
     extra = 0
     ordering = ("position", "pk")
-    fields = ("storage_key", "alt", "variant", "position", "width", "height")
+    fields = ("file", "alt", "variant", "position", "storage_key", "width", "height")
+    readonly_fields = ("storage_key", "width", "height")
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         # Only the variants of the product being edited.

@@ -111,6 +111,10 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# MEDIA_STORAGE=local: plain files under var/media/ (§4.3). The S3 backend arrives in Phase 18.
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "var" / "media"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # OpenAPI (§4.6). The harness needs a generator; T1.13b mounts the bare schema endpoint; T5.5 adds tags.
