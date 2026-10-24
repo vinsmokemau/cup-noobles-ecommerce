@@ -1770,7 +1770,7 @@ Slug generation: `slugify(name)`, append `-2`, `-3` on collision. Slugs are immu
 - `resolve_variant_axes(product) -> list[str]` (`product.variant_axes` if set, else `product_type.variant_axes`)
 - `publish_product(product)` / `archive_product(product)`
 
-- [ ] **T3.3 — Catalog admin**
+- [x] **T3.3 — Catalog admin** (2026-10-23, b7a7c3c)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P3-V01, P3-V08
