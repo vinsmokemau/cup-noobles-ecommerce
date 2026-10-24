@@ -1747,7 +1747,7 @@ Create `api/fixtures/cfdi_catalogs.json` with the two code lists offered at chec
 
 Execution order: T3.2, T3.1, T3.3, T3.4, T3.5, T3.6, T3.7. T3.2 comes first because `create_product` (T3.1) generates slugs with its rules. IDs keep their numbers (OA-30).
 
-- [ ] **T3.2 — Slugs**
+- [x] **T3.2 — Slugs** (2026-10-23, 10fbcc3)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P3-V05, P3-V06
