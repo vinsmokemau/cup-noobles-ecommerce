@@ -35,3 +35,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0029](0029-ci-branch-protection-phase-1.md) | CI and branch protection in Phase 1 | accepted | G29; OA-21 |
 | [ADR-0030](0030-release-1-schema-additions.md) | Release 1 schema additions | accepted | G3, G5, G28, G31, G33, G34; OA-22 to OA-27 |
 | [ADR-0031](0031-fk-delete-rules-in-orm.md) | Foreign key delete rules are enforced by Django | accepted | G40; OA-28 |
+| [ADR-0032](0032-seed-states-command.md) | States are loaded in production by a separate seed command | accepted | G41; OA-29 |
