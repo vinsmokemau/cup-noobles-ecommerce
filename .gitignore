@@ -25,3 +25,6 @@ test-results/
 # coverage reports
 coverage.json
 api/coverage.json
+
+# catalog files that may hold costs are read from a path given at run time (CR-49)
+*.private.csv

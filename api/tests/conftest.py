@@ -64,6 +64,34 @@ def jpeg_image():
     return make
 
 
+CATALOG_CSV_COLUMNS = (
+    "sku,product_slug,product_name,product_type,brand,franchise,categories,"
+    "price_mxn,options_json,attributes_json,weight_grams,image_urls"
+).split(",")
+
+
+@pytest.fixture
+def catalog_csv(tmp_path):
+    """`catalog_csv(rows)`: write an import file in `tmp_path` and return its path.
+
+    Each row is a dict of the importer's columns; a missing column is left empty. Extra keys
+    become extra columns, so a test can prove the importer ignores them.
+    """
+    import csv
+
+    def make(rows: Sequence[dict[str, Any]], name: str = "catalogo.csv") -> Path:
+        extra = [k for row in rows for k in row if k not in CATALOG_CSV_COLUMNS]
+        columns = [*CATALOG_CSV_COLUMNS, *dict.fromkeys(extra)]
+        path = tmp_path / name
+        with path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=columns)
+            writer.writeheader()
+            writer.writerows(rows)
+        return path
+
+    return make
+
+
 @pytest.fixture
 def raw_sql():
     """`raw_sql(statement, params)`: run SQL that bypasses the ORM, for constraint tests.
