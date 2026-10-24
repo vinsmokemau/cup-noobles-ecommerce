@@ -25,6 +25,14 @@ POSTAL_CODE_DATASET = env.str("POSTAL_CODE_DATASET", default="sample")
 ERROR_TRACKING = env.str("ERROR_TRACKING", default="off")
 INVOICE_PROVIDER = env.str("INVOICE_PROVIDER", default="manual")
 
+# Business settings (§4.7). The defaults are the D6 and D7 stand-ins of §2.5; `check_placeholders`
+# fails while a value still equals its default, so each needs the owner's decision before launch.
+RESERVATION_TTL_SPEI_HOURS = env.int("RESERVATION_TTL_SPEI_HOURS", default=4)
+RESERVATION_TTL_OXXO_HOURS = env.int("RESERVATION_TTL_OXXO_HOURS", default=72)
+PAYMENT_INSTALLMENT_OPTIONS = env.list(
+    "PAYMENT_INSTALLMENT_OPTIONS", cast=int, default=[3, 6]
+)
+
 # Gates the simulator, the mock tracking page, `/dev/test/` and the dev commands.
 DEV_TOOLS_ENABLED = env.bool("DEV_TOOLS_ENABLED", default=False)
 

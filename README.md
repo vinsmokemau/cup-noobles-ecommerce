@@ -60,6 +60,7 @@ make check-migrations   # fails if a model change has no migration
 | `docker compose run --rm api python manage.py seed_e2e` | Seeds the end-to-end data and writes `var/e2e/manifest.json`. The E2E stack (`docker-compose.e2e.yml`) runs it for you after migrating. |
 | `docker compose run --rm api python manage.py seed_states` | Seeds the 32 states into `mx_state`. Idempotent; production runs it in the deploy step (G41). |
 | `docker compose run --rm api python manage.py seed_dev_defaults` | Seeds the 32 states, the `[PLACEHOLDER]` warehouse `almacen` and the five launch product types, whose schemas carry the `[PLACEHOLDER]` comment (SPEC.md §2.5). Idempotent. Later tasks add the shipping zones and rates. |
+| `docker compose run --rm api python manage.py check_placeholders` | Exits non-zero while a §2.5 stand-in remains: a `[PLACEHOLDER]` location, shipping zone or rate; a product-type schema or `api/fixtures/cfdi_catalogs.json` with the `[PLACEHOLDER]` comment; the D6 or D7 settings at their dev defaults. The launch checklist requires exit 0 (REQ-065). |
 
 The demo data (`seed_demo`, `make demo`) arrive with later tasks (SPEC.md T3.7, T15.1). This table grows as they land.
 

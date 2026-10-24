@@ -1,0 +1,15 @@
+{
+  "$comment": "[PLACEHOLDER]",
+  "title": "SAMPLE — not authoritative",
+  "regimen_fiscal": [
+    { "code": "601", "name": "General de Ley Personas Morales" },
+    { "code": "612", "name": "Personas Físicas con Actividades Empresariales y Profesionales" },
+    { "code": "616", "name": "Sin obligaciones fiscales" },
+    { "code": "626", "name": "Régimen Simplificado de Confianza" }
+  ],
+  "uso_cfdi": [
+    { "code": "G01", "name": "Adquisición de mercancías" },
+    { "code": "G03", "name": "Gastos en general" },
+    { "code": "S01", "name": "Sin efectos fiscales" }
+  ]
+}
