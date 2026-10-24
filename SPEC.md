@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.8 |
+| Spec version | 1.9 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -503,6 +503,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-27 | 2026-10-23 | G33: how is the unit cost captured for reports? | Option A: the proposed resolution. `order_line.unit_cost_cents` snapshotted at order creation, plus admin CSV exports. ADR-0030. |
 | OA-28 | 2026-10-23 | G40: T2.1c found that Django 5.2 enforces the schema's `ON DELETE` rules in Python, not in the database. Enforce them in the database too? | Option A: accept as is. Only the four named foreign keys carry the exact rules; revisit on Django 6.0. ADR-0031. |
 | OA-29 | 2026-10-23 | G41: T2.7 seeds the 32 states only through the dev command `seed_dev_defaults`. How does production load them? | Option A: the proposed resolution. A separate idempotent `manage.py seed_states` command, run by the deploy step; `seed_dev_defaults` keeps calling the same function. ADR-0032 |
+| OA-30 | 2026-10-24 | Phase 3 task order: T3.1 generates slugs, but T3.2 (slugs) depended on T3.1. Reorder? | Option A: T3.2 runs first, then T3.1; the "Depends on" lines of T3.1, T3.2, T3.3 and T3.6 are fixed. No ADR: cheap to reverse, spec text only. |
 
 ---
 
@@ -1744,34 +1745,36 @@ Create `api/fixtures/cfdi_catalogs.json` with the two code lists offered at chec
 
 #### Tasks
 
-- [ ] **T3.1 — Catalog services**
-  - Release: R1 · Gate: task
-  - REQs: —
-  - Verifies: P3-V07, P3-V12
-  - Depends on: Phase 2 closed
-  - Context: §4.4 (the attribute-agnostic catalog)
-
-`apps/catalog/services.py` — pure functions, no HTTP:
-
-- `create_product(type_code, name, attributes, ...) -> Product` (validates attributes, generates slug)
-- `add_variant(product, options, price_cents, sku, ...) -> Variant` (rejects options whose keys don't match the resolved `variant_axes`)
-- `resolve_variant_axes(product) -> list[str]` (`product.variant_axes` if set, else `product_type.variant_axes`)
-- `publish_product(product)` / `archive_product(product)`
+Execution order: T3.2, T3.1, T3.3, T3.4, T3.5, T3.6, T3.7. T3.2 comes first because `create_product` (T3.1) generates slugs with its rules. IDs keep their numbers (OA-30).
 
 - [ ] **T3.2 — Slugs**
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P3-V05, P3-V06
-  - Depends on: T3.1
+  - Depends on: Phase 2 closed
   - Context: §4.4
 
 Slug generation: `slugify(name)`, append `-2`, `-3` on collision. Slugs are immutable after `published_at` is set — changing one breaks existing links and SEO. Enforce this in `save()`.
+
+- [ ] **T3.1 — Catalog services**
+  - Release: R1 · Gate: task
+  - REQs: —
+  - Verifies: P3-V07, P3-V12
+  - Depends on: T3.2
+  - Context: §4.4 (the attribute-agnostic catalog)
+
+`apps/catalog/services.py` — pure functions, no HTTP:
+
+- `create_product(type_code, name, attributes, ...) -> Product` (validates attributes, generates the slug with the T3.2 rules)
+- `add_variant(product, options, price_cents, sku, ...) -> Variant` (rejects options whose keys don't match the resolved `variant_axes`)
+- `resolve_variant_axes(product) -> list[str]` (`product.variant_axes` if set, else `product_type.variant_axes`)
+- `publish_product(product)` / `archive_product(product)`
 
 - [ ] **T3.3 — Catalog admin**
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P3-V01, P3-V08
-  - Depends on: T3.2
+  - Depends on: T3.1
   - Context: §4.4
 
 Admin registration:
@@ -1806,7 +1809,7 @@ Image handling: on upload, generate WebP derivatives at 400/800/1600px wide with
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P3-V03, P3-V09, P3-V10
-  - Depends on: T3.5
+  - Depends on: T3.5, T3.1, T3.2
   - Context: §4.4; CR-49
   - Open items: G12 (tests xfail until decided); G39 (follow the proposed resolution until decided); D12 (stand-in §2.5)
 
@@ -5324,6 +5327,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.6 | 2026-10-23 | G3, G5, G28, G31, G33 and G34 resolved: the Release 1 schema additions are in `spec/schema.sql` (`product.is_featured`, `featured_position`; `variant.purchase_limit`; `stock_item.bin_location`; `order.cart_token`, `idempotency_key`, `idempotency_fingerprint`; `order_line.unit_cost_cents`). T2.1a to T2.1c, T4.8, T5.1, T8.3 to T8.9 and T10.15 to T10.17 lose their open items, and the ⚠️ markers of the matching Verify rows are removed. D15 now also covers the purchase-limit window; new setting `PURCHASE_LIMIT_WINDOW_DAYS`. No Verify ID added or removed. | OA-22 to OA-27; ADR-0030 |
 | 1.7 | 2026-10-23 | G40 registered and resolved: the schema's `ON DELETE` rules are enforced by Django's ORM, not by the database, except on the four named foreign keys; revisit on Django 6.0. No requirement, Verify ID, task or schema change. | OA-28; ADR-0031 |
 | 1.8 | 2026-10-23 | G41 registered and resolved: production loads `mx_state` with a separate idempotent `manage.py seed_states` command, built in T2.7 and run in T22.3. No Verify ID or schema change. | OA-29; ADR-0032 |
+| 1.9 | 2026-10-24 | Phase 3 task order: T3.2 now precedes T3.1 (it was circular); "Depends on" fixed in T3.1, T3.2, T3.3 and T3.6; an execution-order note added. No Verify ID, schema or task-ID change. | OA-30 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
