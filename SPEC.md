@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.4 |
+| Spec version | 1.5 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -424,7 +424,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G26 | 8 | T18, P8-V07 | A `partially_refunded` order "stays fulfillable", but no transition leaves that state | Either add the fulfillment transitions from it, or record partial refunds on the payment without changing the order state | R1 | Open |
 | G27 | 8 | T17, A12, 9.4 rule 3, GE:T36 | A refund after delivery (a return), or of a late payment on an expired or cancelled order, can't be applied: those states are terminal | Allow the refund events from `completed`, `expired` and `cancelled` as recorded payment events | R1 | Open |
 | G28 | 12 | 12.A, P12-V13, 5.1 | "Featured" and "related" products have no data model or rule | A featured flag with a position on the product; related products by shared franchise or category | R1 | Open |
-| G29 | 1 | P1-V03, 1.9, P15-V14 | CI and branch protection are verified only in Phase 20, though Part A relies on them | Verify them in Phase 1, now that the repository is public; branch protection as a `[manual]` item | R1 | Open |
+| G29 | 1 | P1-V03, 1.9, P15-V14 | CI and branch protection are verified only in Phase 20, though Part A relies on them | Verify them in Phase 1, now that the repository is public; branch protection as a `[manual]` item | R1 | Resolved (ADR-0029) |
 | G30 | 6 | 6.6, Phase 22 | 6.6 calls the SEPOMEX data optional, but the launch checklist requires it | The full dataset is a launch requirement; the sample stays for Part A | R1 | Open |
 | G31 | 8 | GE:§7.1, GE:T20, GE:R10 | Purchase limits per customer are needed at launch, and no mechanism exists. With guest checkout, a customer has no account. | A limit per variant set in the admin; the T1 guard counts units in pending and paid orders that match the email, phone or shipping address within a window. The values are D15. | R1 | Open |
 | G32 | 3, 5, 12 | GE:T31, GE:T35, GE:T38, GE:M1 | The store must be live with real test purchases while the catalog is hidden, then published at once. Catalog responses are publicly cached (5.6). | A site-wide pre-launch switch. The public sees a "próximamente" page, which also serves GE:T04. Logged-in staff browse and buy, and their requests bypass the catalog cache. Going live is a bulk publish plus turning the switch off. | R1 | Open |
@@ -492,6 +492,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-18 | 2026-10-20 | `/decide` slows execution. Which decisions still need it? | Option A: `/decide` only for owner-only decisions (business values, brand and visual choices, conflicts between SPEC, an ADR and a DS doc). The agent decides technical choices that change no requirement, Verify ID or business value, and lists them as "Judgment calls" in the task report. New gaps and DSR items are registered in §2.4 without an ADR; an ADR is written only for a choice costly to reverse. |
 | OA-19 | 2026-10-20 | DS 1.0.1 fixes DSR-10. When is the pin raised? | Option A: a new task T1.17 right now, before T1.6. T1.8 depends on it. |
 | OA-20 | 2026-10-21 | G1: `/api/health/` is verified in Phase 1 but specified only in 20.4. Where does the endpoint live? | Option A: the proposed resolution. T1.16 builds `GET /api/health/` in Phase 1; Phase 20 keeps only the Lightsail health-check configuration. |
+| OA-21 | 2026-10-23 | G29: CI and branch protection are verified only in Phase 20. Where are they verified? | Option B: the proposed resolution, with the GitHub settings in force written into the record. P1-V23 is a `[manual]` item in Phase 1; ADR-0029 lists the settings. |
 
 ---
 
@@ -572,7 +573,7 @@ These come from the owner's execution guide (§1.2). Their mechanisms are propos
 | REQ-070 | Every Verify ID of the release in progress maps to a passing test, and the register in §2.4 matches the code and tests. | CR-39 | P1-V10 · P1-V21 · P1-V22 | R1 |
 | REQ-071 | Coverage meets its gates at phase close and never decreases. | CR-44 | P1-V06 | R1 |
 | REQ-072 | Migrations produce exactly `spec/schema.sql`, on PostgreSQL only, and every migration reverses. | CR-40 | P1-V04 · P2-V01 · P2-V07 | R1 |
-| REQ-073 | The full suite runs in CI on every push and pull request, and a red run blocks merging. | CR-37 | P1-V03 · P1-V23 ⚠️G29 · P15-V14 | R1 |
+| REQ-073 | The full suite runs in CI on every push and pull request, and a red run blocks merging. | CR-37 | P1-V03 · P1-V23 · P15-V14 | R1 |
 
 ## 4. Technical design
 
@@ -1526,7 +1527,6 @@ Per G1's resolution (ADR-0028): `GET /api/health/` runs `SELECT 1` and returns 2
   - Verifies: P1-V23 [manual]
   - Depends on: T1.10
   - Context: §0.3, §4.5 (Install and access), §4.6
-  - Open items: G29 (the manual check follows the proposed resolution until decided)
   - Done when: the first CI run on `main` is green, and the owner has configured branch protection.
 
 `.github/workflows/ci.yml` runs `make test-all` on every push and pull request.
@@ -1537,7 +1537,7 @@ Per G1's resolution (ADR-0028): `GET /api/health/` runs `SELECT 1` and returns 2
 
 `.github/pull_request_template.md` comes with the bootstrap pack: the task ID, the task report and, for a phase-close task, the phase-close report (§0.2), and a spec-sync checklist. Keep it in line with §0.2 when the reports change.
 
-The owner configures branch protection on `main`: the `test-all` check is required, force-pushes are disallowed, and merging is blocked while it is red. The agent lists the steps; it does not change GitHub settings (§0.1 step 12).
+The owner configures branch protection on `main`: the `test-all` check is required, force-pushes are disallowed, and merging is blocked while it is red. The agent lists the steps; it does not change GitHub settings (§0.1 step 12). The settings in force are recorded in ADR-0029.
 
 #### Verify — test specification
 
@@ -1581,7 +1581,7 @@ Phase 1 also builds the frontend test harness, so several of its items are Playw
 | P1-V20 | E2E | `web/e2e/p1_guard.spec.ts` › `p1_v20 axe runs the wcag 2.2 aa tags` | `expectNoA11yViolations` runs axe with exactly the tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa` and `wcag22aa`. A fixture page with a target smaller than 24 × 24 px (WCAG SC 2.5.8) fails it. |
 | P1-V21 | unit | `scripts/tests/test_check_traceability.py::test_p1_v21_release_aware` | `check_traceability` reads the Verify tables of `SPEC.md` §6. Run with `--release R1`: an R1 ID with no matching test exits 1 naming it; an ID tagged `[R2]` with no test passes; `[manual]` IDs are listed, not required. |
 | P1-V22 | unit | `scripts/tests/test_check_register.py::test_p1_v22_register_consistency` | `check_register` exits 1 when a test name, `xfail` reason or code comment cites an S, D, G, C or DSR ID absent from §2.4, when an item marked Resolved or Decided still has an `xfail`, or when a resolved item cites an ADR file that doesn't exist. The real tree passes. |
-| P1-V23 [manual] | CI | `.github/workflows/ci.yml` job `test-all` | `make test-all` is green on `main`; a pull request with a deliberately failing test turns the check red, and branch protection blocks merging it. ⚠️ G29 |
+| P1-V23 [manual] | CI | `.github/workflows/ci.yml` job `test-all` | `make test-all` is green on `main`; a pull request with a deliberately failing test turns the check red, and branch protection blocks merging it (ADR-0029). |
 
 **Fixtures and factories introduced** (reused by later phases)
 
@@ -4967,7 +4967,7 @@ Lightsail deployments are blue/green by default: the new version must pass healt
 
 > Every ID below is a named test (§4.6). The phase closes when every in-scope ID passes in `make test-all` (§0.2). ⚠️ G# marks a test written against a gap's proposed resolution, `xfail(strict=True, reason="G#")` until the gap is decided (§2.4). `[R2]` marks an ID outside Release 1; `[manual]` an ID checked by hand in the phase-close report.
 
-The plan's first two checklist items — `make test-all` green in CI on `main`, and branch protection blocking a red pull request — are now P1-V23 in Phase 1 (G29).
+The plan's first two checklist items — `make test-all` green in CI on `main`, and branch protection blocking a red pull request — are now P1-V23 in Phase 1 (G29, ADR-0029).
 
 **From the plan's checklist:**
 
@@ -5289,7 +5289,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Needed by | Items |
 |---|---|
 | Before Phase 1 | S5 (repository name), ~~S8~~ |
-| Phase 1 | ~~G1~~, G29 |
+| Phase 1 | ~~G1~~, ~~G29~~ |
 | Before Phase 2 (schema) | D14 (types), D16 (fields); the R1 schema items G3, G5, G28, G31, G33, G34 (§4.4) |
 | Phase 3 | G12, G39 |
 | Phase 4 | G2, G15, G20, G24, G34, G37, G38 |
@@ -5322,6 +5322,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.2 | 2026-10-20 | Lighter decision process: `/decide` only for owner-only decisions; "Judgment calls" item added to the task report (§0.2); DSR-10 registered (`CnMediaCard` type error). No requirement, Verify ID or schema change. | OA-18 |
 | 1.3 | 2026-10-20 | Design System pin raised to 1.0.1 (fixes DSR-10). New task T1.17; T1.8 depends on it. A17, §4.5 and the header cite 1.0.1. No requirement, Verify ID or schema change. | OA-19 |
 | 1.4 | 2026-10-21 | G1 resolved: the health endpoint moves into Phase 1 (T1.16); T20.4 stays absorbed by T1.16 and T20.3; T1.16 loses its `xfail` open item. No Verify ID or schema change. | OA-20; ADR-0028 |
+| 1.5 | 2026-10-23 | G29 resolved: CI and branch protection are verified in Phase 1 (P1-V23, `[manual]`), and the GitHub settings in force are recorded. T1.9 loses its open item. No Verify ID or schema change. | OA-21; ADR-0029 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5399,6 +5400,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0026 | Read access to the Design System packages | `docs/decisions/0026-ds-package-read-access.md` | S8; OA-15 |
 | ADR-0027 | Which values `prod.py` rejects, and the installed apps | `docs/decisions/0027-prod-settings-mock-rejection.md` | T1.3; OA-16, OA-17 |
 | ADR-0028 | Health endpoint in Phase 1 | `docs/decisions/0028-health-endpoint-phase-1.md` | G1; OA-20 |
+| ADR-0029 | CI and branch protection in Phase 1 | `docs/decisions/0029-ci-branch-protection-phase-1.md` | G29; OA-21 |
 
 ## Appendix C — Dated market facts
 
@@ -5524,20 +5526,20 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T1.4 | Absorbed by T1.3 | Same settings file; one session |
 | T1.5 | Rewritten: pnpm, the DS layer pinned at 1.0.0, no direct `@nuxt/ui` or `tailwindcss`, no `main.css` | C-01, C-02, C-11; §4.5 |
 | T1.6 | Adds the `scheduler` service and an empty `infra/crontab`; build secret for `NODE_AUTH_TOKEN` | plan App. B; §4.5 |
-| T1.9 | Moved to the end as the phase-close task; adds superseded-run cancellation, GitHub Packages access, the PR template; branch protection is an owner step | OA-03; §4.5; G29 |
+| T1.9 | Moved to the end as the phase-close task; adds superseded-run cancellation, GitHub Packages access, the PR template; branch protection is an owner step | OA-03; §4.5; G29; ADR-0029 |
 | T1.11 | Registry adds `INVOICE_IMPLS`; Protocols add `Attachment` and `InvoiceProvider` | §4.3 |
 | T1.12 | Split into T1.12a (configuration), T1.12b (concurrency helper and checkers), T1.12c (contract and migration harness) | One session each |
 | T1.13 | Split into T1.13a (Vitest) and T1.13b (Playwright harness); axe tags now WCAG 2.2 | One session each; CR-35 |
 | T1.14 | Split into T1.14a (Make targets, ratchet) and T1.14b (spec checks); copying the plan to `docs/` is dropped | One session each; §4.6 |
 | T1.15 | New: seed ADR-0001 to ADR-0025 | §4.2; OA-12 |
 | T1.16 | New: health endpoint per G1's resolution | G1; ADR-0028 |
-| P1-V03 | Assertion cites §0.3; the CI half is now P1-V23 instead of Phase 20 | G29 |
+| P1-V03 | Assertion cites §0.3; the CI half is now P1-V23 instead of Phase 20 | G29; ADR-0029 |
 | P1-V09 | "Nuxt welcome page" → "the app's index page" | The app extends the DS layer |
 | P1-V10 | "plan fixture" → "spec fixture" | The spec replaces the plan |
 | P1-V20 | New: axe WCAG 2.2 AA tags | CR-35 |
 | P1-V21 | New: release-aware traceability | §4.6; OA-11 |
 | P1-V22 | New: register check | §4.6 |
-| P1-V23 | New `[manual]`: CI green and branch protection (from plan Phase 20) | G29 |
+| P1-V23 | New `[manual]`: CI green and branch protection (from plan Phase 20) | G29; ADR-0029 |
 
 #### Phase 2
 
@@ -5920,7 +5922,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T20.6 | Moved last as the phase-close task; the smoke step also checks the HTTP redirect and HSTS; D1 listed as blocking | §0.2; plan checklist; §7.2 |
 | T20.9 | Struck: recorded as ADR-0015 | It is a decision, not a task |
 | T20.10 | New: production scheduler per G23's proposal | G23 |
-| Verify | Plan items "CI green on main" and "branch protection" → P1-V23 (Phase 1) | G29 |
+| Verify | Plan items "CI green on main" and "branch protection" → P1-V23 (Phase 1) | G29; ADR-0029 |
 | P20-V01 | New: container spec parsed | 20.3; CR-50 |
 | P20-V02 | New: Dockerfiles checked statically | 20.1, 20.2; §4.5 |
 | P20-V03 | New: HTTPS and HSTS smoke step in `deploy.yml` (automated version of the plan's HTTPS item) | Plan checklist |
