@@ -1,6 +1,7 @@
 """Cart tables (§4.4, `spec/schema.sql` CART). The cart stores no prices (CR-03).
 
-`converted_order_id` becomes a foreign key to `"order"` in T2.1c.
+`converted_order` is a foreign key to `"order"`, the named constraint `cart_converted_order_fk`
+added by `RunSQL` in carts migration 0002, so the field declares `db_constraint=False`.
 """
 
 import uuid
@@ -24,7 +25,14 @@ class Cart(models.Model):
         db_index=False,
     )
     fulfillment_method = models.TextField(null=True, blank=True)
-    converted_order_id = models.BigIntegerField(null=True, blank=True)  # FK: T2.1c
+    converted_order = models.ForeignKey(
+        "orders.Order",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_constraint=False,
+        db_index=False,
+    )
     created_at = models.DateTimeField(default=timezone.now, db_default=NOW)
     updated_at = models.DateTimeField(auto_now=True, db_default=NOW)
 

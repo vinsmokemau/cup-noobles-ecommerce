@@ -1,7 +1,8 @@
 """Inventory tables (§4.4, `spec/schema.sql` INVENTORY).
 
 The foreign keys from `stock_ledger.order_id` and `inventory_reservation.order_id` to `"order"`
-are added in T2.1c, once `"order"` exists. Until then they are plain integer columns.
+are named constraints (`stock_ledger_order_fk`, `reservation_order_fk`) added by `RunSQL` in
+inventory migration 0002, so the fields declare `db_constraint=False`.
 Stock changes only through `apps/inventory/services.py` (CR-05).
 """
 
@@ -113,7 +114,14 @@ class StockLedger(models.Model):
     delta = models.IntegerField()
     balance_after = models.IntegerField()
     reason = models.TextField(choices=Reason.choices)
-    order_id = models.BigIntegerField(null=True, blank=True)  # FK to "order": T2.1c
+    order = models.ForeignKey(
+        "orders.Order",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_constraint=False,
+        db_index=False,
+    )
     actor_user_id = models.BigIntegerField(null=True, blank=True)
     note = models.TextField(default="", db_default="", blank=True)
     created_at = models.DateTimeField(default=timezone.now, db_default=NOW)
@@ -149,7 +157,7 @@ class StockLedger(models.Model):
             models.Index(
                 F("stock_item"), F("created_at").desc(), name="stock_ledger_item_idx"
             ),
-            models.Index(fields=["order_id"], name="stock_ledger_order_idx"),
+            models.Index(fields=["order"], name="stock_ledger_order_idx"),
         ]
 
 
@@ -165,7 +173,9 @@ class InventoryReservation(models.Model):
         COMMITTED = "committed"
         RELEASED = "released"
 
-    order_id = models.BigIntegerField()  # FK to "order": T2.1c
+    order = models.ForeignKey(
+        "orders.Order", on_delete=models.CASCADE, db_constraint=False, db_index=False
+    )
     variant = models.ForeignKey(
         "catalog.Variant", on_delete=models.PROTECT, db_index=False
     )
@@ -207,7 +217,7 @@ class InventoryReservation(models.Model):
                 condition=Q(state="held"),
                 name="reservation_expiry_idx",
             ),
-            models.Index(fields=["order_id"], name="reservation_order_idx"),
+            models.Index(fields=["order"], name="reservation_order_idx"),
         ]
 
 

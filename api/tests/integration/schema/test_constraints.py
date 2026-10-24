@@ -1,6 +1,7 @@
 """Database constraints, exercised below the ORM's own validation (SPEC.md Phase 2 Verify)."""
 
 import datetime
+import uuid
 
 import pytest
 from django.db import IntegrityError, transaction
@@ -13,6 +14,9 @@ from tests.factories.catalog import (
     VariantFactory,
 )
 from tests.factories.inventory import LocationFactory
+from tests.factories.invoicing import InvoiceRequestFactory
+from tests.factories.orders import OrderFactory, OrderLineFactory
+from tests.factories.payments import PaymentFactory, WebhookEventFactory
 from tests.factories.shipping import MxStateFactory
 
 pytestmark = pytest.mark.django_db
@@ -125,3 +129,108 @@ def test_p2_v11_address_constraints(raw_sql):
         with rejected("address_postal_code_check"):
             AddressFactory(state=state, postal_code=postal_code)
     AddressFactory(state=state, postal_code="06700")
+
+
+def test_p2_v04_order_total_arithmetic():
+    with rejected("order_total_arithmetic"):
+        OrderFactory(subtotal_cents=10000, shipping_cents=9900, total_cents=10000)
+    with rejected("order_total_arithmetic"):
+        OrderFactory(subtotal_cents=10000, discount_cents=500, total_cents=10000)
+    OrderFactory(
+        subtotal_cents=10000, shipping_cents=9900, discount_cents=500, total_cents=19400
+    )
+
+
+def test_p2_v09_order_fulfillment_target():
+    warehouse = LocationFactory()
+    address = {"street": "Calle de Prueba", "postal_code": "06700"}
+    for method in ("pickup", "delivery"):
+        OrderFactory(
+            state="draft", fulfillment_method=method
+        )  # neither is fine in draft
+        with rejected("order_fulfillment_target_complete"):
+            OrderFactory(state="pending_payment", fulfillment_method=method)
+    OrderFactory(
+        state="pending_payment", fulfillment_method="pickup", pickup_location=warehouse
+    )
+    OrderFactory(
+        state="pending_payment", fulfillment_method="delivery", shipping_address=address
+    )
+    with rejected("order_pickup_has_no_shipping_fee"):
+        OrderFactory(
+            state="pending_payment",
+            fulfillment_method="pickup",
+            pickup_location=warehouse,
+            subtotal_cents=10000,
+            shipping_cents=9900,
+            total_cents=19900,
+        )
+
+
+def test_p2_v10_order_line_arithmetic():
+    order = OrderFactory()
+    with rejected("order_line_total_arithmetic"):
+        OrderLineFactory(
+            order=order, quantity=2, unit_price_cents=10000, line_total_cents=10000
+        )
+    with rejected("order_line_fulfilled_le_qty"):
+        OrderLineFactory(order=order, quantity=2, fulfilled_quantity=3)
+    OrderLineFactory(
+        order=order,
+        quantity=2,
+        unit_price_cents=10000,
+        line_total_cents=20000,
+        fulfilled_quantity=2,
+    )
+
+
+def test_p2_v13_payment_constraints(raw_sql):
+    order = OrderFactory()
+    with rejected("payment_refund_le_amount"):
+        PaymentFactory(order=order, amount_cents=10000, refunded_cents=10001)
+    PaymentFactory(order=order, amount_cents=10000, refunded_cents=10000)
+    # Many payments may have no provider id yet; a provider id is unique per provider.
+    PaymentFactory(order=order, provider_payment_id=None)
+    PaymentFactory(order=order, provider_payment_id=None)
+    PaymentFactory(order=order, provider_payment_id="1001")
+    with rejected("payment_provider_payment_uq"):
+        PaymentFactory(order=order, provider_payment_id="1001")
+    PaymentFactory(order=order, provider="otro", provider_payment_id="1001")
+
+
+def test_p2_v16_webhook_event_uniqueness():
+    WebhookEventFactory(external_id="notificacion-1", payload={"data": {"id": "1001"}})
+    with rejected("webhook_event_provider_topic_external_id_key"):
+        WebhookEventFactory(external_id="notificacion-1")
+    # Two notifications about one payment are two deliveries (9.A rule 4).
+    WebhookEventFactory(external_id="notificacion-2", payload={"data": {"id": "1001"}})
+    WebhookEventFactory(topic="merchant_order", external_id="notificacion-1")
+
+
+def test_p2_v17_invoice_constraints(raw_sql):
+    request = InvoiceRequestFactory()
+    with rejected("invoice_request_order_id_key"):
+        InvoiceRequestFactory(order=request.order)
+    with rejected("invoice_issued_complete"):
+        InvoiceRequestFactory(status="issued", issued_at=None)
+    with rejected("invoice_issued_complete"):
+        InvoiceRequestFactory(status="issued", cfdi_uuid=uuid.uuid4())
+    InvoiceRequestFactory(
+        status="issued",
+        cfdi_uuid=uuid.uuid4(),
+        issued_at=datetime.datetime.now(datetime.UTC),
+    )
+    with rejected("invoice_request_fiscal_postal_code_check"):
+        InvoiceRequestFactory(fiscal_postal_code="0670")
+
+    insert = (
+        "INSERT INTO invoice_document (invoice_request_id, kind, filename, content, sha256, size_bytes) "
+        "VALUES (%s, %s, 'factura', 'x', repeat('a', 64), %s)"
+    )
+    raw_sql(insert, [request.id, "pdf", 1])
+    with rejected("invoice_document_invoice_request_id_kind_key"):
+        raw_sql(insert, [request.id, "pdf", 1])
+    raw_sql(insert, [request.id, "xml", 5242880])  # exactly 5 MB is accepted
+    other = InvoiceRequestFactory()
+    with rejected("invoice_document_size_bytes_check"):
+        raw_sql(insert, [other.id, "pdf", 5242881])

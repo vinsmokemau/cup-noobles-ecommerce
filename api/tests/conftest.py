@@ -1,6 +1,8 @@
 import os
+import re
 from collections.abc import Sequence
 from contextlib import ExitStack
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -57,6 +59,18 @@ def raw_sql():
             return cursor.fetchall() if cursor.description else []
 
     return run
+
+
+SCHEMA_SQL = Path(__file__).resolve().parents[2] / "spec" / "schema.sql"
+if not SCHEMA_SQL.exists():  # the compose api service mounts the repository at /repo
+    SCHEMA_SQL = Path("/repo/spec/schema.sql")
+
+
+@pytest.fixture(scope="session")
+def canonical_ddl() -> list[str]:
+    """The statements of `spec/schema.sql`, comments removed, in file order (SPEC.md §4.4)."""
+    text = re.sub(r"--[^\n]*", "", SCHEMA_SQL.read_text(encoding="utf-8"))
+    return [statement.strip() for statement in text.split(";") if statement.strip()]
 
 
 @pytest.fixture

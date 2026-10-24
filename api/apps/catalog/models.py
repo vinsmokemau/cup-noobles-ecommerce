@@ -264,9 +264,7 @@ class Variant(models.Model):
                 | Q(preorder_committed__lte=F("preorder_limit")),
                 name="variant_preorder_within_limit",
             ),
-            models.UniqueConstraint(
-                fields=["product", "options"], name="variant_product_options_uq"
-            ),
+            # `variant_product_options_uq` is a unique index, created by `RunSQL` (migration 0002).
         ]
         indexes = [
             models.Index(fields=["product"], name="variant_product_idx"),

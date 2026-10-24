@@ -45,6 +45,10 @@ INSTALLED_APPS = [
     "apps.shipping",
     "apps.inventory",
     "apps.carts",
+    "apps.orders",
+    "apps.payments",
+    "apps.invoicing",
+    "apps.notifications",
 ]
 
 # Set before the first migration; changing it later is very painful (T2.1a).
