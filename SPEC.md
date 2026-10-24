@@ -1796,7 +1796,7 @@ Implement `apps/catalog/admin.py` with a dynamic `attributes` widget that render
 
 Render each `attribute_schema` property as a typed field: `string` → text, `string` with `enum` → select, `integer`/`number` → number, `boolean` → checkbox. Fall back to a JSON textarea if the schema is unrecognised, never to a crash.
 
-- [ ] **T3.5 — Product images**
+- [x] **T3.5 — Product images** (2026-10-24, 6bfa4eb)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P3-V04
