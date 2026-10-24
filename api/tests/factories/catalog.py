@@ -21,6 +21,8 @@ class ProductTypeFactory(factory.django.DjangoModelFactory):
 
     code = factory.Sequence(lambda n: f"tipo_{n}")
     name = factory.Sequence(lambda n: f"Tipo {n}")
+    # Open schema: tests that need attribute rules use a launch type or pass their own schema (T2.5).
+    attribute_schema = factory.LazyFunction(lambda: {"type": "object"})
 
 
 class CategoryFactory(factory.django.DjangoModelFactory):

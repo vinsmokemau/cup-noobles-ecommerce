@@ -6,12 +6,14 @@ generated `search_tsv` column and `product_image_variant_fk` live in the migrati
 """
 
 import uuid
+from typing import Any
 
 from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 from django.db.models import F, Q, Value
 from django.utils import timezone
 
+from apps.catalog.validation import validate_attributes
 from apps.core.db import GEN_RANDOM_UUID, NOW
 from apps.core.fields import CITextField
 
@@ -184,6 +186,16 @@ class Product(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+    def clean(self) -> None:
+        super().clean()
+        validate_attributes(self.attributes, self.product_type.attribute_schema)
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        update_fields = kwargs.get("update_fields")
+        if update_fields is None or {"attributes", "product_type"} & set(update_fields):
+            self.clean()
+        super().save(*args, **kwargs)
 
 
 class ProductCategory(models.Model):
