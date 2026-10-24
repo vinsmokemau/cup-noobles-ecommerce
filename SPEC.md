@@ -1669,7 +1669,7 @@ Seed `mx_state` with all 32 subdivisions (ISO 3166-2:MX codes). Seed one `locati
 
 Seed the launch `product_type` rows from the D14 stand-in: `tcg_sealed`, `board_game`, `apparel`, `figure` and `accessory`. Apparel gets `variant_axes = ["talla","color"]`; the others `[]`. Each `attribute_schema` carries `"$comment": "[PLACEHOLDER]"` until D14 is decided. The schemas use the example attributes in the `spec/schema.sql` comments; a type with no example (`board_game`, `accessory`) gets an empty schema. Running the seed twice changes nothing.
 
-- [ ] **T2.5 — Attribute validation**
+- [x] **T2.5 — Attribute validation** (2026-10-23, a319c66)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P2-V05, P2-V14
