@@ -40,7 +40,12 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     "apps.core",
+    "apps.accounts",
+    "apps.catalog",
 ]
+
+# Set before the first migration; changing it later is very painful (T2.1a).
+AUTH_USER_MODEL = "accounts.Customer"
 
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"

@@ -1,5 +1,7 @@
 import os
+from collections.abc import Sequence
 from contextlib import ExitStack
+from typing import Any
 
 import pytest
 import time_machine
@@ -40,6 +42,21 @@ def _isolated_file_stores(settings, tmp_path):
     """Emails and mock-provider state go to a per-test directory (§4.6)."""
     settings.EMAIL_FILE_DIR = str(tmp_path / "emails")
     settings.MOCK_STORE_DIR = str(tmp_path / "mock_store")
+
+
+@pytest.fixture
+def raw_sql():
+    """`raw_sql(statement, params)`: run SQL that bypasses the ORM, for constraint tests.
+
+    Returns the rows of a statement that produces any, else an empty list.
+    """
+
+    def run(statement: str, params: Sequence[Any] | None = None) -> list[tuple]:
+        with connection.cursor() as cursor:
+            cursor.execute(statement, params)
+            return cursor.fetchall() if cursor.description else []
+
+    return run
 
 
 @pytest.fixture
