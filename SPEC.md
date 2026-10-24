@@ -1785,7 +1785,7 @@ Admin registration:
 - `search_fields`: name, variants' SKU.
 - Actions: "Publicar", "Archivar", "Duplicar producto" (duplication matters — most new figures are near-copies of an existing one).
 
-- [ ] **T3.4 — Dynamic attributes widget**
+- [x] **T3.4 — Dynamic attributes widget** (2026-10-23, 614520c)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P3-V02, P3-V11
