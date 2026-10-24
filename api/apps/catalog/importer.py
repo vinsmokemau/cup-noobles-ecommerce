@@ -4,7 +4,7 @@
 brands, franchises and categories the rows name. It goes through `create_product`, `add_variant`
 and `Product.save()`, so a row is validated exactly like one typed in the admin.
 
-- G12 (proposed resolution): all or nothing per file. Every row is checked in one transaction; if any
+- G12 (ADR-0033): all or nothing per file. Every row is checked in one transaction; if any
   row is invalid, or in a dry run, the transaction is rolled back and every invalid row is reported.
 - G39 (proposed resolution): `image_urls` holds `|`-separated file paths relative to an images folder
   given at run time. A remote URL is a row error and the importer never makes a network call.

@@ -103,9 +103,8 @@ def test_p3_v09_command_fails_and_names_row_and_field(catalog_csv):
         run(path)
 
 
-@pytest.mark.xfail(strict=False, reason="G12")
 def test_p3_v09_g12_one_invalid_row_imports_nothing(catalog_csv):
-    """G12, proposed resolution: all or nothing per file, every invalid row reported."""
+    """G12 (ADR-0033): all or nothing per file, every invalid row reported."""
     path = catalog_csv(
         [
             figure_row(1),

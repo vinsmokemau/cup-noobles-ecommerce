@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.9 |
+| Spec version | 1.10 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -407,7 +407,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G9 | 10 | P10-V17 | FIFO pre-order allocation has no tie-break for equal `paid_at` | Break ties by `order.id` ascending | R2 | Deferred (R2) |
 | G10 | 10 | P10-V13 | The pickup reminder has no defined window | Send at ≤ 24 h remaining, with a dedupe key | R2 | Deferred (R2) |
 | G11 | 9 | P9-V21 | T1 reserves stock for the card TTL before the payment method is known; an OXXO voucher can arrive for an expired order | A separate checkout-session TTL; a `pending` notification for an expired order alerts and, where possible, cancels the voucher | R1 | Open |
-| G12 | 3 | P3-V09 | `import_catalog` doesn't say what happens to valid rows when some rows are invalid | All or nothing per file, reporting every invalid row | R1 | Open |
+| G12 | 3 | P3-V09 | `import_catalog` doesn't say what happens to valid rows when some rows are invalid | All or nothing per file, reporting every invalid row | R1 | Resolved (ADR-0033) |
 | G13 | 5 | P5-V07 | D10 suggests a badge "under 5"; 5.3 defines `low_stock` as 1 ≤ available ≤ 5 | Decide together with D10 | R1 | Open |
 | G14 | 9 | P9-V14 | A webhook and `reconcile_payments` processing one approval concurrently: the second `apply_event` raises `IllegalTransition` under the lock | Treat it as `webhook_no_op` when the order already reflects the status | R1 | Open |
 | G15 | 4 | P4-V16 | `commit_reservations` is not specified as idempotent | A second commit of committed reservations is a no-op | R1 | Open |
@@ -504,6 +504,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-28 | 2026-10-23 | G40: T2.1c found that Django 5.2 enforces the schema's `ON DELETE` rules in Python, not in the database. Enforce them in the database too? | Option A: accept as is. Only the four named foreign keys carry the exact rules; revisit on Django 6.0. ADR-0031. |
 | OA-29 | 2026-10-23 | G41: T2.7 seeds the 32 states only through the dev command `seed_dev_defaults`. How does production load them? | Option A: the proposed resolution. A separate idempotent `manage.py seed_states` command, run by the deploy step; `seed_dev_defaults` keeps calling the same function. ADR-0032 |
 | OA-30 | 2026-10-24 | Phase 3 task order: T3.1 generates slugs, but T3.2 (slugs) depended on T3.1. Reorder? | Option A: T3.2 runs first, then T3.1; the "Depends on" lines of T3.1, T3.2, T3.3 and T3.6 are fixed. No ADR: cheap to reverse, spec text only. |
+| OA-31 | 2026-10-24 | G12: what does `import_catalog` do with the valid rows when some rows are invalid? | Option A: the proposed resolution. All or nothing per file, reporting every invalid row. ADR-0033. |
 
 ---
 
@@ -1811,7 +1812,7 @@ Image handling: on upload, generate WebP derivatives at 400/800/1600px wide with
   - Verifies: P3-V03, P3-V09, P3-V10
   - Depends on: T3.5, T3.1, T3.2
   - Context: §4.4; CR-49
-  - Open items: G12 (tests xfail until decided); G39 (follow the proposed resolution until decided); D12 (stand-in §2.5)
+  - Open items: G39 (follow the proposed resolution until decided); D12 (stand-in §2.5)
 
 `manage.py import_catalog <file.csv>` — idempotent import keyed on SKU. Columns: `sku,product_slug,product_name,product_type,brand,franchise,categories,price_mxn,options_json,attributes_json,weight_grams,image_urls`. Dry-run flag that reports what would change and writes nothing. Needed for D12.
 
@@ -1847,7 +1848,7 @@ The file path is given at run time. A catalog file that holds costs is never com
 | P3-V06 | unit | `api/tests/unit/catalog/test_slugs.py::test_p3_v06_slug_immutable_after_publish` | Changing the slug before publishing is allowed; after `published_at` is set it raises a validation error. |
 | P3-V07 | unit | `api/tests/unit/catalog/test_variants.py::test_p3_v07_options_must_match_axes` | Option keys outside the resolved axes are rejected; `product.variant_axes` overrides the type default. |
 | P3-V08 | integration | `api/tests/integration/catalog/test_admin_actions.py::test_p3_v08_duplicate_product_action` | The copy gets a new slug, `status='draft'`, duplicated variants with new SKUs, and no stock rows. |
-| P3-V09 | integration | `api/tests/integration/catalog/test_import_catalog.py::test_p3_v09_invalid_row_reported` | A row with invalid `attributes_json` or an unknown product type is reported with its row number and field. What happens to the other rows follows G12. ⚠️ G12 |
+| P3-V09 | integration | `api/tests/integration/catalog/test_import_catalog.py::test_p3_v09_invalid_row_reported` | A row with invalid `attributes_json` or an unknown product type is reported with its row number and field. If any row is invalid, nothing is imported and every invalid row is reported (G12, ADR-0033). |
 | P3-V10 | integration | `api/tests/integration/catalog/test_import_catalog.py::test_p3_v10_reimport_updates_price` | Re-importing with a changed price updates the variant and reports exactly 1 update. |
 | P3-V11 | integration | `api/tests/integration/catalog/test_admin_attributes.py::test_p3_v11_unrecognised_schema_falls_back_to_json` | A schema property of an unsupported type renders as a JSON textarea; the page does not crash. |
 | P3-V12 | unit | `api/tests/unit/catalog/test_publish.py::test_p3_v12_publish_and_archive` | `publish_product` sets `published_at` and `status='active'`; `archive_product` sets `archived` and keeps the slug. |
@@ -5292,7 +5293,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Before Phase 1 | S5 (repository name), ~~S8~~ |
 | Phase 1 | ~~G1~~, ~~G29~~ |
 | Before Phase 2 (schema) | D14 (types), D16 (fields); ~~G3~~, ~~G5~~, ~~G28~~, ~~G31~~, ~~G33~~, ~~G34~~ (§4.4) |
-| Phase 3 | G12, G39 |
+| Phase 3 | ~~G12~~, G39 |
 | Phase 4 | G2, G15, G20, G24, ~~G34~~, G37, G38 |
 | Phase 5 | G13 with D10, G32 |
 | Phase 6 | G30, G35 |
@@ -5328,6 +5329,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.7 | 2026-10-23 | G40 registered and resolved: the schema's `ON DELETE` rules are enforced by Django's ORM, not by the database, except on the four named foreign keys; revisit on Django 6.0. No requirement, Verify ID, task or schema change. | OA-28; ADR-0031 |
 | 1.8 | 2026-10-23 | G41 registered and resolved: production loads `mx_state` with a separate idempotent `manage.py seed_states` command, built in T2.7 and run in T22.3. No Verify ID or schema change. | OA-29; ADR-0032 |
 | 1.9 | 2026-10-24 | Phase 3 task order: T3.2 now precedes T3.1 (it was circular); "Depends on" fixed in T3.1, T3.2, T3.3 and T3.6; an execution-order note added. No Verify ID, schema or task-ID change. | OA-30 |
+| 1.10 | 2026-10-24 | G12 resolved: `import_catalog` is all or nothing per file and reports every invalid row. T3.6 loses its G12 open item and P3-V09 loses its ⚠️ marker. No Verify ID, task or schema change. | OA-31; ADR-0033 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5409,6 +5411,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0030 | Release 1 schema additions | `docs/decisions/0030-release-1-schema-additions.md` | G3, G5, G28, G31, G33, G34; OA-22 to OA-27 |
 | ADR-0031 | Foreign key delete rules are enforced by Django | `docs/decisions/0031-fk-delete-rules-in-orm.md` | G40; OA-28 |
 | ADR-0032 | States are loaded in production by a separate seed command | `docs/decisions/0032-seed-states-command.md` | G41; OA-29 |
+| ADR-0033 | The catalog importer is all or nothing per file | `docs/decisions/0033-import-catalog-all-or-nothing.md` | G12; OA-31 |
 
 ## Appendix C — Dated market facts
 
