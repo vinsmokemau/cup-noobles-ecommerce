@@ -1659,7 +1659,7 @@ Write the models and migrations for `"order"`, `order_line`, `order_event`, `pay
 
 Seed `mx_state` with all 32 subdivisions (ISO 3166-2:MX codes). Seed one `location` row for the warehouse from D4 — in Part A through `manage.py seed_dev_defaults` (§2.5): code `almacen`, name `[PLACEHOLDER] Almacén Cup Noobles`, `kind = 'warehouse'`, `is_pickup_point = false`. It is never presented as a store (CR-47).
 
-- [ ] **T2.8 — Seed the launch product types**
+- [x] **T2.8 — Seed the launch product types** (2026-10-23, 35fe396)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P2-V15
