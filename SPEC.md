@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.4 |
+| Spec version | 1.6 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -385,7 +385,7 @@ Status values: **Open**; **Decided** (an owner answer exists; its ADR is written
 | D12 | The initial catalog file for the importer (3.6), from GE:T31. It is never committed (CR-49). | Phase 22 | R1 | `seed_demo`, generated CSVs | Open |
 | D13 | Mercado Pago settlement speed. Faster settlement costs a higher fee. | Phase 16 | R1 | — | Open |
 | D14 | **New.** Launch product types and their attribute schemas. GE adds an accessories type (GE:§0.3), puts apparel after launch, and asks for language, edition and condition (sealed) on TCG and board games (GE:M1, GE:§7.1). | T2.8 | R1 | §2.5 | Open |
-| D15 | **New.** The purchase-limit value of each limited variant (GE:T20). The mechanism is G31. | Phase 22 | R1 | Factory values in tests | Open |
+| D15 | **New.** The purchase-limit value of each limited variant, and the length of the window the guard counts over, in days (`PURCHASE_LIMIT_WINDOW_DAYS`) (GE:T20). The mechanism is G31 (ADR-0030). | Phase 22 | R1 | Factory values in tests | Open |
 | D16 | **New.** CFDI details for the accountant: the list of fiscal fields to capture, how long a customer has to request a CFDI, the global-invoice period, and how a refund of an invoiced order is handled | Fields: T2.1. The rest: Phase 22. | R1 | §2.5 | Open |
 | D17 | **New.** Out-of-stock interest list: link to the external form or WhatsApp list of GE:T26, or show nothing | Phase 12 | R1 | Nothing shown | Open |
 | D18 | **New.** Analytics: which tool, if any (for example Plausible or GA4)? The aviso de privacidad must match (D2). | Phase 22 | R1 | None installed | Open |
@@ -398,9 +398,9 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 |---|---|---|---|---|---|---|
 | G1 | 1 | P1-V11, P1-V17 | `/api/health/` is verified in Phase 1 but specified only in 20.4 | Move the endpoint into Phase 1; 20.4 keeps the Lightsail health-check configuration | R1 | Resolved (ADR-0028) |
 | G2 | 4 | P4-V17, P8-V01 | The outbox writer is defined in 11.1, but Phases 4 and 8 already write outbox rows. Widened from the plan's Phase 6, which is now R2. | Move `enqueue_email()` (the write only, not sending) into Phase 4 | R1 | Open |
-| G3 | 8 | P8-V03, P8-V08 | 8.4 stores the `Idempotency-Key` "on the order", but no column holds it; reuse with a different body, the key's scope and its lifetime are undefined | `idempotency_key` plus a request fingerprint, with a partial unique index per cart token; a mismatched body returns 422 `idempotency_key_reused`. Schema change. | R1 | Open |
+| G3 | 8 | P8-V03, P8-V08 | 8.4 stores the `Idempotency-Key` "on the order", but no column holds it; reuse with a different body, the key's scope and its lifetime are undefined | `idempotency_key` plus a request fingerprint, with a partial unique index per cart token; a mismatched body returns 422 `idempotency_key_reused`. Schema change. | R1 | Resolved (ADR-0030) |
 | G4 | 8 | P8-V09, P13-V19 | A price change between the last view and "Pagar" applies silently | Checkout takes `expected_total_cents`; a mismatch returns 409 with fresh totals and reserves nothing | R1 | Open |
-| G5 | 8 | P8-V12 | The timezone of the order-number year is unspecified, and so is the per-year sequence. Widened: DS:formatting.md requires an explicit `timeZone` for every displayed date (CR-31). | `America/Mexico_City` as the store timezone for numbering and display; one Postgres sequence per year, created on first use | R1 | Open |
+| G5 | 8 | P8-V12 | The timezone of the order-number year is unspecified, and so is the per-year sequence. Widened: DS:formatting.md requires an explicit `timeZone` for every displayed date (CR-31). | `America/Mexico_City` as the store timezone for numbering and display; one Postgres sequence per year, created on first use | R1 | Resolved (ADR-0030) |
 | G6 | 8 | P8-V17 | Cancelling an order whose pre-order reservations are committed is undefined | `cancel_preorder_allocation(order)`, called from T16 and T19 | R2 | Deferred (R2) |
 | G7 | 9 | P9-V13, P9-V17 | Webhook processing failures have no retry cap | 10 attempts with exponential backoff, then mark failed and alert | R1 | Open |
 | G8 | 9 | P9-V10 | Future timestamps and clock skew are unspecified | Accept `abs(now − ts) ≤ WEBHOOK_MAX_AGE_SECONDS` | R1 | Open |
@@ -423,13 +423,13 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G25 | 8 | P8-V06, 8.4 | Phase 8 needs a payment provider (`create_checkout`, `refund`) before the mock exists (9.9); 1.11 creates only the interfaces | Build those two mock methods in Phase 8, and the rest of the mock in Phase 9 | R1 | Open |
 | G26 | 8 | T18, P8-V07 | A `partially_refunded` order "stays fulfillable", but no transition leaves that state | Either add the fulfillment transitions from it, or record partial refunds on the payment without changing the order state | R1 | Open |
 | G27 | 8 | T17, A12, 9.4 rule 3, GE:T36 | A refund after delivery (a return), or of a late payment on an expired or cancelled order, can't be applied: those states are terminal | Allow the refund events from `completed`, `expired` and `cancelled` as recorded payment events | R1 | Open |
-| G28 | 12 | 12.A, P12-V13, 5.1 | "Featured" and "related" products have no data model or rule | A featured flag with a position on the product; related products by shared franchise or category | R1 | Open |
-| G29 | 1 | P1-V03, 1.9, P15-V14 | CI and branch protection are verified only in Phase 20, though Part A relies on them | Verify them in Phase 1, now that the repository is public; branch protection as a `[manual]` item | R1 | Open |
+| G28 | 12 | 12.A, P12-V13, 5.1 | "Featured" and "related" products have no data model or rule | A featured flag with a position on the product; related products by shared franchise or category | R1 | Resolved (ADR-0030) |
+| G29 | 1 | P1-V03, 1.9, P15-V14 | CI and branch protection are verified only in Phase 20, though Part A relies on them | Verify them in Phase 1, now that the repository is public; branch protection as a `[manual]` item | R1 | Resolved (ADR-0029) |
 | G30 | 6 | 6.6, Phase 22 | 6.6 calls the SEPOMEX data optional, but the launch checklist requires it | The full dataset is a launch requirement; the sample stays for Part A | R1 | Open |
-| G31 | 8 | GE:§7.1, GE:T20, GE:R10 | Purchase limits per customer are needed at launch, and no mechanism exists. With guest checkout, a customer has no account. | A limit per variant set in the admin; the T1 guard counts units in pending and paid orders that match the email, phone or shipping address within a window. The values are D15. | R1 | Open |
+| G31 | 8 | GE:§7.1, GE:T20, GE:R10 | Purchase limits per customer are needed at launch, and no mechanism exists. With guest checkout, a customer has no account. | A limit per variant set in the admin; the T1 guard counts units in pending and paid orders that match the email, phone or shipping address within a window. The values are D15. | R1 | Resolved (ADR-0030) |
 | G32 | 3, 5, 12 | GE:T31, GE:T35, GE:T38, GE:M1 | The store must be live with real test purchases while the catalog is hidden, then published at once. Catalog responses are publicly cached (5.6). | A site-wide pre-launch switch. The public sees a "próximamente" page, which also serves GE:T04. Logged-in staff browse and buy, and their requests bypass the catalog cache. Going live is a bulk publish plus turning the switch off. | R1 | Open |
-| G33 | 2, 8, 10 | GE:T34, GE:T43, GE:§5.2 | The weekly dashboard and monthly report need data. Margin needs the unit cost at the time of sale, and `order_line` has no cost snapshot. | Admin CSV exports of orders, lines and shipments; a `unit_cost_cents` snapshot on `order_line` (schema change). Shipped-within-48-h and stock-cancellation counts come from timestamps and cancel reasons. | R1 | Open |
-| G34 | 4 | GE:§7.1, GE:T28 | Picking needs a bin location ("ubicación"), which the schema lacks | An optional text field on `stock_item`, shown on the order's packing view | R1 | Open |
+| G33 | 2, 8, 10 | GE:T34, GE:T43, GE:§5.2 | The weekly dashboard and monthly report need data. Margin needs the unit cost at the time of sale, and `order_line` has no cost snapshot. | Admin CSV exports of orders, lines and shipments; a `unit_cost_cents` snapshot on `order_line` (schema change). Shipped-within-48-h and stock-cancellation counts come from timestamps and cancel reasons. | R1 | Resolved (ADR-0030) |
+| G34 | 4 | GE:§7.1, GE:T28 | Picking needs a bin location ("ubicación"), which the schema lacks | An optional text field on `stock_item`, shown on the order's packing view | R1 | Resolved (ADR-0030) |
 | G35 | 6 | 6.7 | The guest lookup sends the customer's email in the query string (`GET …/lookup/?number=&email=`), where proxy, CDN and error logs record it | `POST` with a JSON body, keeping the rate limit and the identical 404 for a wrong email | R1 | Open |
 | G36 | 10 | GE:§1.2 | Pre-orders need a closing date, which the schema lacks | `preorder_closes_at` on the variant; `reserve()` rejects pre-orders after it | R2 | Deferred (R2) |
 | G37 | 4 | P4-V03, T8.6 | `expire_reservations` (4.3) moves the order `pending_payment → expired`, but in Phase 4 orders are drafts and `apply_event` arrives in Phase 8; `advance_orders` (8.6) also fires T5, so two jobs own expiry | In Phase 4 the job releases lapsed holds only. From Phase 8 it fires T5 through `apply_event`, and `advance_orders` stops firing T5. P4-V03 asserts the order state from Phase 8 on. | R1 | Open |
@@ -492,6 +492,13 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-18 | 2026-10-20 | `/decide` slows execution. Which decisions still need it? | Option A: `/decide` only for owner-only decisions (business values, brand and visual choices, conflicts between SPEC, an ADR and a DS doc). The agent decides technical choices that change no requirement, Verify ID or business value, and lists them as "Judgment calls" in the task report. New gaps and DSR items are registered in §2.4 without an ADR; an ADR is written only for a choice costly to reverse. |
 | OA-19 | 2026-10-20 | DS 1.0.1 fixes DSR-10. When is the pin raised? | Option A: a new task T1.17 right now, before T1.6. T1.8 depends on it. |
 | OA-20 | 2026-10-21 | G1: `/api/health/` is verified in Phase 1 but specified only in 20.4. Where does the endpoint live? | Option A: the proposed resolution. T1.16 builds `GET /api/health/` in Phase 1; Phase 20 keeps only the Lightsail health-check configuration. |
+| OA-21 | 2026-10-23 | G29: CI and branch protection are verified only in Phase 20. Where are they verified? | Option B: the proposed resolution, with the GitHub settings in force written into the record. P1-V23 is a `[manual]` item in Phase 1; ADR-0029 lists the settings. |
+| OA-22 | 2026-10-23 | G28: how are featured and related products modelled? | Option A: the proposed resolution. `product.is_featured` and `featured_position`; related products are those sharing the franchise or a category. ADR-0030. |
+| OA-23 | 2026-10-23 | G34: where does the bin location live? | Option A: the proposed resolution. An optional text field `stock_item.bin_location`, editable in the admin, shown on the packing view. ADR-0030. |
+| OA-24 | 2026-10-23 | G3: where is the checkout idempotency key stored? | Option A: the proposed resolution. `idempotency_key` and a request fingerprint on `order`, unique per cart token; a mismatched body returns 422 `idempotency_key_reused`. ADR-0030. |
+| OA-25 | 2026-10-23 | G5: which timezone gives the order-number year? | Option A: the proposed resolution. `America/Mexico_City` for numbering and display; one Postgres sequence per year, created on first use. ADR-0030. |
+| OA-26 | 2026-10-23 | G31: how are purchase limits per customer enforced? | Option A: the proposed resolution. `variant.purchase_limit` set in the admin; the guard counts units in pending and paid orders matching the email, phone or normalised shipping address within a window. The owner gave no window length, so it stays in D15 and the setting `PURCHASE_LIMIT_WINDOW_DAYS` has no default. ADR-0030. |
+| OA-27 | 2026-10-23 | G33: how is the unit cost captured for reports? | Option A: the proposed resolution. `order_line.unit_cost_cents` snapshotted at order creation, plus admin CSV exports. ADR-0030. |
 
 ---
 
@@ -522,7 +529,7 @@ The acceptance criteria of a requirement are Verify IDs. The assertion text live
 | REQ | Requirement | Rules | Acceptance | Release |
 |---|---|---|---|---|
 | REQ-020 | Every order state change goes through `apply_event` under a row lock and writes exactly one `order_event`. Anything outside the 8.A table is rejected. | CR-09, CR-10 | P1-V05 · P8-V01 · P8-V02 · P8-V05 · P8-V07 · P8-V15 | R1 |
-| REQ-021 | Checkout is atomic and safe to repeat: one request, or many identical ones, creates at most one order and one set of reservations. | — | P8-V03 ⚠️G3 · P8-V08 ⚠️G3 · P8-V10 · P8-V18 · P13-V02 · P13-V21 · P15-V08 | R1 |
+| REQ-021 | Checkout is atomic and safe to repeat: one request, or many identical ones, creates at most one order and one set of reservations. | — | P8-V03 · P8-V08 · P8-V10 · P8-V18 · P13-V02 · P13-V21 · P15-V08 | R1 |
 | REQ-022 | Every scheduled job is idempotent and safe to run concurrently with itself and with webhook processing. | §4.8 | P4-V05 · P8-V14 · P9-V14 ⚠️G14 · P10-V19 · P11-V10 ⚠️G17 | R1 |
 
 ### 3.4 Payments
@@ -558,11 +565,11 @@ These come from the owner's execution guide (§1.2). Their mechanisms are propos
 
 | REQ | Requirement | Rules | Acceptance | Release |
 |---|---|---|---|---|
-| REQ-060 | A customer can request a CFDI at checkout. Staff issue it outside the store and record it, and the store emails the PDF and XML. A refund of an invoiced order is flagged for the accountant, and an export covers the orders a global invoice needs. | A8, A12, D16 | P2-V17 · P8-V19 · P9-V22 · P10-V23 · P10-V24 ⚠️G5 · P11-V11 · P13-V23 · P15-V15 | R1 |
-| REQ-061 | A variant's purchase limit holds per customer, across guest orders. | D15 | P8-V20 ⚠️G31 · P13-V24 ⚠️G31 | R1 |
+| REQ-060 | A customer can request a CFDI at checkout. Staff issue it outside the store and record it, and the store emails the PDF and XML. A refund of an invoiced order is flagged for the accountant, and an export covers the orders a global invoice needs. | A8, A12, D16 | P2-V17 · P8-V19 · P9-V22 · P10-V23 · P10-V24 · P11-V11 · P13-V23 · P15-V15 | R1 |
+| REQ-061 | A variant's purchase limit holds per customer, across guest orders. | D15 | P8-V20 · P13-V24 | R1 |
 | REQ-062 | Before launch, the public sees only a "próximamente" page while staff browse and buy for real. Going live is one switch. | — | P5-V15 ⚠️G32 · P12-V28 ⚠️G32 · P15-V16 ⚠️G32 | R1 |
-| REQ-063 | Staff can export what the weekly dashboard and the monthly report need, including each line's unit cost at the time of sale. | A19 | P8-V21 ⚠️G33 · P10-V25 ⚠️G33 | R1 |
-| REQ-064 | Staff receive goods and see where each item is stored, from the admin, without editing stock by hand. | CR-05 | P4-V19 ⚠️G20 · P4-V20 ⚠️G34 · P10-V26 ⚠️G34 | R1 |
+| REQ-063 | Staff can export what the weekly dashboard and the monthly report need, including each line's unit cost at the time of sale. | A19 | P8-V21 · P10-V25 | R1 |
+| REQ-064 | Staff receive goods and see where each item is stored, from the admin, without editing stock by hand. | CR-05 | P4-V19 ⚠️G20 · P4-V20 · P10-V26 | R1 |
 | REQ-065 | No placeholder, demo row or dev default reaches production. | CR-45, §2.5 | P2-V18 · P15-V12 · P22-V15 | R1 |
 
 ### 3.8 Quality gates
@@ -572,7 +579,7 @@ These come from the owner's execution guide (§1.2). Their mechanisms are propos
 | REQ-070 | Every Verify ID of the release in progress maps to a passing test, and the register in §2.4 matches the code and tests. | CR-39 | P1-V10 · P1-V21 · P1-V22 | R1 |
 | REQ-071 | Coverage meets its gates at phase close and never decreases. | CR-44 | P1-V06 | R1 |
 | REQ-072 | Migrations produce exactly `spec/schema.sql`, on PostgreSQL only, and every migration reverses. | CR-40 | P1-V04 · P2-V01 · P2-V07 | R1 |
-| REQ-073 | The full suite runs in CI on every push and pull request, and a red run blocks merging. | CR-37 | P1-V03 · P1-V23 ⚠️G29 · P15-V14 | R1 |
+| REQ-073 | The full suite runs in CI on every push and pull request, and a red run blocks merging. | CR-37 | P1-V03 · P1-V23 · P15-V14 | R1 |
 
 ## 4. Technical design
 
@@ -884,21 +891,16 @@ The admin form, the storefront filters and the API validation all read `attribut
 
 - New tables `invoice_request` and `invoice_document` for manual CFDI (A8, ADR-0019). The PDF and XML are stored in the database, not in public media storage, because they hold the customer's fiscal data. An issued request has one document of each kind; the service enforces that (P10-V23).
 - Comments only: the location code is `almacen` (D4, CR-47), and the launch product types follow D14.
+- Release 1 additions decided after the plan (ADR-0030): `product.is_featured` and `featured_position` (G28); `stock_item.bin_location` (G34); `order.cart_token`, `idempotency_key` and `idempotency_fingerprint` with the unique index `order_idempotency_uq` (G3); `variant.purchase_limit` (G31); `order_line.unit_cost_cents` (G33). The per-year order-number sequences (G5) are database objects the service creates on first use; they are not in the DDL.
 
 **Tables kept but unused in Release 1.** They stay so a later release needs no migration: `in_store_sale` and `in_store_sale_line` (counter sales), `address` (customer accounts), and the pickup and pre-order columns on `location`, `variant`, `cart`, `order`, `order_line` and `inventory_reservation`. `customer` is used in R1, because it is Django's user model and staff sign in to the admin with it.
 
 **CFDI catalog codes.** The régimen fiscal and uso de CFDI codes offered at checkout come from `api/fixtures/cfdi_catalogs.json`. Until the accountant confirms the subset (D16), the file holds sample codes and the `[PLACEHOLDER]` comment, so `check_placeholders` fails (§2.5). The RFC format is checked in the application, not in the schema.
 
-**Pending schema changes.** These open items propose schema changes (§2.4). Deciding the Release 1 ones before Phase 2 keeps `spec/schema.sql` final before any migration exists; deciding them later is an amendment plus a migration.
+**Pending schema changes.** Only G36 is pending, and it is Release 2. The Release 1 items G3, G5, G28, G31, G33 and G34 were decided before Phase 2 (ADR-0030) and are in `spec/schema.sql`.
 
 | Item | Proposed change | Release |
 |---|---|---|
-| G3 | `order.idempotency_key` and a request fingerprint, with a partial unique index per cart token | R1 |
-| G5 | One Postgres sequence per year for order numbers (database objects, not tables) | R1 |
-| G28 | A featured flag and position on `product` | R1 |
-| G31 | A per-customer limit on `variant`, and its time window as a setting | R1 |
-| G33 | `order_line.unit_cost_cents`, snapshotted at order creation | R1 |
-| G34 | A bin location on `stock_item` | R1 |
 | G36 | `variant.preorder_closes_at` | R2 |
 
 ### 4.5 Storefront and the Design System
@@ -1136,8 +1138,9 @@ Coverage never decreases (CR-44). `coverage-baseline.json` records each scope's 
 | `WEBHOOK_MAX_AGE_SECONDS` | api | `300` | `300` | Signature timestamp tolerance (9.A); see G8 |
 | `WEBHOOK_INLINE_BUDGET_MS` | api | Set in 9.3 | Same | Inline processing budget before `process_webhooks` takes over |
 | `PICKUP_HOLD_DAYS` | api | `7` | D4 | `[R2]`, with pickup |
+| `PURCHASE_LIMIT_WINDOW_DAYS` | api | No default; tests set it (D15) | D15 | Days the purchase-limit guard looks back (G31, ADR-0030). Required while any variant carries a limit. |
 
-Settings proposed by open items (G5, G31, G32) are added here when the items are decided.
+Settings proposed by open items (G32) are added here when the item is decided. The store timezone (G5, ADR-0030) is the constant `America/Mexico_City`, not a setting.
 
 ### 4.8 Scheduled jobs
 
@@ -1526,7 +1529,6 @@ Per G1's resolution (ADR-0028): `GET /api/health/` runs `SELECT 1` and returns 2
   - Verifies: P1-V23 [manual]
   - Depends on: T1.10
   - Context: §0.3, §4.5 (Install and access), §4.6
-  - Open items: G29 (the manual check follows the proposed resolution until decided)
   - Done when: the first CI run on `main` is green, and the owner has configured branch protection.
 
 `.github/workflows/ci.yml` runs `make test-all` on every push and pull request.
@@ -1537,7 +1539,7 @@ Per G1's resolution (ADR-0028): `GET /api/health/` runs `SELECT 1` and returns 2
 
 `.github/pull_request_template.md` comes with the bootstrap pack: the task ID, the task report and, for a phase-close task, the phase-close report (§0.2), and a spec-sync checklist. Keep it in line with §0.2 when the reports change.
 
-The owner configures branch protection on `main`: the `test-all` check is required, force-pushes are disallowed, and merging is blocked while it is red. The agent lists the steps; it does not change GitHub settings (§0.1 step 12).
+The owner configures branch protection on `main`: the `test-all` check is required, force-pushes are disallowed, and merging is blocked while it is red. The agent lists the steps; it does not change GitHub settings (§0.1 step 12). The settings in force are recorded in ADR-0029.
 
 #### Verify — test specification
 
@@ -1581,7 +1583,7 @@ Phase 1 also builds the frontend test harness, so several of its items are Playw
 | P1-V20 | E2E | `web/e2e/p1_guard.spec.ts` › `p1_v20 axe runs the wcag 2.2 aa tags` | `expectNoA11yViolations` runs axe with exactly the tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa` and `wcag22aa`. A fixture page with a target smaller than 24 × 24 px (WCAG SC 2.5.8) fails it. |
 | P1-V21 | unit | `scripts/tests/test_check_traceability.py::test_p1_v21_release_aware` | `check_traceability` reads the Verify tables of `SPEC.md` §6. Run with `--release R1`: an R1 ID with no matching test exits 1 naming it; an ID tagged `[R2]` with no test passes; `[manual]` IDs are listed, not required. |
 | P1-V22 | unit | `scripts/tests/test_check_register.py::test_p1_v22_register_consistency` | `check_register` exits 1 when a test name, `xfail` reason or code comment cites an S, D, G, C or DSR ID absent from §2.4, when an item marked Resolved or Decided still has an `xfail`, or when a resolved item cites an ADR file that doesn't exist. The real tree passes. |
-| P1-V23 [manual] | CI | `.github/workflows/ci.yml` job `test-all` | `make test-all` is green on `main`; a pull request with a deliberately failing test turns the check red, and branch protection blocks merging it. ⚠️ G29 |
+| P1-V23 [manual] | CI | `.github/workflows/ci.yml` job `test-all` | `make test-all` is green on `main`; a pull request with a deliberately failing test turns the check red, and branch protection blocks merging it (ADR-0029). |
 
 **Fixtures and factories introduced** (reused by later phases)
 
@@ -1616,11 +1618,10 @@ The Release 1 schema items in §4.4 (G3, G5, G28, G31, G33, G34) are best decide
   - Verifies: P2-V03, P2-V06, P2-V08, P2-V12
   - Depends on: Phase 1 closed
   - Context: §4.4; `spec/schema.sql` (CATALOG, and `customer` under CUSTOMERS); "How to build it" above
-  - Open items: G28 (a schema change; decide before this task to avoid an amendment)
 
 Set `AUTH_USER_MODEL = "accounts.Customer"` **before the first migration** (absorbs plan 2.3). Changing it later is extremely painful. `customer` is used in Release 1 for staff, who sign in to the admin with it.
 
-Write the Django models and migrations for `customer` and the catalog tables: `product_type`, `category`, `franchise`, `brand`, `product`, `product_category`, `product_image` and `variant`, with their constraints and indexes, including the `RunSQL` operations above. Verify with `python manage.py sqlmigrate <app> <migration>` and diff against `spec/schema.sql`.
+Write the Django models and migrations for `customer` and the catalog tables: `product_type`, `category`, `franchise`, `brand`, `product`, `product_category`, `product_image` and `variant`, with their constraints and indexes, including the `RunSQL` operations above. `product` carries `is_featured` and `featured_position` (G28), and `variant` carries `purchase_limit` (G31); both come from ADR-0030. Verify with `python manage.py sqlmigrate <app> <migration>` and diff against `spec/schema.sql`.
 
 - [ ] **T2.1b — Inventory, geography, address, shipping and cart tables**
   - Release: R1 · Gate: task
@@ -1628,9 +1629,8 @@ Write the Django models and migrations for `customer` and the catalog tables: `p
   - Verifies: P2-V02, P2-V11
   - Depends on: T2.1a
   - Context: §4.4; `spec/schema.sql` (INVENTORY, CUSTOMERS, SHIPPING, CART); "How to build it" above
-  - Open items: G34 (a schema change; decide before this task to avoid an amendment)
 
-Write the models and migrations for `location`, `stock_item`, `stock_ledger`, `inventory_reservation`, `in_store_sale`, `in_store_sale_line`, `mx_state`, `mx_postal_code`, `address`, `shipping_zone`, `shipping_zone_state`, `shipping_rate`, `cart` and `cart_line`. The foreign keys from `stock_ledger`, `inventory_reservation` and `cart` to `"order"` are added in T2.1c, after `"order"` exists. `in_store_sale`, `in_store_sale_line` and `address` are unused in Release 1 (§4.4).
+Write the models and migrations for `location`, `stock_item`, `stock_ledger`, `inventory_reservation`, `in_store_sale`, `in_store_sale_line`, `mx_state`, `mx_postal_code`, `address`, `shipping_zone`, `shipping_zone_state`, `shipping_rate`, `cart` and `cart_line`. `stock_item` carries `bin_location` (G34, ADR-0030). The foreign keys from `stock_ledger`, `inventory_reservation` and `cart` to `"order"` are added in T2.1c, after `"order"` exists. `in_store_sale`, `in_store_sale_line` and `address` are unused in Release 1 (§4.4).
 
 - [ ] **T2.1c — Order, payment, invoicing, fulfillment and outbox tables**
   - Release: R1 · Gate: task
@@ -1638,9 +1638,8 @@ Write the models and migrations for `location`, `stock_item`, `stock_ledger`, `i
   - Verifies: P2-V01, P2-V04, P2-V07, P2-V09, P2-V10, P2-V13, P2-V16, P2-V17
   - Depends on: T2.1b
   - Context: §4.4; `spec/schema.sql` (ORDERS, PAYMENTS, INVOICING, FULFILLMENT, TRANSACTIONAL EMAIL OUTBOX); "How to build it" above
-  - Open items: G3, G5, G31, G33 (schema changes; decide before this task to avoid an amendment)
 
-Write the models and migrations for `"order"`, `order_line`, `order_event`, `payment`, `webhook_event`, `invoice_request`, `invoice_document`, `shipment` and `email_outbox`, and add the deferred foreign keys from `inventory_reservation`, `stock_ledger` and `cart` to `"order"`. After this task, `migrate` on an empty database produces exactly `spec/schema.sql` (P2-V01).
+Write the models and migrations for `"order"`, `order_line`, `order_event`, `payment`, `webhook_event`, `invoice_request`, `invoice_document`, `shipment` and `email_outbox`, and add the deferred foreign keys from `inventory_reservation`, `stock_ledger` and `cart` to `"order"`. `"order"` carries `cart_token`, `idempotency_key` and `idempotency_fingerprint` with `order_idempotency_uq` (G3), and `order_line` carries `unit_cost_cents` (G33), both from ADR-0030. The per-year order-number sequences (G5) are created by the service on first use, not by a migration. After this task, `migrate` on an empty database produces exactly `spec/schema.sql` (P2-V01).
 
 - ~~**T2.2 — Non-ORM schema objects**~~ Absorbed by T2.1a, T2.1b and T2.1c (each writes its own `RunSQL` with `reverse_sql`; the rule is in "How to build it").
 
@@ -1980,9 +1979,8 @@ Per G20's proposed resolution, add a "Recibir mercancía" admin action: the staf
   - Verifies: P4-V20
   - Depends on: T4.7
   - Context: §4.4 (pending schema changes)
-  - Open items: G34 (tests xfail until decided)
 
-Per G34's proposed resolution, `stock_item` gets an optional text field for the bin location, editable in the `StockItem` admin without touching `on_hand`, and writing no ledger row. If G34 was not decided before Phase 2, this task includes the amendment to `spec/schema.sql` and its migration. The packing view that shows it is T10.17.
+Per G34's resolution (ADR-0030), `stock_item.bin_location` is an optional text field created in T2.1b. It is editable in the `StockItem` admin without touching `on_hand`, and writing no ledger row. The packing view that shows it is T10.17.
 
 - [ ] **T4.10 — Counter-sale service**
   - Release: R2 · Gate: —
@@ -2050,7 +2048,7 @@ Admin: an "Registrar venta en tienda" page — pick location, scan/type SKUs, qu
 | Test ID | Layer | File path · test | What it asserts |
 |---|---|---|---|
 | P4-V19 | integration | `api/tests/integration/inventory/test_receiving.py::test_p4_v19_receive_goods_admin_action` | The "Recibir mercancía" admin action records a receipt through `receive_stock`: `on_hand` rises by the quantity, and one `receipt` ledger row names the staff user. A zero or negative quantity shows a form error and changes nothing. ⚠️ G20 |
-| P4-V20 | integration | `api/tests/integration/inventory/test_admin.py::test_p4_v20_bin_location_editable` | A stock item's bin location can be edited in the admin without touching `on_hand`; the edit writes no ledger row. ⚠️ G34 |
+| P4-V20 | integration | `api/tests/integration/inventory/test_admin.py::test_p4_v20_bin_location_editable` | A stock item's bin location can be edited in the admin without touching `on_hand`; the edit writes no ledger row. |
 
 **Fixtures and factories introduced** (reused by later phases)
 
@@ -2075,14 +2073,13 @@ Admin: an "Registrar venta en tienda" page — pick location, scan/type SKUs, qu
   - Verifies: P5-V05, P5-V09, P5-V12, P5-V13
   - Depends on: Phase 4 closed
   - Context: §4.4 (the attribute-agnostic catalog)
-  - Open items: G28 (featured and related products; decide before this task)
 
 Endpoints (all under `/api/`, all read-only, all cacheable):
 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/catalog/products/` | List. Filters: `category`, `franchise`, `brand`, `type`, `q`, `min_price`, `max_price`, `in_stock`, plus dynamic `attr.<key>=<value>` (the `preorder` filter is R2). Cursor pagination. |
-| GET | `/api/catalog/products/{slug}/` | Detail with variants, images, availability, related products (G28). |
+| GET | `/api/catalog/products/{slug}/` | Detail with variants, images, availability, related products (G28, ADR-0030: products that share the franchise or a category). |
 | GET | `/api/catalog/categories/` | Tree. |
 | GET | `/api/catalog/facets/` | Available filter values for the current query, driven by `product_type.filterable_keys`. |
 | GET | `/api/catalog/search/?q=` | Full-text over `search_tsv` with trigram fallback for typos. |
@@ -2605,9 +2602,8 @@ def apply_event(order_id: int, event: str, *, actor: str = "system", **kwargs) -
   - Verifies: P8-V12
   - Depends on: T8.1
   - Context: §4.4 (Pending schema changes)
-  - Open items: G5 (tests xfail until decided)
 
-Order number: `CN-{YYYY}-{seq:06d}`, from a Postgres sequence per year. Never derive it from the primary key. Per G5's proposed resolution, the year is taken in the store timezone (`America/Mexico_City`) and each year's sequence is created on first use.
+Order number: `CN-{YYYY}-{seq:06d}`, from a Postgres sequence per year. Never derive it from the primary key. Per G5's resolution (ADR-0030), the year is taken in the store timezone (`America/Mexico_City`) and each year's sequence is created on first use.
 
 - [ ] **T8.10 — Mock provider: checkout and refund**
   - Release: R1 · Gate: task
@@ -2650,11 +2646,11 @@ In Release 1 the target is always a delivery address given in the request; a sav
   - Verifies: P8-V03, P8-V08, P8-V09, P8-V10, P8-V18
   - Depends on: T8.2
   - Context: §4.6 (API)
-  - Open items: G3, G4 (tests xfail until decided)
+  - Open items: G4 (tests xfail until decided)
 
 Checkout endpoint `POST /api/checkout/` — R1 body: `{email, phone, fulfillment_method: "delivery", address_payload, customer_note}`, plus the optional `invoice` object (T8.7). `address_id` (a saved address) and `pickup_location_id` are Release 2. Returns `{order_number, order_public_id, checkout_url}`.
 
-Idempotency: accept an `Idempotency-Key` header and return the existing order on replay. A double-clicked "Pagar" button must not create two orders holding two sets of stock. Where the key is stored, its scope and a reused key with a different body follow G3's proposed resolution. A price change since the customer's last view follows G4's proposed resolution (`expected_total_cents`).
+Idempotency: accept an `Idempotency-Key` header and return the existing order on replay. A double-clicked "Pagar" button must not create two orders holding two sets of stock. The key is stored on the order with a fingerprint of the request body, unique per cart token (G3, ADR-0030); the same key with a different body returns 422 `idempotency_key_reused`. A price change since the customer's last view follows G4's proposed resolution (`expected_total_cents`).
 
 - [ ] **T8.7 — Invoice data at checkout**
   - Release: R1 · Gate: task
@@ -2678,9 +2674,9 @@ Checkout accepts an optional `invoice` object: `{rfc, legal_name, fiscal_postal_
   - Verifies: P8-V20
   - Depends on: T8.4
   - Context: §4.4 (Pending schema changes)
-  - Open items: G31 (tests xfail until decided); D15 (stand-in: factory values in tests)
+  - Open items: D15 (stand-in: factory values in tests)
 
-Per G31's proposed resolution: a variant may carry a per-customer limit, with its time window as a setting (§4.4). Before reserving, `create_order_from_cart` counts that variant's units in `pending_payment` and paid-or-later orders whose email, phone or normalised shipping address matches the new order's within the window. If the new order would exceed the limit, checkout returns 409 with a per-line error and reserves nothing. The limit values are D15; tests use factory values.
+Per G31's resolution (ADR-0030): a variant may carry a per-customer limit (`variant.purchase_limit`), with its time window in days as the setting `PURCHASE_LIMIT_WINDOW_DAYS` (§4.7). Before reserving, `create_order_from_cart` counts that variant's units in `pending_payment` and paid-or-later orders whose email, phone or normalised shipping address matches the new order's within the window. If the new order would exceed the limit, checkout returns 409 with a per-line error and reserves nothing. The limit values and the window length are D15; tests use factory values.
 
 - [ ] **T8.9 — Unit-cost snapshot**
   - Release: R1 · Gate: task
@@ -2688,9 +2684,8 @@ Per G31's proposed resolution: a variant may carry a per-customer limit, with it
   - Verifies: P8-V21
   - Depends on: T8.2
   - Context: §4.4 (Pending schema changes)
-  - Open items: G33 (tests xfail until decided)
 
-Per G33's proposed resolution: `create_order_from_cart` snapshots `variant.cost_cents` into `order_line.unit_cost_cents` when it freezes the line (step 3), or `NULL` when the variant has no cost. Later cost changes never alter it. The weekly and monthly reports read it (T10.16).
+Per G33's resolution (ADR-0030): `create_order_from_cart` snapshots `variant.cost_cents` into `order_line.unit_cost_cents` when it freezes the line (step 3), or `NULL` when the variant has no cost. Later cost changes never alter it. The weekly and monthly reports read it (T10.16).
 
 - [ ] **T8.5 — Order admin**
   - Release: R1 · Gate: task
@@ -2739,7 +2734,7 @@ Add the R2 rows of 8.A to `TRANSITIONS`: T3, T8, T9, T13, T14, T15, T19, and T16
 |---|---|---|---|
 | P8-V01 | integration | `api/tests/integration/orders/test_transitions.py::test_p8_v01_transition_table[row]` | One case per R1 row of 8.A (T1, T2, T4, T5, T6, T7, T10, T11, T12, T16 from `paid` and `preparing`, T17, T18). From the row's source state: a passing guard yields the target state and the listed side effects; a failing guard raises and leaves the order unchanged. The R2 rows are P8-V22. ⚠️ G25 |
 | P8-V02 | unit | `api/tests/unit/orders/test_state_machine.py::test_p8_v02_delivered_on_pending_payment_illegal` | `apply_event(order, "marked_delivered")` on `pending_payment` raises `IllegalTransition`. |
-| P8-V03 | API | `api/tests/api/orders/test_checkout.py::test_p8_v03_idempotent_checkout` | The same `Idempotency-Key` twice returns the same order number, with one order and one set of reservations. ⚠️ G3 |
+| P8-V03 | API | `api/tests/api/orders/test_checkout.py::test_p8_v03_idempotent_checkout` | The same `Idempotency-Key` twice returns the same order number, with one order and one set of reservations. |
 | P8-V04 | concurrency | `api/tests/concurrency/test_order_races.py::test_p8_v04_approve_vs_deadline` | `payment_approved` racing `deadline_passed`: exactly one wins. `paid` → `on_hand` decremented and `reserved` 0; `expired` → `reserved` 0 and `on_hand` unchanged. |
 | P8-V05 | property | `api/tests/property/test_state_machine.py::test_p8_v05_one_event_row_per_transition` | In the stateful machine, every legal transition adds exactly one `order_event` with the correct `from_state` / `to_state`, and illegal events add none. |
 | P8-V06 | integration | `api/tests/integration/orders/test_cancel.py::test_p8_v06_cancel_paid_returns_stock` | T16 on a `paid` order restores `on_hand`, writes a `return` ledger row, and calls `provider.refund`. ⚠️ G25 |
@@ -2749,11 +2744,11 @@ Add the R2 rows of 8.A to `TRANSITIONS`: T3, T8, T9, T13, T14, T15, T19, and T16
 | Test ID | Layer | File path · test | What it asserts |
 |---|---|---|---|
 | P8-V07 | integration | `api/tests/integration/orders/test_transitions.py::test_p8_v07_every_illegal_event_rejected[state-event]` | Every one of the 14 states × every event absent from `TRANSITIONS` for that state raises `IllegalTransition`; the order row, its reservations and `order_event` are untouched. Terminal states reject every event. |
-| P8-V08 | API | `api/tests/api/orders/test_checkout.py::test_p8_v08_idempotency_key_reused_different_body` | The same key with a different body — proposed: 422 `idempotency_key_reused`, no new order, the original untouched. ⚠️ G3 |
+| P8-V08 | API | `api/tests/api/orders/test_checkout.py::test_p8_v08_idempotency_key_reused_different_body` | The same key with a different body — proposed: 422 `idempotency_key_reused`, no new order, the original untouched. |
 | P8-V09 | API | `api/tests/api/orders/test_checkout.py::test_p8_v09_price_change_between_cart_and_checkout` | The price rises after the last cart GET: `order_line.unit_price_cents` is the checkout-time price, and later price changes do not alter the order. The customer-facing signal is G4. ⚠️ G4 |
 | P8-V10 | API | `api/tests/api/orders/test_checkout.py::test_p8_v10_partial_stock_failure_atomic` | One short line returns 409 with per-line errors; no order and no reservations are created. |
 | P8-V11 | concurrency | `api/tests/concurrency/test_order_races.py::test_p8_v11_crossed_carts_no_deadlock` | Carts `[A, B]` and `[B, A]` check out concurrently and both finish within the timeout — each succeeds or fails with `InsufficientStock` — thanks to the sorted locking in 8.2. |
-| P8-V12 | unit | `api/tests/unit/orders/test_numbering.py::test_p8_v12_number_format_and_year_rollover` | Format `CN-YYYY-NNNNNN`; the sequence restarts each year; an order at 23:59 on 31 December local time gets the year from G5. ⚠️ G5 |
+| P8-V12 | unit | `api/tests/unit/orders/test_numbering.py::test_p8_v12_number_format_and_year_rollover` | Format `CN-YYYY-NNNNNN`; the sequence restarts each year; an order at 23:59 on 31 December local time gets the year from G5. |
 | P8-V13 | integration | `api/tests/integration/orders/test_advance.py::test_p8_v13_auto_completion_boundaries` | `delivered` completes at exactly 7 days and not at 7 days − 1s. *The `picked_up` case is P8-V23.* |
 | P8-V14 | integration | `api/tests/integration/orders/test_advance.py::test_p8_v14_advance_orders_idempotent` | Running `advance_orders` twice produces the same states and no duplicate events. |
 | P8-V15 | integration | `api/tests/integration/orders/test_admin.py::test_p8_v15_action_bar_legal_events_only` | The buttons rendered equal the legal events for the state; POSTing an illegal event shows an error and changes nothing. |
@@ -2766,8 +2761,8 @@ Add the R2 rows of 8.A to `TRANSITIONS`: T3, T8, T9, T13, T14, T15, T19, and T16
 | Test ID | Layer | File path · test | What it asserts |
 |---|---|---|---|
 | P8-V19 | API | `api/tests/api/orders/test_checkout_invoice.py::test_p8_v19_invoice_data_at_checkout` | Checkout accepts optional invoice data. Valid data creates one `requested` `invoice_request` in the order's transaction. An RFC in the wrong format, a 4-digit fiscal postal code, or a régimen or uso code outside the configured catalog returns 400 with field errors and creates no order. Without invoice data, no request is created. |
-| P8-V20 | API | `api/tests/api/orders/test_purchase_limits.py::test_p8_v20_purchase_limit_per_customer` | With a limit of N units per customer on a variant, a checkout that would bring that variant's units in paid or pending orders matching the same email, phone or shipping address within the window above N returns 409 with a per-line message and reserves nothing. Exactly N is accepted. ⚠️ G31 |
-| P8-V21 | integration | `api/tests/integration/orders/test_cost_snapshot.py::test_p8_v21_unit_cost_snapshot` | `order_line` stores the variant's unit cost when the order is created; a later cost change doesn't alter it; a variant with no cost stores `NULL`. ⚠️ G33 |
+| P8-V20 | API | `api/tests/api/orders/test_purchase_limits.py::test_p8_v20_purchase_limit_per_customer` | With a limit of N units per customer on a variant, a checkout that would bring that variant's units in paid or pending orders matching the same email, phone or shipping address within the window above N returns 409 with a per-line message and reserves nothing. Exactly N is accepted. |
+| P8-V21 | integration | `api/tests/integration/orders/test_cost_snapshot.py::test_p8_v21_unit_cost_snapshot` | `order_line` stores the variant's unit cost when the order is created; a later cost change doesn't alter it; a variant with no cost stores `NULL`. |
 | P8-V22 [R2] | integration | `api/tests/integration/orders/test_transitions.py::test_p8_v22_transition_table_r2[row]` | One case per R2 row of 8.A (T3, T8, T9, T13, T14, T15, T19, and T16 from `awaiting_stock` and `ready_for_pickup`). From the row's source state: a passing guard yields the target state and the listed side effects; a failing guard raises and leaves the order unchanged. |
 | P8-V23 [R2] | integration | `api/tests/integration/orders/test_advance.py::test_p8_v23_pickup_auto_completion_boundary` | `picked_up` completes at exactly 1 day and not before. |
 | P8-V24 [R2] | API | `api/tests/api/orders/test_checkout.py::test_p8_v24_pickup_checkout_validation` | A pickup checkout without a location returns 400 with field errors and reserves nothing. |
@@ -3289,7 +3284,6 @@ Carrier contract suite — `tests/contract/carrier/`, written against a `Carrier
   - Verifies: P10-V26
   - Depends on: T10.1
   - Context: §4.4 (Pending schema changes); T4.8
-  - Open items: G34 (tests xfail until decided)
 
 The admin order page for an order in `preparing` shows a printable packing view: each line's SKU, product name, options and quantity, with its stock item's bin location (T4.8). Staff pick from it before creating the shipment (T10.1). Nothing on this view moves stock.
 
@@ -3315,7 +3309,7 @@ An admin view, "Facturas (CFDI)", over `invoice_request` (A8, ADR-0019):
   - Verifies: P10-V24
   - Depends on: T10.14
   - Context: §4.4; A8
-  - Open items: G5 (tests xfail until decided); D16 (stand-in §2.5)
+  - Open items: D16 (stand-in §2.5)
 
 An admin action, "Exportar para factura global": staff choose a date range, and the store returns a CSV of every order paid in that range that has no issued CFDI, excluding cancelled and expired orders and orders whose request is `issued`. Columns: order number, paid at (in the store timezone, G5), payment method, `total_cents` and `tax_included_cents`. Money stays in integer centavos (CR-01). The period the accountant uses, and how refunds after an export are handled, are D16.
 
@@ -3325,9 +3319,8 @@ An admin action, "Exportar para factura global": staff choose a date range, and 
   - Verifies: P10-V25
   - Depends on: T10.15, T10.17
   - Context: §4.4 (Pending schema changes); A19
-  - Open items: G33 (tests xfail until decided)
 
-Admin CSV exports for a date range, staff only, of orders, order lines and shipments. The owner builds the weekly dashboard and the monthly report from them outside the store (A19); the store adds no reporting screens. The columns follow G33's resolution. Under its proposal they include each line's `unit_cost_cents` snapshot (T8.9); each order's `placed_at`, `paid_at`, `shipped_at` and `cancel_reason`; and each shipment's `shipped_at` and `delivered_at`, so shipping times and stock cancellations can be counted. Money stays in integer centavos (CR-01).
+Admin CSV exports for a date range, staff only, of orders, order lines and shipments. The owner builds the weekly dashboard and the monthly report from them outside the store (A19); the store adds no reporting screens. The columns follow G33's resolution (ADR-0030). They include each line's `unit_cost_cents` snapshot (T8.9); each order's `placed_at`, `paid_at`, `shipped_at` and `cancel_reason`; and each shipment's `shipped_at` and `delivered_at`, so shipping times and stock cancellations can be counted. Money stays in integer centavos (CR-01).
 
 - [ ] **T10.5 — Pre-order reservations and capacity**
   - Release: R2 · Gate: —
@@ -3453,9 +3446,9 @@ Counter sales (A11): the admin page from T4.5, plus a `stock_ledger` filter by `
 | Test ID | Layer | File path · test | What it asserts |
 |---|---|---|---|
 | P10-V23 | integration | `api/tests/integration/invoicing/test_admin_queue.py::test_p10_v23_queue_and_record` | The admin CFDI queue lists paid orders with a `requested` CFDI, oldest first. Recording the folio, UUID, PDF and XML marks the request `issued` and queues one `cfdi_issued` email. Saving without the UUID or either file shows field errors and changes nothing. `ManualInvoicer.issue()` raises `ManualIssueRequired`. |
-| P10-V24 | integration | `api/tests/integration/invoicing/test_global_export.py::test_p10_v24_global_invoice_export` | The global-invoice export for a date range lists every paid order in it with no issued CFDI, with its total and IVA, and excludes cancelled, expired and invoiced orders. The range boundaries use the store timezone. ⚠️ G5 |
-| P10-V25 | integration | `api/tests/integration/reports/test_exports.py::test_p10_v25_csv_exports` | The admin CSV exports of orders, order lines and shipments for a date range contain the columns G33 defines, one row per record, money in integer centavos, and are available to staff only. ⚠️ G33 |
-| P10-V26 | integration | `api/tests/integration/fulfillment/test_packing.py::test_p10_v26_packing_view_bin_locations` | The admin order page lists each line with its stock item's bin location. ⚠️ G34 |
+| P10-V24 | integration | `api/tests/integration/invoicing/test_global_export.py::test_p10_v24_global_invoice_export` | The global-invoice export for a date range lists every paid order in it with no issued CFDI, with its total and IVA, and excludes cancelled, expired and invoiced orders. The range boundaries use the store timezone. |
+| P10-V25 | integration | `api/tests/integration/reports/test_exports.py::test_p10_v25_csv_exports` | The admin CSV exports of orders, order lines and shipments for a date range contain the columns G33 defines, one row per record, money in integer centavos, and are available to staff only. |
+| P10-V26 | integration | `api/tests/integration/fulfillment/test_packing.py::test_p10_v26_packing_view_bin_locations` | The admin order page lists each line with its stock item's bin location. |
 
 **Fixtures and factories introduced** (reused by later phases)
 
@@ -3723,12 +3716,12 @@ Catalog components, built from DS parts per the §4.5 composition map (do not ha
   - Verifies: P12-V01, P12-V13, P12-V14, P12-V15, P12-V16, P12-V17, P12-V18
   - Depends on: T12.5
   - Context: 12.A; §4.5
-  - Open items: G18, G28 (tests xfail until decided); D2 (stand-in §2.4: placeholder pages)
+  - Open items: G18 (tests xfail until decided); D2 (stand-in §2.4: placeholder pages)
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
 
 Build the 12.A routes from the T12.4 components, fetching through `useApi` with `useFetch` or `useAsyncData` so the first render happens on the server:
 
-- home: featured products (G28's proposal) and categories
+- home: featured products (G28, ADR-0030) and categories
 - catalog grid with the facet sidebar driven by `/api/catalog/facets/`, with filters reflected in the URL
 - the category page, the same component scoped to a category
 - the product page: gallery, variant selector, attribute table and availability (add to cart arrives in Phase 13)
@@ -3859,7 +3852,7 @@ The home page's open pre-orders section: seeded pre-order products with their re
 
 | Test ID | Layer | File | Assertion |
 |---|---|---|---|
-| P12-V13 | E2E | `web/e2e/p12_catalog.spec.ts` › `p12_v13 home shows featured products` | Seeded featured products appear on the home page, with working links. ⚠️ G28 |
+| P12-V13 | E2E | `web/e2e/p12_catalog.spec.ts` › `p12_v13 home shows featured products` | Seeded featured products appear on the home page, with working links. |
 | P12-V14 | E2E | `web/e2e/p12_catalog.spec.ts` › `p12_v14 facet filter updates results and url` | Choosing "Línea: Nendoroid" adds `attr.linea` to the URL and shows only matching products; the browser back button restores the unfiltered list. |
 | P12-V15 | E2E | `web/e2e/p12_catalog.spec.ts` › `p12_v15 category page is scoped` | `/catalogo/<category>` lists only that category's products. |
 | P12-V16 | E2E | `web/e2e/p12_product.spec.ts` › `p12_v16 variant selection updates price and availability` | Selecting a hoodie variant updates the displayed price and badge to that variant's values from the API. |
@@ -3992,7 +3985,7 @@ Per G22's proposed resolution: `POST /api/orders/{public_id}/pay/`, authorised b
   - Verifies: P13-V01, P13-V02, P13-V11, P13-V21
   - Depends on: T13.5, T13.10
   - Context: 13.A; 8.4; §2.5 (D5); CR-02
-  - Open items: G3 (tests xfail until decided); D5 (stand-in §2.5)
+  - Open items: D5 (stand-in §2.5)
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
 
 Checkout page — deliberately one page, collapsible sections, no wizard:
@@ -4034,7 +4027,7 @@ Checkout error handling: a 409 from `/api/checkout/` renders its per-line errors
   - Verifies: P13-V24
   - Depends on: T13.6
   - Context: T8.8
-  - Open items: G31 (tests xfail until decided); D15
+  - Open items: D15
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
 
 A 409 from `/api/checkout/` for a line over its per-customer limit renders the server's per-line message next to that line in the Revisión section, the same way as the stock message (T13.6). No order is created.
@@ -4126,7 +4119,7 @@ Pickup and pre-orders in the cart and checkout: the delivery or pickup toggle in
 | Test ID | Layer | File | Assertion |
 |---|---|---|---|
 | P13-V23 | E2E | `web/e2e/p13_invoice.spec.ts` › `p13_v23 quiero factura fields and errors` | The checkout's "Quiero factura" section shows its fields only when chosen; server field errors render under the matching inputs; the paid order then appears in the admin CFDI queue. |
-| P13-V24 | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v24 purchase limit message` | Exceeding a purchase limit shows the server's per-line message in the review section and creates no order. ⚠️ G31 |
+| P13-V24 | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v24 purchase limit message` | Exceeding a purchase limit shows the server's per-line message in the review section and creates no order. |
 | P13-V25 [R2] | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v25 mobile viewport purchase pickup` | On the `mobile` project, a pickup purchase goes through the simulator's "Aprobar con tarjeta" and reaches the confirmed `gracias` view. |
 | P13-V26 | API | `api/tests/api/orders/test_status_token.py::test_p13_v26_status_token` | A valid order-status token returns the order's status; an expired or tampered token returns 404 with the same body as a missing order. ⚠️ G21 |
 | P13-V27 | API | `api/tests/api/orders/test_pay_retry.py::test_p13_v27_pay_retry` | `POST /api/orders/{public_id}/pay/` returns a fresh `checkout_url` while the order is `pending_payment`, without new reservations, and 409 in any other state. ⚠️ G22 |
@@ -4967,7 +4960,7 @@ Lightsail deployments are blue/green by default: the new version must pass healt
 
 > Every ID below is a named test (§4.6). The phase closes when every in-scope ID passes in `make test-all` (§0.2). ⚠️ G# marks a test written against a gap's proposed resolution, `xfail(strict=True, reason="G#")` until the gap is decided (§2.4). `[R2]` marks an ID outside Release 1; `[manual]` an ID checked by hand in the phase-close report.
 
-The plan's first two checklist items — `make test-all` green in CI on `main`, and branch protection blocking a red pull request — are now P1-V23 in Phase 1 (G29).
+The plan's first two checklist items — `make test-all` green in CI on `main`, and branch protection blocking a red pull request — are now P1-V23 in Phase 1 (G29, ADR-0029).
 
 **From the plan's checklist:**
 
@@ -5289,16 +5282,16 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Needed by | Items |
 |---|---|
 | Before Phase 1 | S5 (repository name), ~~S8~~ |
-| Phase 1 | ~~G1~~, G29 |
-| Before Phase 2 (schema) | D14 (types), D16 (fields); the R1 schema items G3, G5, G28, G31, G33, G34 (§4.4) |
+| Phase 1 | ~~G1~~, ~~G29~~ |
+| Before Phase 2 (schema) | D14 (types), D16 (fields); ~~G3~~, ~~G5~~, ~~G28~~, ~~G31~~, ~~G33~~, ~~G34~~ (§4.4) |
 | Phase 3 | G12, G39 |
-| Phase 4 | G2, G15, G20, G24, G34, G37, G38 |
+| Phase 4 | G2, G15, G20, G24, ~~G34~~, G37, G38 |
 | Phase 5 | G13 with D10, G32 |
 | Phase 6 | G30, G35 |
-| Phase 8 | G3, G4, G5, G25, G26, G27, G31, G33 |
+| Phase 8 | ~~G3~~, G4, ~~G5~~, G25, G26, G27, ~~G31~~, ~~G33~~ |
 | Phase 9 | G7, G8, G11, G14 |
 | Phase 11 | G17; DSR-04, DSR-05 released |
-| Phase 12 | G18, G28, G32, D17; DSR-01, DSR-02, DSR-03, DSR-06, DSR-07 released; DSR-09 or its fallback |
+| Phase 12 | G18, ~~G28~~, G32, D17; DSR-01, DSR-02, DSR-03, DSR-06, DSR-07 released; DSR-09 or its fallback |
 | Phase 13 | G21, G22 |
 | Phase 16 | S2, D6, D7, D13 |
 | Phase 17 | S3, S4 |
@@ -5322,6 +5315,8 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.2 | 2026-10-20 | Lighter decision process: `/decide` only for owner-only decisions; "Judgment calls" item added to the task report (§0.2); DSR-10 registered (`CnMediaCard` type error). No requirement, Verify ID or schema change. | OA-18 |
 | 1.3 | 2026-10-20 | Design System pin raised to 1.0.1 (fixes DSR-10). New task T1.17; T1.8 depends on it. A17, §4.5 and the header cite 1.0.1. No requirement, Verify ID or schema change. | OA-19 |
 | 1.4 | 2026-10-21 | G1 resolved: the health endpoint moves into Phase 1 (T1.16); T20.4 stays absorbed by T1.16 and T20.3; T1.16 loses its `xfail` open item. No Verify ID or schema change. | OA-20; ADR-0028 |
+| 1.5 | 2026-10-23 | G29 resolved: CI and branch protection are verified in Phase 1 (P1-V23, `[manual]`), and the GitHub settings in force are recorded. T1.9 loses its open item. No Verify ID or schema change. | OA-21; ADR-0029 |
+| 1.6 | 2026-10-23 | G3, G5, G28, G31, G33 and G34 resolved: the Release 1 schema additions are in `spec/schema.sql` (`product.is_featured`, `featured_position`; `variant.purchase_limit`; `stock_item.bin_location`; `order.cart_token`, `idempotency_key`, `idempotency_fingerprint`; `order_line.unit_cost_cents`). T2.1a to T2.1c, T4.8, T5.1, T8.3 to T8.9 and T10.15 to T10.17 lose their open items, and the ⚠️ markers of the matching Verify rows are removed. D15 now also covers the purchase-limit window; new setting `PURCHASE_LIMIT_WINDOW_DAYS`. No Verify ID added or removed. | OA-22 to OA-27; ADR-0030 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5399,6 +5394,8 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0026 | Read access to the Design System packages | `docs/decisions/0026-ds-package-read-access.md` | S8; OA-15 |
 | ADR-0027 | Which values `prod.py` rejects, and the installed apps | `docs/decisions/0027-prod-settings-mock-rejection.md` | T1.3; OA-16, OA-17 |
 | ADR-0028 | Health endpoint in Phase 1 | `docs/decisions/0028-health-endpoint-phase-1.md` | G1; OA-20 |
+| ADR-0029 | CI and branch protection in Phase 1 | `docs/decisions/0029-ci-branch-protection-phase-1.md` | G29; OA-21 |
+| ADR-0030 | Release 1 schema additions | `docs/decisions/0030-release-1-schema-additions.md` | G3, G5, G28, G31, G33, G34; OA-22 to OA-27 |
 
 ## Appendix C — Dated market facts
 
@@ -5524,20 +5521,20 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T1.4 | Absorbed by T1.3 | Same settings file; one session |
 | T1.5 | Rewritten: pnpm, the DS layer pinned at 1.0.0, no direct `@nuxt/ui` or `tailwindcss`, no `main.css` | C-01, C-02, C-11; §4.5 |
 | T1.6 | Adds the `scheduler` service and an empty `infra/crontab`; build secret for `NODE_AUTH_TOKEN` | plan App. B; §4.5 |
-| T1.9 | Moved to the end as the phase-close task; adds superseded-run cancellation, GitHub Packages access, the PR template; branch protection is an owner step | OA-03; §4.5; G29 |
+| T1.9 | Moved to the end as the phase-close task; adds superseded-run cancellation, GitHub Packages access, the PR template; branch protection is an owner step | OA-03; §4.5; G29; ADR-0029 |
 | T1.11 | Registry adds `INVOICE_IMPLS`; Protocols add `Attachment` and `InvoiceProvider` | §4.3 |
 | T1.12 | Split into T1.12a (configuration), T1.12b (concurrency helper and checkers), T1.12c (contract and migration harness) | One session each |
 | T1.13 | Split into T1.13a (Vitest) and T1.13b (Playwright harness); axe tags now WCAG 2.2 | One session each; CR-35 |
 | T1.14 | Split into T1.14a (Make targets, ratchet) and T1.14b (spec checks); copying the plan to `docs/` is dropped | One session each; §4.6 |
 | T1.15 | New: seed ADR-0001 to ADR-0025 | §4.2; OA-12 |
 | T1.16 | New: health endpoint per G1's resolution | G1; ADR-0028 |
-| P1-V03 | Assertion cites §0.3; the CI half is now P1-V23 instead of Phase 20 | G29 |
+| P1-V03 | Assertion cites §0.3; the CI half is now P1-V23 instead of Phase 20 | G29; ADR-0029 |
 | P1-V09 | "Nuxt welcome page" → "the app's index page" | The app extends the DS layer |
 | P1-V10 | "plan fixture" → "spec fixture" | The spec replaces the plan |
 | P1-V20 | New: axe WCAG 2.2 AA tags | CR-35 |
 | P1-V21 | New: release-aware traceability | §4.6; OA-11 |
 | P1-V22 | New: register check | §4.6 |
-| P1-V23 | New `[manual]`: CI green and branch protection (from plan Phase 20) | G29 |
+| P1-V23 | New `[manual]`: CI green and branch protection (from plan Phase 20) | G29; ADR-0029 |
 
 #### Phase 2
 
@@ -5727,9 +5724,9 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T10.17 | New: packing view with bin locations | REQ-064; G34 |
 | P10-V05–P10-V18, P10-V20–P10-V22 (except V19) | Tagged `[R2]`; assertions unchanged | Pickup, pre-orders and counter sales are R2 |
 | P10-V23 | New (pre-allocated): CFDI queue and recording | REQ-060 |
-| P10-V24 | New (pre-allocated): global-invoice export ⚠️ G5 | REQ-060 |
-| P10-V25 | New (pre-allocated): reporting exports ⚠️ G33 | REQ-063 |
-| P10-V26 | New (pre-allocated): packing view bin locations ⚠️ G34; moved out of P4-V20 | REQ-064 |
+| P10-V24 | New (pre-allocated): global-invoice export | REQ-060 |
+| P10-V25 | New (pre-allocated): reporting exports | REQ-063 |
+| P10-V26 | New (pre-allocated): packing view bin locations; moved out of P4-V20 | REQ-064 |
 | Fixtures | `ready_pickup_order`, `preorder_variant`, `awaiting_stock_orders` tagged R2; `invoice_request`, `cfdi_documents`, `export_rows` added | §1.2; new tests |
 
 #### Phase 11
@@ -5778,7 +5775,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | Storefront tasks | Done when adds "`/ui-review` ran (§0.5)" | §0.5; OA-13 |
 | P12-V08, P12-V22 | Tagged `[R2]` | Accounts are R2 |
 | P12-V09 | ⚠️ G19 removed; cites ADR-0024 | G19 decided |
-| P12-V13 | Edited to featured products only, ⚠️ G28; the open pre-order moved to P12-V29 | Mixed R1/R2 item split |
+| P12-V13 | Edited to featured products only; the open pre-order moved to P12-V29 | Mixed R1/R2 item split |
 | P12-V26 | New (pre-allocated): styling scan | REQ-050 |
 | P12-V27 | New (pre-allocated): DS pin check | REQ-050 |
 | P12-V28 | New (pre-allocated): pre-launch page ⚠️ G32 | REQ-062 |
@@ -5808,7 +5805,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | P13-V11 | "§5.E dev defaults" → "§2.5 dev defaults" | Spec references |
 | P13-V12, P13-V22 | Tagged `[R2]` | Pickup and pre-orders are R2 |
 | P13-V23 | New (pre-allocated): "Quiero factura" | REQ-060 |
-| P13-V24 | New (pre-allocated): purchase-limit message ⚠️ G31 | REQ-061 |
+| P13-V24 | New (pre-allocated): purchase-limit message | REQ-061 |
 | P13-V25 | New `[R2]` (pre-allocated): pickup purchase on mobile | Mixed R1/R2 item split |
 | P13-V26 | New (pre-allocated): order-status token API ⚠️ G21 | G21 |
 | P13-V27 | New (pre-allocated): pay-retry API ⚠️ G22 | G22 |
@@ -5920,7 +5917,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T20.6 | Moved last as the phase-close task; the smoke step also checks the HTTP redirect and HSTS; D1 listed as blocking | §0.2; plan checklist; §7.2 |
 | T20.9 | Struck: recorded as ADR-0015 | It is a decision, not a task |
 | T20.10 | New: production scheduler per G23's proposal | G23 |
-| Verify | Plan items "CI green on main" and "branch protection" → P1-V23 (Phase 1) | G29 |
+| Verify | Plan items "CI green on main" and "branch protection" → P1-V23 (Phase 1) | G29; ADR-0029 |
 | P20-V01 | New: container spec parsed | 20.3; CR-50 |
 | P20-V02 | New: Dockerfiles checked statically | 20.1, 20.2; §4.5 |
 | P20-V03 | New: HTTPS and HSTS smoke step in `deploy.yml` (automated version of the plan's HTTPS item) | Plan checklist |

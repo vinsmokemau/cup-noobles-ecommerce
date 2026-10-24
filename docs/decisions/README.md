@@ -32,3 +32,5 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0026](0026-ds-package-read-access.md) | Read access to the Design System packages | accepted | S8; OA-15 |
 | [ADR-0027](0027-prod-settings-mock-rejection.md) | Which values `prod.py` rejects, and the installed apps | accepted | T1.3; OA-16, OA-17 |
 | [ADR-0028](0028-health-endpoint-phase-1.md) | Health endpoint in Phase 1 | accepted | G1; OA-20 |
+| [ADR-0029](0029-ci-branch-protection-phase-1.md) | CI and branch protection in Phase 1 | accepted | G29; OA-21 |
+| [ADR-0030](0030-release-1-schema-additions.md) | Release 1 schema additions | accepted | G3, G5, G28, G31, G33, G34; OA-22 to OA-27 |

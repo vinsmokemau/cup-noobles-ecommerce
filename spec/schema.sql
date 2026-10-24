@@ -84,6 +84,10 @@ CREATE TABLE product (
   attributes       jsonb       NOT NULL DEFAULT '{}'::jsonb,
   -- Overrides product_type.variant_axes when a product is unusual.
   variant_axes     jsonb       NULL,
+  -- Home-page featured products, shown in featured_position order (G28, ADR-0030).
+  -- Related products need no column: same franchise or a shared category.
+  is_featured      boolean     NOT NULL DEFAULT false,
+  featured_position integer    NOT NULL DEFAULT 0 CHECK (featured_position >= 0),
   search_tsv       tsvector GENERATED ALWAYS AS (
                      setweight(to_tsvector('spanish', coalesce(name,'')), 'A') ||
                      setweight(to_tsvector('spanish', coalesce(subtitle,'')), 'B') ||
@@ -101,6 +105,7 @@ CREATE INDEX product_name_trgm      ON product USING gin (name gin_trgm_ops);
 CREATE INDEX product_active_idx     ON product (status, published_at DESC) WHERE status = 'active';
 CREATE INDEX product_type_idx       ON product (product_type_id);
 CREATE INDEX product_franchise_idx  ON product (franchise_id);
+CREATE INDEX product_featured_idx   ON product (featured_position) WHERE status = 'active' AND is_featured;
 
 CREATE TABLE product_category (
   product_id  bigint NOT NULL REFERENCES product(id)  ON DELETE CASCADE,
@@ -141,6 +146,8 @@ CREATE TABLE variant (
   requires_shipping  boolean     NOT NULL DEFAULT true,
   is_active          boolean     NOT NULL DEFAULT true,
   position           integer     NOT NULL DEFAULT 0,
+  -- Per-customer purchase limit in units; NULL means no limit (G31, ADR-0030).
+  purchase_limit     integer     NULL     CHECK (purchase_limit IS NULL OR purchase_limit > 0),
   -- Pre-order support. Pre-order stock is NOT drawn from stock_item.
   is_preorder            boolean NOT NULL DEFAULT false,
   preorder_limit         integer NULL CHECK (preorder_limit IS NULL OR preorder_limit >= 0),
@@ -190,6 +197,8 @@ CREATE TABLE stock_item (
   on_hand      integer NOT NULL DEFAULT 0 CHECK (on_hand  >= 0),
   reserved     integer NOT NULL DEFAULT 0 CHECK (reserved >= 0),
   safety_stock integer NOT NULL DEFAULT 0 CHECK (safety_stock >= 0),
+  -- Optional picking location ("ubicación"); changing it writes no ledger row (G34, ADR-0030).
+  bin_location text    NOT NULL DEFAULT '',
   updated_at   timestamptz NOT NULL DEFAULT now(),
   UNIQUE (variant_id, location_id),
   -- Hard invariant: you can never have more held than you physically have.
@@ -380,6 +389,9 @@ CREATE TABLE cart_line (
 CREATE TABLE "order" (
   id                  bigserial PRIMARY KEY,
   public_id           uuid   NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+  -- 'CN-{YYYY}-{seq:06d}'. The year is taken in America/Mexico_City, from one Postgres
+  -- sequence per year that the service creates on first use (G5, ADR-0030). The
+  -- sequences are not part of this DDL.
   number              text   NOT NULL UNIQUE,     -- 'CN-2026-000123'
   customer_id         bigint NULL REFERENCES customer(id) ON DELETE SET NULL,
   email               citext NOT NULL,            -- always set; guest checkout supported
@@ -408,6 +420,11 @@ CREATE TABLE "order" (
   customer_note       text NOT NULL DEFAULT '',
   internal_note       text NOT NULL DEFAULT '',
   cancel_reason       text NOT NULL DEFAULT '',
+  -- Checkout idempotency (G3, ADR-0030). The key is scoped to the cart token; the
+  -- fingerprint is the SHA-256 hex digest of the canonical request body.
+  cart_token               uuid NULL,
+  idempotency_key          text NULL,
+  idempotency_fingerprint  text NULL,
   placed_at           timestamptz NULL,
   paid_at             timestamptz NULL,
   shipped_at          timestamptz NULL,
@@ -424,11 +441,17 @@ CREATE TABLE "order" (
     OR (fulfillment_method = 'delivery' AND shipping_address   IS NOT NULL)
   ),
   CONSTRAINT order_pickup_has_no_shipping_fee
-    CHECK (fulfillment_method <> 'pickup' OR shipping_cents = 0)
+    CHECK (fulfillment_method <> 'pickup' OR shipping_cents = 0),
+  CONSTRAINT order_idempotency_complete CHECK (
+    (idempotency_key IS NULL) = (idempotency_fingerprint IS NULL)
+    AND (idempotency_key IS NULL OR cart_token IS NOT NULL)
+  )
 );
 CREATE INDEX order_customer_idx ON "order"(customer_id, created_at DESC);
 CREATE INDEX order_state_idx    ON "order"(state, created_at DESC);
 CREATE INDEX order_email_idx    ON "order"(email);
+CREATE UNIQUE INDEX order_idempotency_uq ON "order"(cart_token, idempotency_key)
+  WHERE idempotency_key IS NOT NULL;
 CREATE INDEX order_payment_deadline_idx ON "order"(payment_deadline_at)
   WHERE state = 'pending_payment';
 
@@ -444,6 +467,8 @@ CREATE TABLE order_line (
   quantity              integer NOT NULL CHECK (quantity > 0),
   unit_price_cents      integer NOT NULL CHECK (unit_price_cents >= 0),
   line_total_cents      integer NOT NULL CHECK (line_total_cents >= 0),
+  -- variant.cost_cents when the order was created; NULL if the variant had none (G33, ADR-0030).
+  unit_cost_cents       integer NULL CHECK (unit_cost_cents IS NULL OR unit_cost_cents >= 0),
   is_preorder           boolean NOT NULL DEFAULT false,
   expected_release_date date    NULL,
   fulfilled_quantity    integer NOT NULL DEFAULT 0 CHECK (fulfilled_quantity >= 0),
