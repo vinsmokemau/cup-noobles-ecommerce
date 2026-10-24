@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.6 |
+| Spec version | 1.7 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -435,6 +435,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G37 | 4 | P4-V03, T8.6 | `expire_reservations` (4.3) moves the order `pending_payment → expired`, but in Phase 4 orders are drafts and `apply_event` arrives in Phase 8; `advance_orders` (8.6) also fires T5, so two jobs own expiry | In Phase 4 the job releases lapsed holds only. From Phase 8 it fires T5 through `apply_event`, and `advance_orders` stops firing T5. P4-V03 asserts the order state from Phase 8 on. | R1 | Open |
 | G38 | 4 | P4-V17, 21.4 | `low_stock_report` and `daily_digest` email "the owner", but no setting names the address | An `OWNER_ALERT_EMAIL` setting (§4.7): a `.test` address in development, the owner's monitored inbox in production | R1 | Open |
 | G39 | 3 | 3.6 | The importer's `image_urls` column implies downloading images, which A13 forbids in Part A and nothing specifies for production | The column holds file paths relative to an images folder given at run time; the importer never makes a network call, and a remote URL is a row error | R1 | Open |
+| G40 | 2 | P2-V01 | Django 5.2 applies the schema's `ON DELETE` rules in Python, not in the database: an unnamed foreign key has `NO ACTION` and is deferrable, so a raw SQL delete cannot cascade or null out dependents | Accepted as is. Only the four named foreign keys (`product_image_variant_fk`, `reservation_order_fk`, `stock_ledger_order_fk`, `cart_converted_order_fk`) carry the exact rules. P2-V01 compares the others by columns and target table. Revisit on Django 6.0 (native `db_on_delete`) | R1 | Resolved (ADR-0031) |
 
 #### Design System requests (DSR)
 
@@ -499,6 +500,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-25 | 2026-10-23 | G5: which timezone gives the order-number year? | Option A: the proposed resolution. `America/Mexico_City` for numbering and display; one Postgres sequence per year, created on first use. ADR-0030. |
 | OA-26 | 2026-10-23 | G31: how are purchase limits per customer enforced? | Option A: the proposed resolution. `variant.purchase_limit` set in the admin; the guard counts units in pending and paid orders matching the email, phone or normalised shipping address within a window. The owner gave no window length, so it stays in D15 and the setting `PURCHASE_LIMIT_WINDOW_DAYS` has no default. ADR-0030. |
 | OA-27 | 2026-10-23 | G33: how is the unit cost captured for reports? | Option A: the proposed resolution. `order_line.unit_cost_cents` snapshotted at order creation, plus admin CSV exports. ADR-0030. |
+| OA-28 | 2026-10-23 | G40: T2.1c found that Django 5.2 enforces the schema's `ON DELETE` rules in Python, not in the database. Enforce them in the database too? | Option A: accept as is. Only the four named foreign keys carry the exact rules; revisit on Django 6.0. ADR-0031. |
 
 ---
 
@@ -5317,6 +5319,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.4 | 2026-10-21 | G1 resolved: the health endpoint moves into Phase 1 (T1.16); T20.4 stays absorbed by T1.16 and T20.3; T1.16 loses its `xfail` open item. No Verify ID or schema change. | OA-20; ADR-0028 |
 | 1.5 | 2026-10-23 | G29 resolved: CI and branch protection are verified in Phase 1 (P1-V23, `[manual]`), and the GitHub settings in force are recorded. T1.9 loses its open item. No Verify ID or schema change. | OA-21; ADR-0029 |
 | 1.6 | 2026-10-23 | G3, G5, G28, G31, G33 and G34 resolved: the Release 1 schema additions are in `spec/schema.sql` (`product.is_featured`, `featured_position`; `variant.purchase_limit`; `stock_item.bin_location`; `order.cart_token`, `idempotency_key`, `idempotency_fingerprint`; `order_line.unit_cost_cents`). T2.1a to T2.1c, T4.8, T5.1, T8.3 to T8.9 and T10.15 to T10.17 lose their open items, and the ⚠️ markers of the matching Verify rows are removed. D15 now also covers the purchase-limit window; new setting `PURCHASE_LIMIT_WINDOW_DAYS`. No Verify ID added or removed. | OA-22 to OA-27; ADR-0030 |
+| 1.7 | 2026-10-23 | G40 registered and resolved: the schema's `ON DELETE` rules are enforced by Django's ORM, not by the database, except on the four named foreign keys; revisit on Django 6.0. No requirement, Verify ID, task or schema change. | OA-28; ADR-0031 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5396,6 +5399,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0028 | Health endpoint in Phase 1 | `docs/decisions/0028-health-endpoint-phase-1.md` | G1; OA-20 |
 | ADR-0029 | CI and branch protection in Phase 1 | `docs/decisions/0029-ci-branch-protection-phase-1.md` | G29; OA-21 |
 | ADR-0030 | Release 1 schema additions | `docs/decisions/0030-release-1-schema-additions.md` | G3, G5, G28, G31, G33, G34; OA-22 to OA-27 |
+| ADR-0031 | Foreign key delete rules are enforced by Django | `docs/decisions/0031-fk-delete-rules-in-orm.md` | G40; OA-28 |
 
 ## Appendix C — Dated market facts
 
