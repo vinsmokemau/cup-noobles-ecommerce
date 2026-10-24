@@ -1623,7 +1623,7 @@ Set `AUTH_USER_MODEL = "accounts.Customer"` **before the first migration** (abso
 
 Write the Django models and migrations for `customer` and the catalog tables: `product_type`, `category`, `franchise`, `brand`, `product`, `product_category`, `product_image` and `variant`, with their constraints and indexes, including the `RunSQL` operations above. `product` carries `is_featured` and `featured_position` (G28), and `variant` carries `purchase_limit` (G31); both come from ADR-0030. Verify with `python manage.py sqlmigrate <app> <migration>` and diff against `spec/schema.sql`.
 
-- [ ] **T2.1b — Inventory, geography, address, shipping and cart tables**
+- [x] **T2.1b — Inventory, geography, address, shipping and cart tables** (2026-10-23, ab0e487)
   - Release: R1 · Gate: task
   - REQs: REQ-010
   - Verifies: P2-V02, P2-V11
