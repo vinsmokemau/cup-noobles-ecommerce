@@ -14,3 +14,10 @@ class CITextField(models.TextField):
 class CIEmailField(models.EmailField):
     def db_type(self, connection) -> str:
         return "citext"
+
+
+class FixedCharField(models.CharField):
+    """`char(n)`, for the schema's `state_code` and `postal_code` columns."""
+
+    def db_type(self, connection) -> str:
+        return f"char({self.max_length})"

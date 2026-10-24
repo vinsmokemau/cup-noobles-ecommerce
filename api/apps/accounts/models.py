@@ -5,10 +5,11 @@ from typing import ClassVar
 
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.core.db import GEN_RANDOM_UUID, NOW
-from apps.core.fields import CIEmailField
+from apps.core.fields import CIEmailField, FixedCharField
 
 
 class CustomerManager(BaseUserManager["Customer"]):
@@ -79,3 +80,52 @@ class Customer(AbstractBaseUser):
 
     def has_module_perms(self, app_label: str) -> bool:
         return self.is_active and self.is_superuser
+
+
+class Address(models.Model):
+    """A saved delivery address. Unused in Release 1 (§4.4): orders freeze a snapshot instead."""
+
+    customer = models.ForeignKey(
+        Customer, on_delete=models.CASCADE, related_name="addresses", db_index=False
+    )
+    label = models.TextField(default="", db_default="", blank=True)
+    recipient_name = models.TextField()
+    phone = models.TextField()
+    street = models.TextField()
+    ext_number = models.TextField()
+    int_number = models.TextField(default="", db_default="", blank=True)
+    neighborhood = models.TextField()
+    municipality = models.TextField()
+    state = models.ForeignKey(
+        "shipping.MxState",
+        on_delete=models.DO_NOTHING,
+        db_column="state_code",
+        db_index=False,
+    )
+    postal_code = FixedCharField(max_length=5)
+    delivery_notes = models.TextField(default="", db_default="", blank=True)
+    is_default = models.BooleanField(default=False, db_default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now, db_default=NOW)
+    updated_at = models.DateTimeField(auto_now=True, db_default=NOW)
+
+    class Meta:
+        db_table = "address"
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(postal_code__regex=r"^[0-9]{5}$"),
+                name="address_postal_code_check",
+            ),
+            models.UniqueConstraint(
+                fields=["customer"],
+                condition=Q(is_default=True, deleted_at__isnull=True),
+                name="address_single_default_uq",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["customer"],
+                condition=Q(deleted_at__isnull=True),
+                name="address_customer_idx",
+            )
+        ]

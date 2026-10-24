@@ -5,12 +5,15 @@ import datetime
 import pytest
 from django.db import IntegrityError, transaction
 
+from tests.factories.accounts import AddressFactory, CustomerFactory
 from tests.factories.catalog import (
     CategoryFactory,
     ProductFactory,
     ProductTypeFactory,
     VariantFactory,
 )
+from tests.factories.inventory import LocationFactory
+from tests.factories.shipping import MxStateFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -92,3 +95,33 @@ def test_p2_v12_catalog_constraints(raw_sql):
     with rejected("variant_options_is_object"):
         raw_sql(insert_variant, [product.id, "OPT-ARRAY", '["L"]'])
     raw_sql(insert_variant, [product.id, "OPT-OBJECT", "{}"])
+
+
+def test_p2_v02_reserved_le_on_hand(raw_sql):
+    variant = VariantFactory()
+    location = LocationFactory()
+    insert = (
+        "INSERT INTO stock_item (variant_id, location_id, on_hand, reserved) "
+        "VALUES (%s, %s, %s, %s)"
+    )
+    with rejected("stock_reserved_le_on_hand"):
+        raw_sql(insert, [variant.id, location.id, 0, 1])
+    raw_sql(insert, [variant.id, location.id, 1, 1])
+
+
+def test_p2_v11_address_constraints(raw_sql):
+    customer = CustomerFactory()
+    default = AddressFactory(customer=customer, is_default=True)
+    with rejected("address_single_default_uq"):
+        AddressFactory(customer=customer, is_default=True)
+    # A soft-deleted default does not block a new one.
+    raw_sql("UPDATE address SET deleted_at = now() WHERE id = %s", [default.id])
+    AddressFactory(customer=customer, is_default=True)
+    # Another customer has a default of their own.
+    AddressFactory(is_default=True)
+
+    state = MxStateFactory()
+    for postal_code in ("0670", "0670A"):
+        with rejected("address_postal_code_check"):
+            AddressFactory(state=state, postal_code=postal_code)
+    AddressFactory(state=state, postal_code="06700")
