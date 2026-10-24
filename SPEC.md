@@ -5156,7 +5156,7 @@ Swap in the Mercado Pago production credentials and webhook secret (the owner se
 
 Load the production data, replacing every §2.5 dev default:
 
-- Build `manage.py seed_states` (idempotent; it runs `apps.shipping.seeds.seed_states`) and run it in the deploy step, so production has the 32 states (G41, ADR-0032).
+- Run `manage.py seed_states` (built in T2.7; idempotent) in the deploy step, so production has the 32 states (G41, ADR-0032).
 - Import the catalog with `manage.py import_catalog <file>` from a file outside the repository (D12, CR-49).
 - Record the counted opening stock with "Recibir mercancía" — every future number depends on it.
 - Seed the shipping zones and rates (D5), the warehouse location (D4), and the purchase limits (D15).
@@ -5323,7 +5323,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.5 | 2026-10-23 | G29 resolved: CI and branch protection are verified in Phase 1 (P1-V23, `[manual]`), and the GitHub settings in force are recorded. T1.9 loses its open item. No Verify ID or schema change. | OA-21; ADR-0029 |
 | 1.6 | 2026-10-23 | G3, G5, G28, G31, G33 and G34 resolved: the Release 1 schema additions are in `spec/schema.sql` (`product.is_featured`, `featured_position`; `variant.purchase_limit`; `stock_item.bin_location`; `order.cart_token`, `idempotency_key`, `idempotency_fingerprint`; `order_line.unit_cost_cents`). T2.1a to T2.1c, T4.8, T5.1, T8.3 to T8.9 and T10.15 to T10.17 lose their open items, and the ⚠️ markers of the matching Verify rows are removed. D15 now also covers the purchase-limit window; new setting `PURCHASE_LIMIT_WINDOW_DAYS`. No Verify ID added or removed. | OA-22 to OA-27; ADR-0030 |
 | 1.7 | 2026-10-23 | G40 registered and resolved: the schema's `ON DELETE` rules are enforced by Django's ORM, not by the database, except on the four named foreign keys; revisit on Django 6.0. No requirement, Verify ID, task or schema change. | OA-28; ADR-0031 |
-| 1.8 | 2026-10-23 | G41 registered and resolved: production loads `mx_state` with a separate idempotent `manage.py seed_states` command, built and run in T22.3. No Verify ID or schema change. | OA-29; ADR-0032 |
+| 1.8 | 2026-10-23 | G41 registered and resolved: production loads `mx_state` with a separate idempotent `manage.py seed_states` command, built in T2.7 and run in T22.3. No Verify ID or schema change. | OA-29; ADR-0032 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 

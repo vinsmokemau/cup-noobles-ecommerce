@@ -30,3 +30,12 @@ def test_seed_dev_defaults_seeds_states_and_warehouse_once():
     assert warehouse["name"] == "[PLACEHOLDER] Almacén Cup Noobles"
     assert warehouse["kind"] == "warehouse"
     assert warehouse["is_pickup_point"] is False
+
+
+def test_seed_states_command_is_idempotent_and_leaves_the_warehouse_alone():
+    call_command("seed_states")
+    first = snapshot()
+    call_command("seed_states")
+    assert snapshot() == first
+    assert len(first[0]) == 32
+    assert first[1] == []

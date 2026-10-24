@@ -12,7 +12,7 @@ T2.7 seeds `mx_state` through `manage.py seed_dev_defaults`, the Part A command 
 
 1. A `manage.py seed_states` command runs `apps.shipping.seeds.seed_states`. It is idempotent.
 2. The deploy step runs it. `seed_dev_defaults` keeps calling the same function.
-3. T22.3 builds and runs the command as part of the launch data.
+3. T2.7 builds the command; T22.3 runs it as part of the launch data.
 
 ## Consequences
 
