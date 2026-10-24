@@ -6,6 +6,7 @@ The owner adds and edits products here. Status changes only through the "Publica
 """
 
 import json
+from typing import Any
 
 from django import forms
 from django.contrib import admin, messages
@@ -25,6 +26,11 @@ from django.db.models import (
 from django.db.models.functions import Coalesce, Greatest
 from django.http import HttpRequest
 
+from apps.catalog.attribute_fields import (
+    FIELD_PREFIX,
+    build_attribute_fields,
+    collect_attributes,
+)
 from apps.catalog.models import (
     Brand,
     Category,
@@ -125,6 +131,9 @@ class ProductImageInline(admin.TabularInline):
 
 
 class ProductAdminForm(forms.ModelForm):
+    # `attr_<key>` fields declared by `ProductAdmin.get_form` for the chosen product type (T3.4).
+    attribute_fields: dict[str, forms.Field] = {}
+
     class Meta:
         model = Product
         fields = "__all__"
@@ -133,6 +142,27 @@ class ProductAdminForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Blank means "generate it from the name" (T3.2).
         self.fields["slug"].required = False
+
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
+        if self.attribute_fields:
+            # Set before the model's own validation so the schema check sees the typed values.
+            self.instance.attributes = collect_attributes(
+                cleaned, self.attribute_fields
+            )
+        return cleaned
+
+    def _update_errors(self, errors: ValidationError) -> None:
+        # The model reports schema failures on "attributes", a field this form may not have:
+        # point each one at its `attr_<key>` field through the JSON pointer ("/numero").
+        error_dict = getattr(errors, "error_dict", None)
+        if self.attribute_fields and error_dict and "attributes" in error_dict:
+            for error in error_dict.pop("attributes"):
+                pointer = (error.params or {}).get("pointer", "")
+                name = FIELD_PREFIX + pointer.removeprefix("/").split("/")[0]
+                target = name if name in self.attribute_fields else None
+                self.add_error(target, error)
+        super()._update_errors(errors)  # type: ignore[misc]
 
 
 def _subquery(queryset: QuerySet, aggregate) -> Subquery:
@@ -166,6 +196,9 @@ class ProductAdmin(admin.ModelAdmin):
         "updated_at",
     )
 
+    class Media:
+        js = ("catalog/admin/product_type_reload.js",)
+
     def get_queryset(self, request: HttpRequest) -> QuerySet[Product]:
         variants = Variant.objects.filter(product=OuterRef("pk"))
         # available = on_hand - reserved - safety_stock, never negative (CR-04), summed per product.
@@ -192,6 +225,54 @@ class ProductAdmin(admin.ModelAdmin):
                 ),
             )
         )
+
+    def get_form(  # type: ignore[override]
+        self, request: HttpRequest, obj: Product | None = None, **kwargs: Any
+    ):
+        """Declare one form field per property of the chosen type's schema (T3.4).
+
+        The type is read from the submitted form, then from `?product_type=` (the add page reloads
+        with it when the select changes), then from the product. With none, or with a schema the
+        widget cannot read, the raw `attributes` JSON field stays.
+        """
+        fields = self._attribute_fields(request, obj)
+        if fields is not None:
+            kwargs["form"] = type(
+                "ProductAttributesForm",
+                (self.form,),
+                {"attribute_fields": fields, **fields},
+            )
+        return super().get_form(request, obj, **kwargs)
+
+    def get_exclude(self, request: HttpRequest, obj: Product | None = None):
+        # The typed fields replace the raw JSON field.
+        if self._attribute_fields(request, obj) is not None:
+            return ("attributes",)
+        return super().get_exclude(request, obj)
+
+    def _attribute_fields(
+        self, request: HttpRequest, obj: Product | None
+    ) -> dict[str, forms.Field] | None:
+        # Built once per request: get_form runs several times while the page is assembled.
+        if not hasattr(request, "_attribute_fields"):
+            product_type = self._chosen_type(request, obj)
+            current = obj.attributes if obj is not None else {}
+            request._attribute_fields = (  # type: ignore[attr-defined]
+                None
+                if product_type is None
+                else build_attribute_fields(product_type.attribute_schema, current)
+            )
+        return request._attribute_fields  # type: ignore[attr-defined,no-any-return]
+
+    @staticmethod
+    def _chosen_type(request: HttpRequest, obj: Product | None) -> ProductType | None:
+        raw = request.POST.get("product_type") or request.GET.get("product_type")
+        if raw:
+            try:
+                return ProductType.objects.filter(pk=int(raw)).first()
+            except ValueError:
+                return None
+        return obj.product_type if obj is not None else None
 
     def get_readonly_fields(self, request: HttpRequest, obj: Product | None = None):
         fields = super().get_readonly_fields(request, obj)
