@@ -58,8 +58,9 @@ make check-migrations   # fails if a model change has no migration
 | Command | What it does |
 |---|---|
 | `docker compose run --rm api python manage.py seed_e2e` | Seeds the end-to-end data and writes `var/e2e/manifest.json`. The E2E stack (`docker-compose.e2e.yml`) runs it for you after migrating. |
+| `docker compose run --rm api python manage.py seed_dev_defaults` | Seeds the 32 states and the `[PLACEHOLDER]` warehouse `almacen` (SPEC.md §2.5). Idempotent. Later tasks add the shipping zones and rates. |
 
-The development defaults seed (`seed_dev_defaults`) and the demo data (`seed_demo`, `make demo`) arrive with later tasks (SPEC.md §2.5, T3.7, T15.1). This table grows as they land.
+The demo data (`seed_demo`, `make demo`) arrive with later tasks (SPEC.md T3.7, T15.1). This table grows as they land.
 
 ## Run the tests
 
