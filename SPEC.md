@@ -1680,7 +1680,7 @@ Implement `apps/catalog/validation.py`: on `Product.save()` (and in the DRF seri
 
 - ~~**T2.6 — Dynamic attributes widget**~~ Absorbed by T3.4.
 
-- [ ] **T2.9 — Placeholder check and the CFDI catalog sample**
+- [x] **T2.9 — Placeholder check and the CFDI catalog sample** (2026-10-23, b1a4531)
   - Release: R1 · Gate: phase-close
   - REQs: REQ-065
   - Verifies: P2-V18
