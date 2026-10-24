@@ -1632,7 +1632,7 @@ Write the Django models and migrations for `customer` and the catalog tables: `p
 
 Write the models and migrations for `location`, `stock_item`, `stock_ledger`, `inventory_reservation`, `in_store_sale`, `in_store_sale_line`, `mx_state`, `mx_postal_code`, `address`, `shipping_zone`, `shipping_zone_state`, `shipping_rate`, `cart` and `cart_line`. `stock_item` carries `bin_location` (G34, ADR-0030). The foreign keys from `stock_ledger`, `inventory_reservation` and `cart` to `"order"` are added in T2.1c, after `"order"` exists. `in_store_sale`, `in_store_sale_line` and `address` are unused in Release 1 (§4.4).
 
-- [ ] **T2.1c — Order, payment, invoicing, fulfillment and outbox tables**
+- [x] **T2.1c — Order, payment, invoicing, fulfillment and outbox tables** (2026-10-23, f2e64ac)
   - Release: R1 · Gate: task
   - REQs: REQ-001, REQ-030, REQ-032, REQ-060, REQ-072
   - Verifies: P2-V01, P2-V04, P2-V07, P2-V09, P2-V10, P2-V13, P2-V16, P2-V17
