@@ -65,6 +65,21 @@ def create_product(
     return product
 
 
+def check_option_keys(axes: Iterable[str], options: Mapping[str, Any]) -> None:
+    """Raise `ValidationError({"options": …})` unless the option keys are exactly `axes`."""
+    axes = list(axes)
+    if set(options) != set(axes):
+        raise ValidationError(
+            {
+                "options": ValidationError(
+                    "Options must have exactly the keys %(axes)s; got %(keys)s.",
+                    code=INVALID_OPTIONS_CODE,
+                    params={"axes": sorted(axes), "keys": sorted(options)},
+                )
+            }
+        )
+
+
 @transaction.atomic
 def add_variant(
     product: Product,
@@ -78,17 +93,7 @@ def add_variant(
     A product with no axes takes `{}`. Two variants of one product cannot share options.
     """
     options = dict(options)
-    axes = resolve_variant_axes(product)
-    if set(options) != set(axes):
-        raise ValidationError(
-            {
-                "options": ValidationError(
-                    "Options must have exactly the keys %(axes)s; got %(keys)s.",
-                    code=INVALID_OPTIONS_CODE,
-                    params={"axes": sorted(axes), "keys": sorted(options)},
-                )
-            }
-        )
+    check_option_keys(resolve_variant_axes(product), options)
     if product.variants.filter(options=options).exists():
         raise ValidationError(
             {
@@ -119,3 +124,55 @@ def archive_product(product: Product) -> Product:
     product.status = Product.Status.ARCHIVED
     product.save(update_fields=["status", "updated_at"])
     return product
+
+
+COPY_NAME_SUFFIX = " (copia)"
+COPY_SKU_SUFFIX = "-COPIA"
+
+
+def _copy_sku(sku: str) -> str:
+    """The first of `X-COPIA`, `X-COPIA-2`, … that no variant uses (`sku` is case-insensitive)."""
+    candidate, n = f"{sku}{COPY_SKU_SUFFIX}", 1
+    while Variant.objects.filter(sku=candidate).exists():
+        n += 1
+        candidate = f"{sku}{COPY_SKU_SUFFIX}-{n}"
+    return candidate
+
+
+@transaction.atomic
+def duplicate_product(product: Product) -> Product:
+    """A draft copy: a new slug, new SKUs, the same variants and categories, and no stock.
+
+    Not copied: images, barcodes (one per sellable unit), the featured flag, the publish date
+    and the pre-order counter. Stock rows belong to the inventory services, so none are made.
+    """
+    copy = Product(
+        product_type=product.product_type,
+        brand=product.brand,
+        franchise=product.franchise,
+        name=f"{product.name}{COPY_NAME_SUFFIX}",
+        subtitle=product.subtitle,
+        description_md=product.description_md,
+        attributes=dict(product.attributes),
+        variant_axes=product.variant_axes,
+    )
+    copy.save()
+    copy.categories.add(*product.categories.all())
+    for variant in product.variants.order_by("position", "pk"):
+        Variant.objects.create(
+            product=copy,
+            sku=_copy_sku(variant.sku),
+            options=dict(variant.options),
+            price_cents=variant.price_cents,
+            compare_at_cents=variant.compare_at_cents,
+            cost_cents=variant.cost_cents,
+            weight_grams=variant.weight_grams,
+            requires_shipping=variant.requires_shipping,
+            is_active=variant.is_active,
+            position=variant.position,
+            purchase_limit=variant.purchase_limit,
+            is_preorder=variant.is_preorder,
+            preorder_limit=variant.preorder_limit,
+            expected_release_date=variant.expected_release_date,
+        )
+    return copy
