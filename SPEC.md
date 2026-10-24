@@ -1805,7 +1805,7 @@ Render each `attribute_schema` property as a typed field: `string` → text, `st
 
 Image handling: on upload, generate WebP derivatives at 400/800/1600px wide with Pillow and store all four keys through Django's default storage backend (`MEDIA_STORAGE=local` in Part A; object storage and CDN in Phase 18 — §4.3). App code uses `providers.media_store()`, never a storage class directly. Never serve originals.
 
-- [ ] **T3.6 — Catalog importer**
+- [x] **T3.6 — Catalog importer** (2026-10-24, be8ced0)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P3-V03, P3-V09, P3-V10
