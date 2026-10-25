@@ -6,3 +6,6 @@
 
 # Email the owner the variants at or below safety stock daily (SPEC.md §4.8, G2, G38)
 30 3 * * * python manage.py low_stock_report
+
+# Delete unconverted carts untouched for 60 days, weekly (SPEC.md §4.8, T7.8)
+45 3 * * 0 python manage.py purge_stale_carts
