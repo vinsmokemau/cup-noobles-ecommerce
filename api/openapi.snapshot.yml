@@ -3,6 +3,164 @@ info:
   title: Cup Noobles API
   version: 1.0.0
 paths:
+  /api/cart/:
+    get:
+      operationId: cart_retrieve
+      description: An unknown or missing token reads as an empty cart; a read never
+        creates one.
+      tags:
+      - cart
+      security:
+      - csrfToken: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+          description: ''
+  /api/cart/fulfillment/:
+    post:
+      operationId: cart_fulfillment_set
+      description: R1 accepts `delivery` only. T7.6 wires the quote, which reads the
+        postal code.
+      tags:
+      - cart
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartFulfillment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CartFulfillment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CartFulfillment'
+        required: true
+      security:
+      - csrfToken: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+          description: ''
+        '400':
+          description: The method is not `delivery`, or the postal code is not 5 digits.
+        '403':
+          description: The CSRF token is missing or wrong.
+  /api/cart/lines/:
+    post:
+      operationId: cart_lines_create
+      description: |-
+        Upsert: a variant already in the cart takes the new quantity.
+
+        Quantity is checked against the 1 to 99 bound only. Availability is reported on read,
+        never enforced here, so the cart never silently changes a quantity (T7.4).
+      tags:
+      - cart
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartLineWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CartLineWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CartLineWrite'
+        required: true
+      security:
+      - csrfToken: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+          description: ''
+        '400':
+          description: Quantity outside 1 to 99, or an unknown variant.
+        '403':
+          description: The CSRF token is missing or wrong.
+  /api/cart/lines/{line_id}/:
+    patch:
+      operationId: cart_lines_update
+      description: A line is found only inside the request's own cart, so another
+        cart's id is a 404.
+      parameters:
+      - in: path
+        name: line_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - cart
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCartLineQuantity'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCartLineQuantity'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCartLineQuantity'
+      security:
+      - csrfToken: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+          description: ''
+        '400':
+          description: Quantity outside 1 to 99.
+        '403':
+          description: The CSRF token is missing or wrong.
+        '404':
+          description: The line is not in this cart.
+    delete:
+      operationId: cart_lines_destroy
+      description: A line is found only inside the request's own cart, so another
+        cart's id is a 404.
+      parameters:
+      - in: path
+        name: line_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - cart
+      security:
+      - csrfToken: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+          description: ''
+        '403':
+          description: The CSRF token is missing or wrong.
+        '404':
+          description: The line is not in this cart.
   /api/catalog/categories/:
     get:
       operationId: catalog_categories_list
@@ -360,6 +518,46 @@ components:
           $ref: '#/components/schemas/StatusEnum'
       required:
       - status
+    Cart:
+      type: object
+      properties:
+        fulfillment_method:
+          type:
+          - string
+          - 'null'
+        lines:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+      required:
+      - lines
+    CartFulfillment:
+      type: object
+      properties:
+        method:
+          $ref: '#/components/schemas/MethodEnum'
+        postal_code:
+          type: string
+          maxLength: 5
+          pattern: '[0-9]{5}'
+      required:
+      - method
+      - postal_code
+    CartLineWrite:
+      type: object
+      properties:
+        variant_public_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          maximum: 99
+          minimum: 1
+      required:
+      - quantity
+      - variant_public_id
     CategoryNode:
       type: object
       properties:
@@ -472,6 +670,11 @@ components:
       required:
       - url
       - width
+    MethodEnum:
+      enum:
+      - delivery
+      type: string
+      description: '* `delivery` - delivery'
     OrderLookupRequest:
       type: object
       properties:
@@ -645,6 +848,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProductCard'
+    PatchedCartLineQuantity:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          maximum: 99
+          minimum: 1
     PostalCode:
       type: object
       properties:
@@ -912,3 +1122,8 @@ components:
         * `in_stock` - in_stock
         * `low_stock` - low_stock
         * `out_of_stock` - out_of_stock
+  securitySchemes:
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRFToken

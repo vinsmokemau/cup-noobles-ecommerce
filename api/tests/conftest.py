@@ -139,6 +139,40 @@ def auth_client():
     return make
 
 
+class CartClient(APIClient):
+    """A CSRF-enforcing client the way the storefront behaves: it reads `csrftoken` from a first
+    response and echoes it in `X-CSRFToken`. `drop_csrf()` stops sending the header."""
+
+    cart = None
+
+    def prime_csrf(self) -> None:
+        self.get("/api/cart/")
+        self.defaults["HTTP_X_CSRFTOKEN"] = self.cookies["csrftoken"].value
+
+    def drop_csrf(self) -> None:
+        self.defaults.pop("HTTP_X_CSRFTOKEN", None)
+
+
+@pytest.fixture
+def cart_client(db):
+    """A client carrying the `cart_token` cookie of an existing, empty cart (`client.cart`)."""
+    from tests.factories.carts import CartFactory
+
+    client = CartClient(enforce_csrf_checks=True)
+    client.cart = CartFactory()
+    client.cookies["cart_token"] = str(client.cart.token)
+    client.prime_csrf()
+    return client
+
+
+@pytest.fixture
+def anonymous_cart_client(db):
+    """A cart client before its first write: no `cart_token` cookie, CSRF primed."""
+    client = CartClient(enforce_csrf_checks=True)
+    client.prime_csrf()
+    return client
+
+
 @pytest.fixture
 def prelaunch_on(db):
     """Turns pre-launch mode on for one test (G32, ADR-0038)."""

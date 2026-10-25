@@ -4,6 +4,80 @@
  */
 
 export interface paths {
+    "/api/cart/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description An unknown or missing token reads as an empty cart; a read never creates one. */
+        get: operations["cart_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cart/fulfillment/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description R1 accepts `delivery` only. T7.6 wires the quote, which reads the postal code. */
+        post: operations["cart_fulfillment_set"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cart/lines/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Upsert: a variant already in the cart takes the new quantity.
+         *
+         *     Quantity is checked against the 1 to 99 bound only. Availability is reported on read,
+         *     never enforced here, so the cart never silently changes a quantity (T7.4).
+         */
+        post: operations["cart_lines_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cart/lines/{line_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description A line is found only inside the request's own cart, so another cart's id is a 404. */
+        delete: operations["cart_lines_destroy"];
+        options?: never;
+        head?: never;
+        /** @description A line is found only inside the request's own cart, so another cart's id is a 404. */
+        patch: operations["cart_lines_update"];
+        trace?: never;
+    };
     "/api/catalog/categories/": {
         parameters: {
             query?: never;
@@ -153,6 +227,21 @@ export interface components {
         Availability: {
             status: components["schemas"]["StatusEnum"];
         };
+        Cart: {
+            fulfillment_method?: string | null;
+            readonly lines: {
+                [key: string]: unknown;
+            }[];
+        };
+        CartFulfillment: {
+            method: components["schemas"]["MethodEnum"];
+            postal_code: string;
+        };
+        CartLineWrite: {
+            /** Format: uuid */
+            variant_public_id: string;
+            quantity: number;
+        };
         CategoryNode: {
             slug: string;
             name: string;
@@ -196,6 +285,11 @@ export interface components {
             width: number;
             url: string;
         };
+        /**
+         * @description * `delivery` - delivery
+         * @enum {string}
+         */
+        MethodEnum: "delivery";
         OrderLookupRequest: {
             number: string;
             email: string;
@@ -261,6 +355,9 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["ProductCard"][];
+        };
+        PatchedCartLineQuantity: {
+            quantity?: number;
         };
         PostalCode: {
             state_code: string;
@@ -362,6 +459,194 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    cart_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cart"];
+                };
+            };
+        };
+    };
+    cart_fulfillment_set: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CartFulfillment"];
+                "application/x-www-form-urlencoded": components["schemas"]["CartFulfillment"];
+                "multipart/form-data": components["schemas"]["CartFulfillment"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cart"];
+                };
+            };
+            /** @description The method is not `delivery`, or the postal code is not 5 digits. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF token is missing or wrong. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cart_lines_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CartLineWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["CartLineWrite"];
+                "multipart/form-data": components["schemas"]["CartLineWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cart"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cart"];
+                };
+            };
+            /** @description Quantity outside 1 to 99, or an unknown variant. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF token is missing or wrong. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cart_lines_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                line_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cart"];
+                };
+            };
+            /** @description The CSRF token is missing or wrong. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The line is not in this cart. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cart_lines_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                line_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedCartLineQuantity"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedCartLineQuantity"];
+                "multipart/form-data": components["schemas"]["PatchedCartLineQuantity"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cart"];
+                };
+            };
+            /** @description Quantity outside 1 to 99. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF token is missing or wrong. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The line is not in this cart. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     catalog_categories_list: {
         parameters: {
             query?: never;
