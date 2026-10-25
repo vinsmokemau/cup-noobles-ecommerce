@@ -2597,7 +2597,7 @@ States are stored in `order.state`. **Every transition goes through one function
 
 #### Tasks
 
-- [ ] **T8.1 — The state machine**
+- [x] **T8.1 — The state machine** (2026-10-25, 2dcfc62)
   - Release: R1 · Gate: task
   - REQs: REQ-020
   - Verifies: P8-V02, P8-V05, P8-V07, P8-V16
