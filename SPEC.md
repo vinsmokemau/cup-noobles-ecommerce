@@ -2638,7 +2638,7 @@ def apply_event(order_id: int, event: str, *, actor: str = "system", **kwargs) -
 
 Order number: `CN-{YYYY}-{seq:06d}`, from a Postgres sequence per year. Never derive it from the primary key. Per G5's resolution (ADR-0030), the year is taken in the store timezone (`America/Mexico_City`) and each year's sequence is created on first use.
 
-- [ ] **T8.10 — Mock provider: checkout and refund**
+- [x] **T8.10 — Mock provider: checkout and refund** (2026-10-25, 75313cf)
   - Release: R1 · Gate: task
   - REQs: REQ-032
   - Verifies: P8-V06
