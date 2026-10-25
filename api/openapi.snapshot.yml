@@ -286,6 +286,43 @@ paths:
               schema:
                 $ref: '#/components/schemas/Health'
           description: The database is unreachable.
+  /api/orders/lookup/:
+    post:
+      operationId: orders_lookup
+      description: |-
+        `POST /api/orders/lookup/` with `{number, email}`.
+
+        The email travels in the body so no proxy, CDN or error log records it. A wrong email and a
+        missing order return the same 404. Every call counts toward the limit, 5 per hour per IP.
+      tags:
+      - orders
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderLookupRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrderLookupRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrderLookupRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderStatus'
+          description: ''
+        '400':
+          description: The number or the email is missing.
+        '404':
+          description: No order has that number and email (the same body for both).
+        '429':
+          description: More than 5 lookups in an hour from this IP.
   /api/postal-codes/{cp}/:
     get:
       operationId: postal_codes_retrieve
@@ -410,6 +447,14 @@ components:
             $ref: '#/components/schemas/Facet'
       required:
       - facets
+    FulfillmentMethodEnum:
+      enum:
+      - delivery
+      - pickup
+      type: string
+      description: |-
+        * `delivery` - Delivery
+        * `pickup` - Pickup
     Health:
       type: object
       properties:
@@ -427,6 +472,160 @@ components:
       required:
       - url
       - width
+    OrderLookupRequest:
+      type: object
+      properties:
+        number:
+          type: string
+          maxLength: 64
+        email:
+          type: string
+          maxLength: 254
+      required:
+      - email
+      - number
+    OrderStatus:
+      type: object
+      properties:
+        number:
+          type: string
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        state:
+          $ref: '#/components/schemas/StateEnum'
+        fulfillment_method:
+          $ref: '#/components/schemas/FulfillmentMethodEnum'
+        shipping_rate_name:
+          type: string
+        subtotal_cents:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        shipping_cents:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        discount_cents:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        total_cents:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        tax_included_cents:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        currency:
+          type: string
+          maxLength: 3
+        payment_deadline_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        placed_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        paid_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        shipped_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        completed_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        cancelled_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderStatusLine'
+          readOnly: true
+        shipments:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderStatusShipment'
+          readOnly: true
+      required:
+      - fulfillment_method
+      - lines
+      - number
+      - public_id
+      - shipments
+      - state
+      - subtotal_cents
+      - total_cents
+    OrderStatusLine:
+      type: object
+      properties:
+        sku:
+          type: string
+        product_name:
+          type: string
+        options_snapshot: {}
+        image_key:
+          type: string
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        unit_price_cents:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        line_total_cents:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        is_preorder:
+          type: boolean
+        expected_release_date:
+          type:
+          - string
+          - 'null'
+          format: date
+      required:
+      - line_total_cents
+      - product_name
+      - quantity
+      - sku
+      - unit_price_cents
+    OrderStatusShipment:
+      type: object
+      properties:
+        carrier:
+          type: string
+        tracking_number:
+          type: string
+        tracking_url:
+          type: string
+        shipped_at:
+          type: string
+          format: date-time
+        delivered_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+      required:
+      - carrier
+      - tracking_number
     PaginatedProductCardList:
       type: object
       required:
@@ -671,6 +870,38 @@ components:
       required:
       - name
       - slug
+    StateEnum:
+      enum:
+      - draft
+      - pending_payment
+      - paid
+      - awaiting_stock
+      - preparing
+      - ready_for_pickup
+      - shipped
+      - delivered
+      - picked_up
+      - completed
+      - cancelled
+      - expired
+      - refunded
+      - partially_refunded
+      type: string
+      description: |-
+        * `draft` - draft
+        * `pending_payment` - pending_payment
+        * `paid` - paid
+        * `awaiting_stock` - awaiting_stock
+        * `preparing` - preparing
+        * `ready_for_pickup` - ready_for_pickup
+        * `shipped` - shipped
+        * `delivered` - delivered
+        * `picked_up` - picked_up
+        * `completed` - completed
+        * `cancelled` - cancelled
+        * `expired` - expired
+        * `refunded` - refunded
+        * `partially_refunded` - partially_refunded
     StatusEnum:
       enum:
       - in_stock

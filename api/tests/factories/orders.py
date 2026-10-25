@@ -1,6 +1,6 @@
 import factory
 
-from apps.orders.models import Order, OrderLine
+from apps.orders.models import Order, OrderLine, Shipment
 
 
 class OrderFactory(factory.django.DjangoModelFactory):
@@ -33,3 +33,12 @@ class OrderLineFactory(factory.django.DjangoModelFactory):
     line_total_cents = factory.LazyAttribute(
         lambda line: line.unit_price_cents * line.quantity
     )
+
+
+class ShipmentFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Shipment
+
+    order = factory.SubFactory(OrderFactory)
+    carrier = "manual"
+    tracking_number = factory.Sequence(lambda n: f"GUIA{n:06d}")

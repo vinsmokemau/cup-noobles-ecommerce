@@ -63,6 +63,16 @@ INSTALLED_APPS = [
     "apps.notifications",
 ]
 
+# Rate limits (django-ratelimit, T6.7b). The counters live in process memory: there is no Redis or
+# memcached by design (ADR-0006). That is exact for one api process and loosens with each extra
+# worker, so the production topology must account for it (G43). The library's check flags the
+# local-memory backend as unshared; it is silenced here, knowingly.
+CACHES = {
+    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+}
+SILENCED_SYSTEM_CHECKS = ["django_ratelimit.E003"]
+RATELIMIT_IP_META_KEY = "apps.core.ratelimit.client_ip"
+
 # Set before the first migration; changing it later is very painful (T2.1a).
 AUTH_USER_MODEL = "accounts.Customer"
 

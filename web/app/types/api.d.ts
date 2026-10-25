@@ -106,6 +106,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/orders/lookup/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description `POST /api/orders/lookup/` with `{number, email}`.
+         *
+         *     The email travels in the body so no proxy, CDN or error log records it. A wrong email and a
+         *     missing order return the same 404. Every call counts toward the limit, 5 per hour per IP.
+         */
+        post: operations["orders_lookup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/postal-codes/{cp}/": {
         parameters: {
             query?: never;
@@ -161,12 +183,71 @@ export interface components {
         Facets: {
             facets: components["schemas"]["Facet"][];
         };
+        /**
+         * @description * `delivery` - Delivery
+         *     * `pickup` - Pickup
+         * @enum {string}
+         */
+        FulfillmentMethodEnum: "delivery" | "pickup";
         Health: {
             db: string;
         };
         ImageSource: {
             width: number;
             url: string;
+        };
+        OrderLookupRequest: {
+            number: string;
+            email: string;
+        };
+        OrderStatus: {
+            number: string;
+            /** Format: uuid */
+            readonly public_id: string;
+            state: components["schemas"]["StateEnum"];
+            fulfillment_method: components["schemas"]["FulfillmentMethodEnum"];
+            shipping_rate_name?: string;
+            subtotal_cents: number;
+            shipping_cents?: number;
+            discount_cents?: number;
+            total_cents: number;
+            tax_included_cents?: number;
+            currency?: string;
+            /** Format: date-time */
+            payment_deadline_at?: string | null;
+            /** Format: date-time */
+            placed_at?: string | null;
+            /** Format: date-time */
+            paid_at?: string | null;
+            /** Format: date-time */
+            shipped_at?: string | null;
+            /** Format: date-time */
+            completed_at?: string | null;
+            /** Format: date-time */
+            cancelled_at?: string | null;
+            readonly lines: components["schemas"]["OrderStatusLine"][];
+            readonly shipments: components["schemas"]["OrderStatusShipment"][];
+        };
+        OrderStatusLine: {
+            sku: string;
+            product_name: string;
+            options_snapshot?: unknown;
+            image_key?: string;
+            quantity: number;
+            unit_price_cents: number;
+            line_total_cents: number;
+            is_preorder?: boolean;
+            /** Format: date */
+            expected_release_date?: string | null;
+        };
+        OrderStatusShipment: {
+            carrier: string;
+            tracking_number: string;
+            tracking_url?: string;
+            /** Format: date-time */
+            shipped_at?: string;
+            /** Format: date-time */
+            delivered_at?: string | null;
         };
         PaginatedProductCardList: {
             /**
@@ -247,6 +328,24 @@ export interface components {
             slug: string;
             name: string;
         };
+        /**
+         * @description * `draft` - draft
+         *     * `pending_payment` - pending_payment
+         *     * `paid` - paid
+         *     * `awaiting_stock` - awaiting_stock
+         *     * `preparing` - preparing
+         *     * `ready_for_pickup` - ready_for_pickup
+         *     * `shipped` - shipped
+         *     * `delivered` - delivered
+         *     * `picked_up` - picked_up
+         *     * `completed` - completed
+         *     * `cancelled` - cancelled
+         *     * `expired` - expired
+         *     * `refunded` - refunded
+         *     * `partially_refunded` - partially_refunded
+         * @enum {string}
+         */
+        StateEnum: "draft" | "pending_payment" | "paid" | "awaiting_stock" | "preparing" | "ready_for_pickup" | "shipped" | "delivered" | "picked_up" | "completed" | "cancelled" | "expired" | "refunded" | "partially_refunded";
         /**
          * @description * `in_stock` - in_stock
          *     * `low_stock` - low_stock
@@ -498,6 +597,52 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Health"];
                 };
+            };
+        };
+    };
+    orders_lookup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderLookupRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["OrderLookupRequest"];
+                "multipart/form-data": components["schemas"]["OrderLookupRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderStatus"];
+                };
+            };
+            /** @description The number or the email is missing. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No order has that number and email (the same body for both). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description More than 5 lookups in an hour from this IP. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

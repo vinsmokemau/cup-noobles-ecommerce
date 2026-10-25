@@ -16,6 +16,7 @@ dependencies = [
     "gunicorn",
     "whitenoise",
     "pillow>=13.0.0",
+    "django-ratelimit>=4.1.0",
 ]
 
 [dependency-groups]
