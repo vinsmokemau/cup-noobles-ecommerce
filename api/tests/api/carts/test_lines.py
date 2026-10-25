@@ -136,7 +136,7 @@ def test_line_changes_touch_the_cart(cart_client, clock):
     assert cart_client.cart.updated_at > before
 
 
-def test_fulfillment_accepts_delivery_only_in_r1(cart_client):
+def test_fulfillment_accepts_delivery_only_in_r1(cart_client, dev_defaults):
     ok = cart_client.post(
         "/api/cart/fulfillment/",
         {"method": "delivery", "postal_code": "06700"},

@@ -3,6 +3,9 @@
 The cart stores no prices (CR-03): each read takes `variant.price_cents` as it is now (T7.3).
 Each line reports its availability (T7.4) and never changes its quantity; the shipping quote
 joins the response in T7.6.
+
+A cart stores no postal code (`spec/schema.sql`), so the quote is computed for the code the request
+carries: the fulfillment `POST` body or the `postal_code` query parameter of `GET /api/cart/`.
 """
 
 import re
@@ -16,6 +19,7 @@ from apps.carts.models import Cart, CartLine
 from apps.catalog.availability import ANNOTATION, with_available_units
 from apps.catalog.models import Product, Variant
 from apps.orders.pricing import compute_totals
+from apps.shipping.services import QuoteError, ShippingQuote, quote
 
 MAX_QUANTITY = 99
 POSTAL_CODE = re.compile(r"[0-9]{5}")
@@ -63,6 +67,14 @@ class CartFulfillmentSerializer(serializers.Serializer):
     postal_code = serializers.RegexField(POSTAL_CODE, max_length=5)
 
 
+class ShippingQuoteSerializer(serializers.Serializer):
+    price_cents = serializers.IntegerField()
+    eta_min_days = serializers.IntegerField()
+    eta_max_days = serializers.IntegerField()
+    name = serializers.CharField()
+    zone = serializers.CharField()
+
+
 class CartLineSerializer(serializers.ModelSerializer):
     variant_public_id = serializers.UUIDField(source="variant.public_id")
     unit_price_cents = serializers.IntegerField(source="variant.price_cents")
@@ -106,11 +118,11 @@ class CartTotalsSerializer(serializers.Serializer):
     tax_included_cents = serializers.IntegerField()
 
 
-def cart_totals(lines: list) -> dict[str, int]:
-    """Shipping and discount are 0 until the quote (T7.6) and discounts exist."""
+def cart_totals(lines: list, shipping_cents: int = 0) -> dict[str, int]:
+    """Shipping is 0 until a quote exists (T7.6); discounts do not exist yet."""
     totals = compute_totals(
         [_PricedLine(line.variant.price_cents, line.quantity) for line in lines],
-        shipping_cents=0,
+        shipping_cents=shipping_cents,
         discount_cents=0,
     )
     return asdict(totals)
@@ -127,11 +139,12 @@ class CartSerializer(serializers.ModelSerializer):
 
     fulfillment_method = serializers.CharField(allow_null=True)
     lines = CartLineSerializer(many=True)
+    shipping_quote = ShippingQuoteSerializer(allow_null=True)
     totals = CartTotalsSerializer()
 
     class Meta:
         model = Cart
-        fields = ["fulfillment_method", "lines", "totals"]
+        fields = ["fulfillment_method", "lines", "shipping_quote", "totals"]
 
     def to_representation(self, instance: Cart) -> dict[str, Any]:
         rows = list(
@@ -142,10 +155,27 @@ class CartSerializer(serializers.ModelSerializer):
                 Variant.objects.filter(pk__in=[row.variant_id for row in rows])
             ).values_list("pk", ANNOTATION)
         )
+        subtotal = cart_totals(rows)["subtotal_cents"]
+        shipping_quote = self._quote(instance, subtotal)
         return {
             "fulfillment_method": instance.fulfillment_method,
             "lines": CartLineSerializer(
                 rows, many=True, context={"available": available}
             ).data,
-            "totals": cart_totals(rows),
+            "shipping_quote": None
+            if shipping_quote is None
+            else asdict(shipping_quote),
+            "totals": cart_totals(
+                rows, shipping_quote.price_cents if shipping_quote else 0
+            ),
         }
+
+    def _quote(self, cart: Cart, subtotal_cents: int) -> ShippingQuote | None:
+        """A quote exists only for a delivery cart and a postal code; a bad code is a 400."""
+        postal_code = self.context.get("postal_code")
+        if cart.fulfillment_method != "delivery" or not postal_code:
+            return None
+        try:
+            return quote(postal_code, subtotal_cents)
+        except QuoteError as error:
+            raise serializers.ValidationError({"postal_code": [str(error)]}) from error

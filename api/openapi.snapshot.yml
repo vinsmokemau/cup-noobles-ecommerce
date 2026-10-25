@@ -8,6 +8,12 @@ paths:
       operationId: cart_retrieve
       description: An unknown or missing token reads as an empty cart; a read never
         creates one.
+      parameters:
+      - in: query
+        name: postal_code
+        schema:
+          type: string
+        description: With a delivery cart, quotes shipping to this 5-digit code.
       tags:
       - cart
       security:
@@ -20,11 +26,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/Cart'
           description: ''
+        '400':
+          description: The postal code is malformed or not in the dataset.
   /api/cart/fulfillment/:
     post:
       operationId: cart_fulfillment_set
-      description: R1 accepts `delivery` only. T7.6 wires the quote, which reads the
-        postal code.
+      description: |-
+        R1 accepts `delivery` only. The quote is computed before anything is saved, so an
+        unknown postal code is a 400 that leaves the cart as it was (P7-V09).
       tags:
       - cart
       requestBody:
@@ -50,7 +59,8 @@ paths:
                 $ref: '#/components/schemas/Cart'
           description: ''
         '400':
-          description: The method is not `delivery`, or the postal code is not 5 digits.
+          description: The method is not `delivery`, or the postal code is malformed
+            or unknown.
         '403':
           description: The CSRF token is missing or wrong.
   /api/cart/lines/:
@@ -543,11 +553,16 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CartLine'
+        shipping_quote:
+          oneOf:
+          - $ref: '#/components/schemas/ShippingQuote'
+          - type: 'null'
         totals:
           $ref: '#/components/schemas/CartTotals'
       required:
       - fulfillment_method
       - lines
+      - shipping_quote
       - totals
     CartFulfillment:
       type: object
@@ -1150,6 +1165,25 @@ components:
       required:
       - name
       - slug
+    ShippingQuote:
+      type: object
+      properties:
+        price_cents:
+          type: integer
+        eta_min_days:
+          type: integer
+        eta_max_days:
+          type: integer
+        name:
+          type: string
+        zone:
+          type: string
+      required:
+      - eta_max_days
+      - eta_min_days
+      - name
+      - price_cents
+      - zone
     StateEnum:
       enum:
       - draft

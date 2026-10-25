@@ -30,7 +30,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description R1 accepts `delivery` only. T7.6 wires the quote, which reads the postal code. */
+        /**
+         * @description R1 accepts `delivery` only. The quote is computed before anything is saved, so an
+         *     unknown postal code is a 400 that leaves the cart as it was (P7-V09).
+         */
         post: operations["cart_fulfillment_set"];
         delete?: never;
         options?: never;
@@ -239,6 +242,7 @@ export interface components {
         Cart: {
             fulfillment_method: string | null;
             lines: components["schemas"]["CartLine"][];
+            shipping_quote: components["schemas"]["ShippingQuote"] | null;
             totals: components["schemas"]["CartTotals"];
         };
         CartFulfillment: {
@@ -450,6 +454,13 @@ export interface components {
             slug: string;
             name: string;
         };
+        ShippingQuote: {
+            price_cents: number;
+            eta_min_days: number;
+            eta_max_days: number;
+            name: string;
+            zone: string;
+        };
         /**
          * @description * `draft` - draft
          *     * `pending_payment` - pending_payment
@@ -486,7 +497,10 @@ export type $defs = Record<string, never>;
 export interface operations {
     cart_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description With a delivery cart, quotes shipping to this 5-digit code. */
+                postal_code?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -500,6 +514,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Cart"];
                 };
+            };
+            /** @description The postal code is malformed or not in the dataset. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -526,7 +547,7 @@ export interface operations {
                     "application/json": components["schemas"]["Cart"];
                 };
             };
-            /** @description The method is not `delivery`, or the postal code is not 5 digits. */
+            /** @description The method is not `delivery`, or the postal code is malformed or unknown. */
             400: {
                 headers: {
                     [name: string]: unknown;

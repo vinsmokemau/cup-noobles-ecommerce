@@ -186,6 +186,14 @@ def postal_codes(db):
     call_command("load_postal_codes")
 
 
+@pytest.fixture
+def dev_defaults(db):
+    """Runs `seed_dev_defaults` (warehouse, zones and rates of SPEC.md §2.5) and loads the sample
+    postal codes, so a quote can name a zone for 06700 and 97000 (T7.6)."""
+    call_command("seed_dev_defaults")
+    call_command("load_postal_codes")
+
+
 class Clock:
     """Moves time for one test: `clock.travel("2026-01-01T12:00:00Z")`."""
 

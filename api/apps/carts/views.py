@@ -11,9 +11,10 @@ from typing import Any
 from django.db import transaction
 from django.middleware.csrf import get_token
 from drf_spectacular.extensions import OpenApiAuthenticationExtension
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,6 +23,7 @@ from rest_framework.views import APIView
 from apps.carts.identity import get_cart, get_or_create_cart, set_cart_cookie
 from apps.carts.models import Cart, CartLine
 from apps.carts.serializers import (
+    POSTAL_CODE,
     CartFulfillmentSerializer,
     CartLineQuantitySerializer,
     CartLineWriteSerializer,
@@ -64,9 +66,13 @@ class CartView(APIView):
 
     @staticmethod
     def reply(
-        cart: Cart, created: bool = False, code: int = status.HTTP_200_OK
+        cart: Cart,
+        created: bool = False,
+        code: int = status.HTTP_200_OK,
+        postal_code: str | None = None,
     ) -> Response:
-        response = Response(CartSerializer(cart).data, status=code)
+        data = CartSerializer(cart, context={"postal_code": postal_code}).data
+        response = Response(data, status=code)
         if created:
             set_cart_cookie(response, cart)
         return response
@@ -78,9 +84,31 @@ class CartView(APIView):
 
 
 class CartDetailView(CartView):
+    @staticmethod
+    def requested_postal_code(request: Request) -> str | None:
+        """The optional `postal_code` query parameter; a malformed one is a 400."""
+        value = request.query_params.get("postal_code")
+        if value is not None and not POSTAL_CODE.fullmatch(value):
+            raise ValidationError(
+                {"postal_code": ["El código postal debe tener 5 dígitos."]}
+            )
+        return value
+
     @extend_schema(
         operation_id="cart_retrieve",
-        responses={200: CartSerializer},
+        parameters=[
+            OpenApiParameter(
+                "postal_code",
+                str,
+                description="With a delivery cart, quotes shipping to this 5-digit code.",
+            )
+        ],
+        responses={
+            200: CartSerializer,
+            400: OpenApiResponse(
+                description="The postal code is malformed or not in the dataset."
+            ),
+        },
     )
     def get(self, request: Request) -> Response:
         """An unknown or missing token reads as an empty cart; a read never creates one."""
@@ -88,9 +116,14 @@ class CartDetailView(CartView):
         cart = get_cart(request)
         if cart is None:
             return Response(
-                {"fulfillment_method": None, "lines": [], "totals": cart_totals([])}
+                {
+                    "fulfillment_method": None,
+                    "lines": [],
+                    "shipping_quote": None,
+                    "totals": cart_totals([]),
+                }
             )
-        return self.reply(cart)
+        return self.reply(cart, postal_code=self.requested_postal_code(request))
 
 
 class CartLineListView(CartView):
@@ -190,17 +223,20 @@ class CartFulfillmentView(CartView):
         responses={
             200: CartSerializer,
             400: OpenApiResponse(
-                description="The method is not `delivery`, or the postal code is not 5 digits."
+                description="The method is not `delivery`, or the postal code is malformed or unknown."
             ),
             403: OpenApiResponse(description="The CSRF token is missing or wrong."),
         },
     )
     def post(self, request: Request) -> Response:
-        """R1 accepts `delivery` only. T7.6 wires the quote, which reads the postal code."""
+        """R1 accepts `delivery` only. The quote is computed before anything is saved, so an
+        unknown postal code is a 400 that leaves the cart as it was (P7-V09)."""
         data = CartFulfillmentSerializer(data=request.data)
         data.is_valid(raise_exception=True)
         with transaction.atomic():
             cart, created = get_or_create_cart(request)
             cart.fulfillment_method = data.validated_data["method"]
             cart.save(update_fields=["fulfillment_method", "updated_at"])
-        return self.reply(cart, created=created)
+            return self.reply(
+                cart, created=created, postal_code=data.validated_data["postal_code"]
+            )
