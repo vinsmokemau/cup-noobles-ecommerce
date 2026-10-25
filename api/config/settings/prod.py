@@ -15,7 +15,6 @@ SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
 SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
-SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = True
 
 # Provider switches have no default here, and a mock value stops startup.

@@ -66,6 +66,15 @@ INSTALLED_APPS = [
 # Set before the first migration; changing it later is very painful (T2.1a).
 AUTH_USER_MODEL = "accounts.Customer"
 
+# One origin: the storefront and the API share cookies. Staff sessions in R1,
+# customer sessions from T6.1. Nuxt reads `csrftoken` and sends `X-CSRFToken`,
+# so the CSRF cookie must stay readable by script (T6.2).
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = "Lax"
+
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
 
