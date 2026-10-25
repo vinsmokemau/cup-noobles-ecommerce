@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.21 |
+| Spec version | 1.22 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -439,6 +439,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G41 | 2 | 22.3 | T2.7 loads `mx_state` only through `seed_dev_defaults`, a dev command whose output `check_placeholders` treats as stand-ins; the 32 states are real data that production needs too, and no task loads them there | A separate `manage.py seed_states` command (idempotent, running `apps.shipping.seeds.seed_states`), run by the deploy step; `seed_dev_defaults` keeps calling the same function | R1 | Resolved (ADR-0032) |
 | G42 | 20 | 4.5, 20.2 | The Node2Shell fix (CVE-2026-111497) needs Node 22.23.4 or later. Part A pins it in `web/Dockerfile` and CI, but 20.2 runs the production image on the floating tag `node:22-slim`, which is not pinned. | The production `web/Dockerfile` pins `node:22.23.4-slim` or later, and the pin is raised on each Node security release | R1 | Open |
 | G43 | 20 | T6.7b, 20.A | `django-ratelimit` counts in a cache, and the stack has no Redis or memcached (ADR-0006). The api uses the local-memory cache, whose counters are per process: exact for one api process, looser by the number of workers. The library's check `django_ratelimit.E003` is silenced for this reason. | The production topology (20.A) runs the api as a single process (threads allowed), or the owner picks a shared store | R1 | Open |
+| G44 | 7 | T7.6, Phase 13 | The `cart` table has no postal-code column (`spec/schema.sql`), so T7.6 quotes shipping from the postal code the request carries: the `POST /api/cart/fulfillment/` body, or the `postal_code` query parameter of `GET /api/cart/`. T7.1 says the cart response carries a quote once `fulfillment_method` is set, which a stored code would give without the parameter. | Keep the query parameter (OA-46). Phase 13 checks whether the storefront finds it awkward; if so, a nullable `cart.postal_code` is a schema change that goes through `/decide` and an ADR. | R1 | Open |
 
 #### Design System requests (DSR)
 
@@ -521,6 +522,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-43 | 2026-10-25 | G30: is the full SEPOMEX dataset a launch requirement, or optional? | Yes. The full dataset is a launch requirement; the sample stays for Part A (the proposed resolution). |
 | OA-44 | 2026-10-25 | G35: does the guest order lookup send the email in the URL (`GET`) or in a JSON body (`POST`)? | Option A: the proposed resolution. `POST /api/orders/lookup/` with the JSON body `{number, email}`, limited to 5 per hour per IP, and the same 404 for a wrong email and a missing order. |
 | OA-45 | 2026-10-25 | Phase 7 task order: the tasks are listed in a valid order, but their numbers do not follow it and the phase has no execution-order note. Add one? | Option A: add the note. Execution order: T7.9, T7.7, T7.2a, T7.1, T7.3, T7.4, T7.6, T7.5a, T7.8 (phase-close); then, in R2, T7.2b and T7.5b. IDs keep their numbers. No ADR: cheap to reverse, spec text only. |
+| OA-46 | 2026-10-25 | G44: should the cart store the postal code, or does the quote keep reading it from the request? | Keep the `postal_code` query parameter on `GET /api/cart/` for now, and check it in Phase 13. Registered as G44; no ADR, because the choice is cheap to reverse until then. |
 
 ---
 
@@ -5361,6 +5363,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.19 | 2026-10-25 | G30 resolved: the full SEPOMEX dataset is a launch requirement and the sample stays for Part A. T6.6 no longer lists G30 as open and T22.3 no longer lists it as an open item. No Verify ID, schema or task-ID change. | OA-43, ADR-0039 |
 | 1.20 | 2026-10-25 | G35 resolved: the guest order lookup is `POST /api/orders/lookup/` with a JSON body. The ⚠️ G35 mark is removed from P6-V14; T6.7b and T14.6 no longer list G35 as open. No Verify ID, schema or task-ID change. | OA-44, ADR-0040 |
 | 1.21 | 2026-10-25 | Phase 7 task order: an execution-order note added (T7.9, T7.7, T7.2a, T7.1, T7.3, T7.4, T7.6, T7.5a, T7.8, then the R2 tasks T7.2b, T7.5b). No dependency, Verify ID, schema or task-ID change. | OA-45 |
+| 1.22 | 2026-10-25 | G44 registered: the cart quote reads the postal code from the request, not from the cart; to be checked in Phase 13. No requirement, Verify ID, schema or task-ID change. | OA-46 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
