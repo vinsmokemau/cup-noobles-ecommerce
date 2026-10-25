@@ -1,2 +1,5 @@
 # Release lapsed stock holds (SPEC.md §4.8)
 */5 * * * * python manage.py expire_reservations
+
+# Verify the ledger and reservation invariants daily (SPEC.md §4.8, G24)
+15 3 * * * python manage.py check_stock_integrity
