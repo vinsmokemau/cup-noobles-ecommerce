@@ -1818,7 +1818,7 @@ Image handling: on upload, generate WebP derivatives at 400/800/1600px wide with
 
 The file path is given at run time. A catalog file that holds costs is never committed to the repository (CR-49); tests use generated CSVs.
 
-- [ ] **T3.7 — Minimal demo seed**
+- [x] **T3.7 — Minimal demo seed** (2026-10-24, 48332e3)
   - Release: R1 · Gate: phase-close
   - REQs: —
   - Verifies: [no-test: a development seed; Phase 15 replaces it, and P15-V10 checks the full demo seed]
