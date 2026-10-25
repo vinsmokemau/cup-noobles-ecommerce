@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.11 |
+| Spec version | 1.12 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -419,7 +419,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G21 | 13 | P13-V13, P13-V14 | Guest landing pages must poll the order, but the guest endpoint needs number and email and allows 5 calls an hour | A short-lived signed order-status token, carried in `back_urls`, for a read-only status endpoint | R1 | Open |
 | G22 | 13 | P13-V15 | No endpoint retries payment for a `pending_payment` order, and when the cart counts as converted is undefined | `POST /api/orders/{public_id}/pay/` returns a fresh `checkout_url`; the cart is converted at T1 | R1 | Open |
 | G23 | 20 | plan Appendix B | The production topology (20.A) has no process that runs the scheduled jobs | A fourth container from the `api` image running supercronic, or a process supervisor inside `api` | R1 | Open |
-| G24 | 4 | P4-V07 | `check_stock_integrity` is tested in Phase 4 but specified in 21.7 | Move the command into Phase 4; 21.7 keeps only its daily schedule | R1 | Open |
+| G24 | 4 | P4-V07 | `check_stock_integrity` is tested in Phase 4 but specified in 21.7 | Move the command into Phase 4; 21.7 keeps only its daily schedule | R1 | Resolved (ADR-0034) |
 | G25 | 8 | P8-V06, 8.4 | Phase 8 needs a payment provider (`create_checkout`, `refund`) before the mock exists (9.9); 1.11 creates only the interfaces | Build those two mock methods in Phase 8, and the rest of the mock in Phase 9 | R1 | Open |
 | G26 | 8 | T18, P8-V07 | A `partially_refunded` order "stays fulfillable", but no transition leaves that state | Either add the fulfillment transitions from it, or record partial refunds on the payment without changing the order state | R1 | Open |
 | G27 | 8 | T17, A12, 9.4 rule 3, GE:T36 | A refund after delivery (a return), or of a late payment on an expired or cancelled order, can't be applied: those states are terminal | Allow the refund events from `completed`, `expired` and `cancelled` as recorded payment events | R1 | Open |
@@ -506,6 +506,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-30 | 2026-10-24 | Phase 3 task order: T3.1 generates slugs, but T3.2 (slugs) depended on T3.1. Reorder? | Option A: T3.2 runs first, then T3.1; the "Depends on" lines of T3.1, T3.2, T3.3 and T3.6 are fixed. No ADR: cheap to reverse, spec text only. |
 | OA-31 | 2026-10-24 | G12: what does `import_catalog` do with the valid rows when some rows are invalid? | Option A: the proposed resolution. All or nothing per file, reporting every invalid row. ADR-0033. |
 | OA-32 | 2026-10-24 | Phase 4 task order: T4.1 (`reserve`) raises `InsufficientStock`, which T4.2 defines, and the "Depends on" chain was otherwise arbitrary. Reorder? | Option A: T4.2 runs first, then T4.1, T4.3, T4.4, T4.9, T4.6, T4.7, T4.8 (phase-close); T4.10 and T4.5 stay R2. The "Depends on" lines of T4.1, T4.2, T4.3 and T4.8 are fixed. No ADR: cheap to reverse, spec text only. |
+| OA-33 | 2026-10-24 | G24: where is `check_stock_integrity` built, given P4-V07 tests it in Phase 4 but 21.7 specified it? | Option A: the proposed resolution. The command is built in Phase 4 (T4.9); 21.7 is absorbed and keeps only the production schedule. ADR-0034. |
 
 ---
 
@@ -1958,9 +1959,8 @@ Admin: a read-only `StockLedger` view filtered by variant and date; a `StockItem
   - Verifies: P4-V07
   - Depends on: T4.4
   - Context: "Core rules" above; §4.8
-  - Open items: G24 (tests xfail until decided)
 
-Per G24's proposed resolution, the command is built here; Phase 21 (21.7) keeps only its production scheduling. `manage.py check_stock_integrity` asserts that for every `stock_item`, the sum of its ledger deltas equals `on_hand`, and that `reserved` equals the sum of `held` reservations. It exits non-zero, naming the stock item, when either fails. Add its daily line to `infra/crontab` (§4.8).
+Per G24 (ADR-0034), the command is built here; Phase 21 (21.7) keeps only its production scheduling. `manage.py check_stock_integrity` asserts that for every `stock_item`, the sum of its ledger deltas equals `on_hand`, and that `reserved` equals the sum of `held` reservations. It exits non-zero, naming the stock item, when either fails. Add its daily line to `infra/crontab` (§4.8).
 
 - [ ] **T4.6 — Low-stock report and the outbox write helper**
   - Release: R1 · Gate: task
@@ -2036,7 +2036,7 @@ Admin: an "Registrar venta en tienda" page — pick location, scan/type SKUs, qu
 | P4-V04 [R2] | integration | `api/tests/integration/inventory/test_counter_sale.py::test_p4_v04_counter_sale_cannot_take_reserved_unit` | With `on_hand=1, reserved=1`, `record_in_store_sale` raises with a message naming the pending order; `on_hand` is unchanged. |
 | P4-V05 | integration | `api/tests/integration/inventory/test_reservations.py::test_p4_v05_release_idempotent` | A second `release_reservations` changes nothing and raises nothing. |
 | P4-V06 | property | `api/tests/property/test_inventory_machine.py::test_p4_v06_ledger_sum_equals_on_hand` | The stateful machine (§4.6) holds all its inventory invariants after every step. |
-| P4-V07 | integration | `api/tests/integration/inventory/test_integrity_command.py::test_p4_v07_check_stock_integrity` | `check_stock_integrity` exits 0 on clean data and non-zero, naming the stock item, after a raw-SQL change to `on_hand`. ⚠️ G24 |
+| P4-V07 | integration | `api/tests/integration/inventory/test_integrity_command.py::test_p4_v07_check_stock_integrity` | `check_stock_integrity` exits 0 on clean data and non-zero, naming the stock item, after a raw-SQL change to `on_hand`. |
 
 **Added negative and edge cases:**
 
@@ -5073,7 +5073,7 @@ Backups, two layers:
 
 **Practise a restore.** Create a fresh Lightsail database from a snapshot, point a local API container at it, and confirm the data is intact. Do this once now and once a quarter. An untested backup is not a backup.
 
-- ~~**T21.7 — Stock integrity check**~~ Absorbed by T4.9, per G24's proposed resolution: the command and its daily line in `infra/crontab` are built there, and T21.4 reports its result. If G24 is decided otherwise, this task returns.
+- ~~**T21.7 — Stock integrity check**~~ Absorbed by T4.9, per G24 (ADR-0034): the command and its daily line in `infra/crontab` are built there, and T21.4 reports its result.
 
 - [ ] **T21.8 — Runbook**
   - Release: R1 · Gate: phase-close
@@ -5297,7 +5297,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 1 | ~~G1~~, ~~G29~~ |
 | Before Phase 2 (schema) | D14 (types), D16 (fields); ~~G3~~, ~~G5~~, ~~G28~~, ~~G31~~, ~~G33~~, ~~G34~~ (§4.4) |
 | Phase 3 | ~~G12~~, G39 |
-| Phase 4 | G2, G15, G20, G24, ~~G34~~, G37, G38 |
+| Phase 4 | G2, G15, G20, ~~G24~~, ~~G34~~, G37, G38 |
 | Phase 5 | G13 with D10, G32 |
 | Phase 6 | G30, G35 |
 | Phase 8 | ~~G3~~, G4, ~~G5~~, G25, G26, G27, ~~G31~~, ~~G33~~ |
@@ -5334,6 +5334,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.9 | 2026-10-24 | Phase 3 task order: T3.2 now precedes T3.1 (it was circular); "Depends on" fixed in T3.1, T3.2, T3.3 and T3.6; an execution-order note added. No Verify ID, schema or task-ID change. | OA-30 |
 | 1.10 | 2026-10-24 | G12 resolved: `import_catalog` is all or nothing per file and reports every invalid row. T3.6 loses its G12 open item and P3-V09 loses its ⚠️ marker. No Verify ID, task or schema change. | OA-31; ADR-0033 |
 | 1.11 | 2026-10-24 | Phase 4 task order: T4.2 now precedes T4.1 (T4.1 raised an error T4.2 defines); "Depends on" fixed in T4.1, T4.2, T4.3 and T4.8; an execution-order note added. No Verify ID, schema or task-ID change. | OA-32 |
+| 1.12 | 2026-10-24 | G24 resolved: `check_stock_integrity` is built in Phase 4 (T4.9) and T21.7 stays absorbed. T4.9 loses its G24 open item and P4-V07 loses its ⚠️ marker. No Verify ID, task or schema change. | OA-33; ADR-0034 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5416,6 +5417,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0031 | Foreign key delete rules are enforced by Django | `docs/decisions/0031-fk-delete-rules-in-orm.md` | G40; OA-28 |
 | ADR-0032 | States are loaded in production by a separate seed command | `docs/decisions/0032-seed-states-command.md` | G41; OA-29 |
 | ADR-0033 | The catalog importer is all or nothing per file | `docs/decisions/0033-import-catalog-all-or-nothing.md` | G12; OA-31 |
+| ADR-0034 | The stock integrity command is built in Phase 4 | `docs/decisions/0034-stock-integrity-command-phase-4.md` | G24; OA-33 |
 
 ## Appendix C — Dated market facts
 

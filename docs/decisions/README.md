@@ -37,3 +37,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0031](0031-fk-delete-rules-in-orm.md) | Foreign key delete rules are enforced by Django | accepted | G40; OA-28 |
 | [ADR-0032](0032-seed-states-command.md) | States are loaded in production by a separate seed command | accepted | G41; OA-29 |
 | [ADR-0033](0033-import-catalog-all-or-nothing.md) | The catalog importer is all or nothing per file | accepted | G12; OA-31 |
+| [ADR-0034](0034-stock-integrity-command-phase-4.md) | The stock integrity command is built in Phase 4 | accepted | G24; OA-33 |

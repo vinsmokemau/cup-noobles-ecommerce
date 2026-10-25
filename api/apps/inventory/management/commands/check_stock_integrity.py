@@ -4,7 +4,7 @@ Two checks per `stock_item`: the sum of its ledger deltas equals `on_hand` (CR-0
 `reserved` equals the units in its `held` stock reservations (CR-06). Read-only: it repairs
 nothing. It names each failing stock item and exits non-zero, so cron reports the failure.
 
-G24, proposed resolution: the command lives in Phase 4; Phase 21 only schedules it.
+G24 (ADR-0034): the command lives in Phase 4; Phase 21 only schedules it.
 """
 
 from typing import Any
