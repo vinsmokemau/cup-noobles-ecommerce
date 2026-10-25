@@ -2259,7 +2259,7 @@ In Release 1 the session belongs to staff signed in to the admin, whose session 
 
 Also build `manage.py load_postal_codes`, which reads `POSTAL_CODE_DATASET` and a file path and never makes a network call (§4.3). Part A loads the committed sample fixture; the full SEPOMEX load is a Phase 22 data task. If a code is missing, the form degrades to free text (P13-V06). The full dataset is a launch requirement; the sample stays for Part A (G30, ADR-0039).
 
-- [ ] **T6.7b — Guest order lookup**
+- [x] **T6.7b — Guest order lookup** (2026-10-25, b7ca64b)
   - Release: R1 · Gate: phase-close
   - REQs: —
   - Verifies: P6-V14, P6-V18
