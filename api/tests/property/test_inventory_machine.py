@@ -91,6 +91,8 @@ class InventoryMachine(RuleBasedStateMachine):
             assert_stock_integrity(variant)
 
 
+# The ci profile runs 1000 examples of 25 steps each: about 225 s locally, past the 60 s default.
+@pytest.mark.timeout(900)
 def test_p4_v06_ledger_sum_equals_on_hand():
     run_state_machine_as_test(
         InventoryMachine, settings=settings(deadline=None, stateful_step_count=25)
