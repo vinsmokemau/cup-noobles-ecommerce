@@ -2392,7 +2392,7 @@ Execution order: T6.2, T6.6, T6.7b (phase-close, last of Release 1); then, in R2
 
 #### Tasks
 
-- [ ] **T7.9 — Totals in one function**
+- [x] **T7.9 — Totals in one function** (2026-10-25, 0293a7b)
   - Release: R1 · Gate: task
   - REQs: REQ-001, REQ-002
   - Verifies: P7-V06, P7-V17
