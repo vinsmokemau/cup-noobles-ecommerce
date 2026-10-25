@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.18 |
+| Spec version | 1.19 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -425,7 +425,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G27 | 8 | T17, A12, 9.4 rule 3, GE:T36 | A refund after delivery (a return), or of a late payment on an expired or cancelled order, can't be applied: those states are terminal | Allow the refund events from `completed`, `expired` and `cancelled` as recorded payment events | R1 | Open |
 | G28 | 12 | 12.A, P12-V13, 5.1 | "Featured" and "related" products have no data model or rule | A featured flag with a position on the product; related products by shared franchise or category | R1 | Resolved (ADR-0030) |
 | G29 | 1 | P1-V03, 1.9, P15-V14 | CI and branch protection are verified only in Phase 20, though Part A relies on them | Verify them in Phase 1, now that the repository is public; branch protection as a `[manual]` item | R1 | Resolved (ADR-0029) |
-| G30 | 6 | 6.6, Phase 22 | 6.6 calls the SEPOMEX data optional, but the launch checklist requires it | The full dataset is a launch requirement; the sample stays for Part A | R1 | Open |
+| G30 | 6 | 6.6, Phase 22 | 6.6 calls the SEPOMEX data optional, but the launch checklist requires it | The full dataset is a launch requirement; the sample stays for Part A | R1 | Resolved (ADR-0039) |
 | G31 | 8 | GE:§7.1, GE:T20, GE:R10 | Purchase limits per customer are needed at launch, and no mechanism exists. With guest checkout, a customer has no account. | A limit per variant set in the admin; the T1 guard counts units in pending and paid orders that match the email, phone or shipping address within a window. The values are D15. | R1 | Resolved (ADR-0030) |
 | G32 | 3, 5, 12 | GE:T31, GE:T35, GE:T38, GE:M1 | The store must be live with real test purchases while the catalog is hidden, then published at once. Catalog responses are publicly cached (5.6). | A site-wide pre-launch switch. The public sees a "próximamente" page, which also serves GE:T04. Logged-in staff browse and buy, and their requests bypass the catalog cache. Going live is a bulk publish plus turning the switch off. | R1 | Resolved (ADR-0038) |
 | G33 | 2, 8, 10 | GE:T34, GE:T43, GE:§5.2 | The weekly dashboard and monthly report need data. Margin needs the unit cost at the time of sale, and `order_line` has no cost snapshot. | Admin CSV exports of orders, lines and shipments; a `unit_cost_cents` snapshot on `order_line` (schema change). Shipped-within-48-h and stock-cancellation counts come from timestamps and cancel reasons. | R1 | Resolved (ADR-0030) |
@@ -517,6 +517,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-40 | 2026-10-25 | G13 with D10: does `low_stock` include exactly 5 units, and does the storefront show counts? | Option A: the proposed resolution. `low_stock` when `1 <= available <= 5` (5 units shows `low_stock`); a low-stock badge and no raw counts. ADR-0037. |
 | OA-41 | 2026-10-25 | G32: where does the pre-launch switch live, and what do anonymous catalog requests get while it is on? | Option A and X: a single-row `site_setting` table with a `prelaunch_mode` flag, edited in the admin, so staff go live without a deploy. While on, anonymous `/api/catalog/*` requests get `503` with `{"prelaunch": true}` and `Cache-Control: no-store`; a staff session gets the normal catalog with `Cache-Control: private`. ADR-0038. |
 | OA-42 | 2026-10-25 | Phase 6 task order: T6.1 (R2) was listed first but depends on T6.2, and R1 and R2 tasks were interleaved. Reorder? | Option A: T6.2, T6.6 and T6.7b (phase-close) run first; then, in R2, T6.1, T6.3, T6.4, T6.5, T6.7a and T6.8. An execution-order note is added. No ADR: cheap to reverse, spec text only. |
+| OA-43 | 2026-10-25 | G30: is the full SEPOMEX dataset a launch requirement, or optional? | Yes. The full dataset is a launch requirement; the sample stays for Part A (the proposed resolution). |
 
 ---
 
@@ -2250,11 +2251,11 @@ In Release 1 the session belongs to staff signed in to the admin, whose session 
   - Verifies: P6-V13
   - Depends on: Phase 5 closed
   - Context: §4.3 (Boundaries: postal codes), §4.7
-  - Open items: G30 (decide before the phase closes, §7.2)
+  - Open items: —
 
 `GET /api/postal-codes/{cp}/` → `{state_code, state_name, municipality, neighborhoods: [...]}` via `providers.postal_code_lookup()` (§4.3), backed by `mx_postal_code`. Cache aggressively. This turns a 6-field address form into "type your CP, pick your colonia", which is the single biggest usability win in Mexican checkout.
 
-Also build `manage.py load_postal_codes`, which reads `POSTAL_CODE_DATASET` and a file path and never makes a network call (§4.3). Part A loads the committed sample fixture; the full SEPOMEX load is a Phase 22 data task. If a code is missing, the form degrades to free text (P13-V06). Whether the full dataset is required at launch is G30.
+Also build `manage.py load_postal_codes`, which reads `POSTAL_CODE_DATASET` and a file path and never makes a network call (§4.3). Part A loads the committed sample fixture; the full SEPOMEX load is a Phase 22 data task. If a code is missing, the form degrades to free text (P13-V06). The full dataset is a launch requirement; the sample stays for Part A (G30, ADR-0039).
 
 - [ ] **T6.7b — Guest order lookup**
   - Release: R1 · Gate: phase-close
@@ -5170,7 +5171,7 @@ Swap in the Mercado Pago production credentials and webhook secret (the owner se
   - Verifies: P22-V09 [manual], P22-V10 [manual], P22-V11 [manual], P22-V12 [manual], P22-V13 [manual], P22-V14 [manual], P22-V15 [manual]
   - Depends on: T22.2
   - Context: §2.5; 3.6; 6.6; T4.7; T2.9
-  - Open items: D4, D5, D12, D15 (blocking); G30
+  - Open items: D4, D5, D12, D15 (blocking)
 
 Load the production data, replacing every §2.5 dev default:
 
@@ -5310,7 +5311,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 3 | ~~G12~~, G39 |
 | Phase 4 | ~~G2~~, ~~G15~~, ~~G20~~, ~~G24~~, ~~G34~~, ~~G37~~, ~~G38~~ |
 | Phase 5 | ~~G13~~ with ~~D10~~, ~~G32~~ |
-| Phase 6 | G30, G35 |
+| Phase 6 | ~~G30~~, G35 |
 | Phase 8 | ~~G3~~, G4, ~~G5~~, G25, G26, G27, ~~G31~~, ~~G33~~ |
 | Phase 9 | G7, G8, G11, G14 |
 | Phase 11 | G17; DSR-04, DSR-05 released |
@@ -5352,6 +5353,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.16 | 2026-10-25 | D10 decided and G13 resolved: `low_stock` is `1 <= available <= 5`, with a badge and no raw counts. T5.3 loses its open items, P5-V07 loses its ⚠️ marker, and D10 leaves the blocking list of T22.3. No Verify ID, task or schema change. | OA-40; ADR-0037 |
 | 1.17 | 2026-10-25 | G32 resolved: pre-launch mode is a `site_setting.prelaunch_mode` flag edited in the admin; anonymous catalog requests get `503` `{"prelaunch": true}` with `no-store`. New table `site_setting` in `spec/schema.sql`. T5.7, T12.15, T15.6b and T22.5 lose their G32 open item; P5-V15, P12-V28, P15-V16, P22-V21, REQ-062 and demo step 10 lose their ⚠️ marker. No Verify ID or task change. | OA-41; ADR-0038 |
 | 1.18 | 2026-10-25 | Phase 6 task order: the tasks are listed in execution order (T6.2, T6.6, T6.7b, then the R2 tasks T6.1, T6.3, T6.4, T6.5, T6.7a, T6.8); an execution-order note added. No dependency, Verify ID, schema or task-ID change. | OA-42 |
+| 1.19 | 2026-10-25 | G30 resolved: the full SEPOMEX dataset is a launch requirement and the sample stays for Part A. T6.6 no longer lists G30 as open and T22.3 no longer lists it as an open item. No Verify ID, schema or task-ID change. | OA-43, ADR-0039 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5439,6 +5441,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0036 | Phase 4 open items: outbox helper, idempotent commit, expiry job, owner alert address | `docs/decisions/0036-phase-4-open-items.md` | G2, G15, G37, G38; OA-35 to OA-38 |
 | ADR-0037 | The storefront shows a low-stock badge, with no counts | `docs/decisions/0037-public-stock-display.md` | D10, G13; OA-40 |
 | ADR-0038 | Pre-launch mode is a database flag edited in the admin | `docs/decisions/0038-prelaunch-mode-site-setting.md` | G32; OA-41 |
+| ADR-0039 | The full SEPOMEX dataset is a launch requirement | `docs/decisions/0039-sepomex-launch-requirement.md` | G30; OA-43 |
 
 ## Appendix C — Dated market facts
 

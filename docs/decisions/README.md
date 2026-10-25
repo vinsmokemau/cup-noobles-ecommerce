@@ -43,3 +43,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0036](0036-phase-4-open-items.md) | Phase 4 open items: outbox helper, idempotent commit, expiry job, owner alert address | accepted | G2, G15, G37, G38; OA-35 to OA-38 |
 | [ADR-0037](0037-public-stock-display.md) | The storefront shows a low-stock badge, with no counts | accepted | D10, G13; OA-40 |
 | [ADR-0038](0038-prelaunch-mode-site-setting.md) | Pre-launch mode is a database flag edited in the admin | accepted | G32; OA-41 |
+| [ADR-0039](0039-sepomex-launch-requirement.md) | The full SEPOMEX dataset is a launch requirement | accepted | G30; OA-43 |
