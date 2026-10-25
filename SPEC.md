@@ -2628,7 +2628,7 @@ def apply_event(order_id: int, event: str, *, actor: str = "system", **kwargs) -
 
 `select_for_update()` is not optional. Webhooks, cron jobs, and the admin all mutate orders concurrently. A test parses the 8.A table of this spec and asserts that `TRANSITIONS` equals its rows for the release in progress.
 
-- [ ] **T8.3 — Order numbers**
+- [x] **T8.3 — Order numbers** (2026-10-25, f1eed46)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P8-V12
