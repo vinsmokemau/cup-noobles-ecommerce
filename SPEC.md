@@ -2157,7 +2157,7 @@ Then add `GET /api/catalog/facets/`: the available filter values for the current
 
 Cache `GET /api/catalog/*` responses with `Cache-Control: public, max-age=60` and let the CDN absorb the traffic. Bust nothing; 60 seconds of staleness on a catalog page is fine. Availability is re-checked at add-to-cart and again at checkout, so a stale badge cannot cause an oversell.
 
-- [ ] **T5.7 — Pre-launch mode on the API**
+- [x] **T5.7 — Pre-launch mode on the API** (2026-10-25, 67b2701)
   - Release: R1 · Gate: phase-close
   - REQs: REQ-062
   - Verifies: P5-V15
