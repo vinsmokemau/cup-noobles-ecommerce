@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.10 |
+| Spec version | 1.11 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -505,6 +505,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-29 | 2026-10-23 | G41: T2.7 seeds the 32 states only through the dev command `seed_dev_defaults`. How does production load them? | Option A: the proposed resolution. A separate idempotent `manage.py seed_states` command, run by the deploy step; `seed_dev_defaults` keeps calling the same function. ADR-0032 |
 | OA-30 | 2026-10-24 | Phase 3 task order: T3.1 generates slugs, but T3.2 (slugs) depended on T3.1. Reorder? | Option A: T3.2 runs first, then T3.1; the "Depends on" lines of T3.1, T3.2, T3.3 and T3.6 are fixed. No ADR: cheap to reverse, spec text only. |
 | OA-31 | 2026-10-24 | G12: what does `import_catalog` do with the valid rows when some rows are invalid? | Option A: the proposed resolution. All or nothing per file, reporting every invalid row. ADR-0033. |
+| OA-32 | 2026-10-24 | Phase 4 task order: T4.1 (`reserve`) raises `InsufficientStock`, which T4.2 defines, and the "Depends on" chain was otherwise arbitrary. Reorder? | Option A: T4.2 runs first, then T4.1, T4.3, T4.4, T4.9, T4.6, T4.7, T4.8 (phase-close); T4.10 and T4.5 stay R2. The "Depends on" lines of T4.1, T4.2, T4.3 and T4.8 are fixed. No ADR: cheap to reverse, spec text only. |
 
 ---
 
@@ -1878,11 +1879,22 @@ The file path is given at run time. A catalog file that holds costs is never com
 
 #### Tasks
 
+Execution order: T4.2, T4.1, T4.3, T4.4, T4.9, T4.6, T4.7, T4.8 (phase-close, last); then, in R2, T4.10 and T4.5. T4.2 comes first because `reserve` (T4.1) raises `InsufficientStock`. IDs keep their numbers (OA-32).
+
+- [ ] **T4.2 — Insufficient-stock error**
+  - Release: R1 · Gate: task
+  - REQs: —
+  - Verifies: P4-V10
+  - Depends on: Phase 3 closed
+  - Context: "Core rules" above
+
+`InsufficientStock` must carry the variant, requested quantity and available quantity, so the checkout API can return a precise message per line ("Solo quedan 2 de Nendoroid Link").
+
 - [ ] **T4.1 — Inventory services**
   - Release: R1 · Gate: task
   - REQs: REQ-010, REQ-011, REQ-012, REQ-022
   - Verifies: P4-V01, P4-V02, P4-V05, P4-V06, P4-V09, P4-V11, P4-V12, P4-V13, P4-V15, P4-V16
-  - Depends on: Phase 3 closed
+  - Depends on: T4.2
   - Context: "Core rules" above; §4.4; §4.6 (Property-based, Concurrency)
   - Open items: G15 (tests xfail until decided)
 
@@ -1921,20 +1933,11 @@ def adjust_stock(variant, location, delta, *, reason, actor, note) -> None:
 
 `record_in_store_sale` moves to T4.10 (R2).
 
-- [ ] **T4.2 — Insufficient-stock error**
-  - Release: R1 · Gate: task
-  - REQs: —
-  - Verifies: P4-V10
-  - Depends on: T4.1
-  - Context: "Core rules" above
-
-`InsufficientStock` must carry the variant, requested quantity and available quantity, so the checkout API can return a precise message per line ("Solo quedan 2 de Nendoroid Link").
-
 - [ ] **T4.3 — Reservation expiry job**
   - Release: R1 · Gate: task
   - REQs: REQ-012
   - Verifies: P4-V03, P4-V08
-  - Depends on: T4.2
+  - Depends on: T4.1
   - Context: "Core rules" above; §4.8
   - Open items: G37 (tests xfail until decided)
 
@@ -1985,7 +1988,7 @@ Per G20's proposed resolution, add a "Recibir mercancía" admin action: the staf
   - Release: R1 · Gate: phase-close
   - REQs: REQ-064
   - Verifies: P4-V20
-  - Depends on: T4.7
+  - Depends on: T4.7, T4.4
   - Context: §4.4 (pending schema changes)
 
 Per G34's resolution (ADR-0030), `stock_item.bin_location` is an optional text field created in T2.1b. It is editable in the `StockItem` admin without touching `on_hand`, and writing no ledger row. The packing view that shows it is T10.17.
@@ -5330,6 +5333,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.8 | 2026-10-23 | G41 registered and resolved: production loads `mx_state` with a separate idempotent `manage.py seed_states` command, built in T2.7 and run in T22.3. No Verify ID or schema change. | OA-29; ADR-0032 |
 | 1.9 | 2026-10-24 | Phase 3 task order: T3.2 now precedes T3.1 (it was circular); "Depends on" fixed in T3.1, T3.2, T3.3 and T3.6; an execution-order note added. No Verify ID, schema or task-ID change. | OA-30 |
 | 1.10 | 2026-10-24 | G12 resolved: `import_catalog` is all or nothing per file and reports every invalid row. T3.6 loses its G12 open item and P3-V09 loses its ⚠️ marker. No Verify ID, task or schema change. | OA-31; ADR-0033 |
+| 1.11 | 2026-10-24 | Phase 4 task order: T4.2 now precedes T4.1 (T4.1 raised an error T4.2 defines); "Depends on" fixed in T4.1, T4.2, T4.3 and T4.8; an execution-order note added. No Verify ID, schema or task-ID change. | OA-32 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
