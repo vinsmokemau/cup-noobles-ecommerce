@@ -1,0 +1,10 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <input type="submit" class="default" value="Recibir">
+  <a href="{% url 'admin:inventory_stockitem_changelist' %}">Cancelar</a>
+</form>
+{% endblock %}

@@ -2,18 +2,21 @@
 
 `on_hand` and `reserved` are never editable here: a raw edit would skip the ledger (CR-05). Staff
 change stock through the "Ajustar stock" action, which calls `adjust_stock`. The ledger is a
-read-only view.
+read-only view. Goods arrive through "Recibir mercancía", which calls `receive_stock` (T4.7, G20).
 """
 
 from django import forms
 from django.contrib import admin, messages
+from django.core.exceptions import PermissionDenied
 from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.template.response import TemplateResponse
+from django.urls import path
 
+from apps.catalog.models import Variant
 from apps.inventory.errors import AdjustmentBelowReserved, InvalidQuantity
-from apps.inventory.models import StockItem, StockLedger
-from apps.inventory.services import ADJUSTMENT_REASONS, adjust_stock
+from apps.inventory.models import Location, StockItem, StockLedger
+from apps.inventory.services import ADJUSTMENT_REASONS, adjust_stock, receive_stock
 
 REASON_LABELS = {
     StockLedger.Reason.ADJUSTMENT: "Ajuste",
@@ -44,6 +47,30 @@ class AdjustStockForm(forms.Form):
         return delta
 
 
+class VariantChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj: Variant) -> str:
+        return f"{obj.sku} — {obj.product.name}"
+
+
+class ReceiveGoodsForm(forms.Form):
+    variant = VariantChoiceField(
+        label="Variante",
+        queryset=Variant.objects.select_related("product").order_by("sku"),
+        empty_label="Elige…",
+    )
+    location = forms.ModelChoiceField(
+        label="Ubicación",
+        queryset=Location.objects.filter(is_active=True).order_by("name"),
+        empty_label="Elige…",
+    )
+    quantity = forms.IntegerField(
+        label="Cantidad recibida",
+        min_value=1,
+        error_messages={"min_value": "La cantidad debe ser de al menos 1."},
+    )
+    note = forms.CharField(label="Nota", max_length=500, required=False)
+
+
 @admin.register(StockItem)
 class StockItemAdmin(admin.ModelAdmin):
     list_display = (
@@ -58,6 +85,7 @@ class StockItemAdmin(admin.ModelAdmin):
     list_select_related = ("variant", "location")
     search_fields = ("variant__sku", "variant__product__name")
     actions = ("adjust",)
+    change_list_template = "admin/inventory/stockitem/change_list.html"
     fields = (
         "variant",
         "location",
@@ -76,6 +104,49 @@ class StockItemAdmin(admin.ModelAdmin):
         self, request: HttpRequest, obj: StockItem | None = None
     ) -> bool:
         return False
+
+    def get_urls(self):
+        return [
+            path(
+                "receive/",
+                self.admin_site.admin_view(self.receive_goods),
+                name=f"{self.opts.app_label}_{self.opts.model_name}_receive",
+            ),
+            *super().get_urls(),
+        ]
+
+    def receive_goods(self, request: HttpRequest) -> HttpResponse:
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+        if request.method == "POST":
+            form = ReceiveGoodsForm(request.POST)
+            if form.is_valid():
+                variant = form.cleaned_data["variant"]
+                quantity = form.cleaned_data["quantity"]
+                receive_stock(
+                    variant,
+                    form.cleaned_data["location"],
+                    quantity,
+                    actor=request.user,
+                    note=form.cleaned_data["note"],
+                )
+                self.message_user(
+                    request,
+                    f"Se recibieron {quantity} unidades de {variant.sku}.",
+                    messages.SUCCESS,
+                )
+                return HttpResponseRedirect(request.get_full_path())
+        else:
+            form = ReceiveGoodsForm()
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Recibir mercancía",
+            "opts": self.model._meta,
+            "form": form,
+        }
+        return TemplateResponse(
+            request, "admin/inventory/stockitem/receive.html", context
+        )
 
     @admin.display(description="Disponible")
     def available(self, obj: StockItem) -> int:
