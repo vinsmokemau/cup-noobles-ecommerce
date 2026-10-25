@@ -1,0 +1,136 @@
+"""The public product list (T5.1). The `attr.<key>` filters and P5-V01, V02, V03, V06 are T5.2 and
+T5.4; the tests here cover the filters, the payload and what stays hidden.
+"""
+
+import json
+
+import pytest
+
+from apps.catalog.models import Category
+
+pytestmark = pytest.mark.django_db
+
+URL = "/api/catalog/products/"
+
+
+def slugs(response) -> list[str]:
+    return [row["slug"] for row in response.json()["results"]]
+
+
+def test_list_returns_active_products_only(api_client, catalog_dataset):
+    response = api_client.get(URL)
+
+    assert response.status_code == 200
+    assert sorted(slugs(response)) == [
+        "caja-prismatic",
+        "figma-zelda",
+        "nendoroid-link",
+    ]
+
+
+def test_list_payload_has_no_costs_or_counts(api_client, catalog_dataset):
+    body = api_client.get(URL).content.decode()
+
+    for forbidden in ("cost_cents", "on_hand", "reserved", "safety_stock", "barcode"):
+        assert forbidden not in body
+
+
+def test_list_card_shape(api_client, catalog_dataset):
+    rows = {r["slug"]: r for r in api_client.get(URL).json()["results"]}
+
+    link = rows["nendoroid-link"]
+    assert link["product_type"] == "figure"
+    assert link["brand"] == {"slug": "good-smile", "name": "Good Smile Company"}
+    assert link["franchise"] == {"slug": "zelda", "name": "Zelda"}
+    assert link["price_cents"] == 90000
+    assert link["availability"] == {"status": "in_stock"}
+    assert link["image"]["alt"] == "Link de frente"
+    assert [s["width"] for s in link["image"]["sources"]] == [400, 800, 1600]
+    assert rows["caja-prismatic"]["brand"] is None
+    assert rows["caja-prismatic"]["image"] is None
+
+
+def test_card_takes_the_cheapest_variant_and_the_best_availability(
+    api_client, catalog_dataset
+):
+    rows = {r["slug"]: r for r in api_client.get(URL).json()["results"]}
+
+    figma = rows["figma-zelda"]
+    assert figma["price_cents"] == 130000  # the out-of-stock variant is cheaper
+    assert figma["availability"] == {"status": "low_stock"}  # the other has 3
+    assert rows["caja-prismatic"]["availability"] == {"status": "out_of_stock"}
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        ("franchise=zelda", ["figma-zelda", "nendoroid-link"]),
+        ("franchise=ZELDA", ["figma-zelda", "nendoroid-link"]),
+        ("brand=good-smile", ["figma-zelda", "nendoroid-link"]),
+        ("type=tcg_sealed", ["caja-prismatic"]),
+        ("category=nendoroid", ["nendoroid-link"]),
+        ("category=figuras", ["figma-zelda", "nendoroid-link"]),  # includes descendants
+        ("category=cartas&franchise=zelda", []),
+        ("franchise=no-existe", []),
+        ("min_price=125000", ["figma-zelda"]),
+        ("max_price=100000", ["nendoroid-link"]),
+        ("min_price=100000&max_price=125000", ["caja-prismatic"]),
+        ("in_stock=true", ["figma-zelda", "nendoroid-link"]),
+        ("in_stock=false", ["caja-prismatic", "figma-zelda", "nendoroid-link"]),
+        ("q=", ["caja-prismatic", "figma-zelda", "nendoroid-link"]),
+        ("q=zelda", ["figma-zelda"]),
+        ("franchise=zelda&in_stock=true&max_price=100000", ["nendoroid-link"]),
+    ],
+)
+def test_list_filters(api_client, catalog_dataset, query, expected):
+    response = api_client.get(f"{URL}?{query}")
+
+    assert response.status_code == 200
+    assert sorted(slugs(response)) == expected
+
+
+def test_price_filter_matches_one_variant_not_two(api_client, catalog_dataset):
+    # Figma has variants at 130000 and 150000: none costs 140000, but the range spans both.
+    response = api_client.get(f"{URL}?min_price=135000&max_price=145000")
+
+    assert slugs(response) == []
+
+
+def test_inactive_variants_do_not_count(api_client, catalog_dataset):
+    catalog_dataset.nendoroid.variants.update(is_active=False)
+
+    rows = {r["slug"]: r for r in api_client.get(URL).json()["results"]}
+
+    assert rows["nendoroid-link"]["price_cents"] is None
+    assert rows["nendoroid-link"]["availability"] == {"status": "out_of_stock"}
+    assert "nendoroid-link" not in slugs(api_client.get(f"{URL}?in_stock=true"))
+    assert "nendoroid-link" not in slugs(api_client.get(f"{URL}?min_price=0"))
+
+
+def test_inactive_category_is_not_a_filter(api_client, catalog_dataset):
+    Category.objects.filter(pk=catalog_dataset.cartas.pk).update(is_active=False)
+
+    assert slugs(api_client.get(f"{URL}?category=cartas")) == []
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "min_price=abc",
+        "min_price=-1",
+        "max_price=1.5",
+        "min_price=200&max_price=100",
+        "in_stock=quizas",
+        "q=" + "x" * 101,
+    ],
+)
+def test_invalid_filters_are_a_400(api_client, catalog_dataset, query):
+    response = api_client.get(f"{URL}?{query}")
+
+    assert response.status_code == 400
+    assert isinstance(json.loads(response.content), dict)
+
+
+def test_the_catalog_is_read_only(api_client, catalog_dataset):
+    for method in ("post", "put", "patch", "delete"):
+        assert getattr(api_client, method)(URL).status_code == 405

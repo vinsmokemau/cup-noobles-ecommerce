@@ -3,6 +3,153 @@ info:
   title: Cup Noobles API
   version: 1.0.0
 paths:
+  /api/catalog/categories/:
+    get:
+      operationId: catalog_categories_list
+      description: '`GET /api/catalog/categories/`: active categories, nested by parent.'
+      tags:
+      - api
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryNode'
+          description: ''
+  /api/catalog/products/:
+    get:
+      operationId: catalog_products_list
+      description: '`GET /api/catalog/products/`'
+      parameters:
+      - in: query
+        name: brand
+        schema:
+          type: string
+          maxLength: 200
+          minLength: 1
+      - in: query
+        name: category
+        schema:
+          type: string
+          maxLength: 200
+          minLength: 1
+        description: Category slug; includes its descendants.
+      - name: cursor
+        required: false
+        in: query
+        description: El valor del cursor de paginación.
+        schema:
+          type: string
+      - in: query
+        name: franchise
+        schema:
+          type: string
+          maxLength: 200
+          minLength: 1
+      - in: query
+        name: in_stock
+        schema:
+          type: boolean
+        description: '`true` keeps products with a unit available.'
+      - in: query
+        name: max_price
+        schema:
+          type: integer
+          minimum: 0
+        description: Centavos of MXN, IVA included.
+      - in: query
+        name: min_price
+        schema:
+          type: integer
+          minimum: 0
+        description: Centavos of MXN, IVA included.
+      - name: page_size
+        required: false
+        in: query
+        description: Número de resultados a devolver por página.
+        schema:
+          type: integer
+      - in: query
+        name: q
+        schema:
+          type: string
+          maxLength: 100
+          minLength: 1
+      - in: query
+        name: type
+        schema:
+          type: string
+          maxLength: 200
+          minLength: 1
+        description: Product type code.
+      tags:
+      - api
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProductCardList'
+          description: ''
+        '400':
+          description: A query parameter is invalid.
+  /api/catalog/products/{slug}/:
+    get:
+      operationId: catalog_products_retrieve
+      description: '`GET /api/catalog/products/{slug}/`: a draft or archived product
+        is a 404.'
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - api
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+          description: ''
+        '404':
+          description: No active product has this slug.
+  /api/catalog/search/:
+    get:
+      operationId: catalog_search_list
+      description: '`GET /api/catalog/search/?q=`: best match first, at most `SEARCH_LIMIT`
+        products.'
+      parameters:
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: Words to find.
+        required: true
+      tags:
+      - api
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductCard'
+          description: ''
+        '400':
+          description: A query parameter is invalid.
   /api/health/:
     get:
       operationId: api_health_retrieve
@@ -27,6 +174,66 @@ paths:
           description: The database is unreachable.
 components:
   schemas:
+    Availability:
+      type: object
+      description: '`{"status": "in_stock" | "low_stock" | "out_of_stock"}`; no raw
+        counts (D10 stand-in).'
+      properties:
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+      required:
+      - status
+    CategoryNode:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryNode'
+          readOnly: true
+      required:
+      - children
+      - name
+      - slug
+    DetailImage:
+      type: object
+      description: A product image as its derivatives; the original is never given
+        out (T3.5).
+      properties:
+        alt:
+          type: string
+        width:
+          type:
+          - integer
+          - 'null'
+          maximum: 2147483647
+          minimum: -2147483648
+        height:
+          type:
+          - integer
+          - 'null'
+          maximum: 2147483647
+          minimum: -2147483648
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageSource'
+          readOnly: true
+        variant:
+          type:
+          - string
+          - 'null'
+          format: uuid
+          readOnly: true
+      required:
+      - sources
+      - variant
     Health:
       type: object
       properties:
@@ -34,3 +241,242 @@ components:
           type: string
       required:
       - db
+    ImageSource:
+      type: object
+      properties:
+        width:
+          type: integer
+        url:
+          type: string
+      required:
+      - url
+      - width
+    PaginatedProductCardList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductCard'
+    ProductCard:
+      type: object
+      description: The list entry. Read `public_variants` and `images`, which the
+        view prefetches.
+      properties:
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        slug:
+          type: string
+        name:
+          type: string
+        subtitle:
+          type: string
+        product_type:
+          type: string
+        brand:
+          oneOf:
+          - $ref: '#/components/schemas/Reference'
+          - type: 'null'
+        franchise:
+          oneOf:
+          - $ref: '#/components/schemas/Reference'
+          - type: 'null'
+        price_cents:
+          type:
+          - integer
+          - 'null'
+          readOnly: true
+        compare_at_cents:
+          type:
+          - integer
+          - 'null'
+          readOnly: true
+        availability:
+          allOf:
+          - $ref: '#/components/schemas/Availability'
+          readOnly: true
+        image:
+          oneOf:
+          - $ref: '#/components/schemas/PublicImage'
+          - type: 'null'
+          readOnly: true
+      required:
+      - availability
+      - brand
+      - compare_at_cents
+      - franchise
+      - image
+      - name
+      - price_cents
+      - product_type
+      - public_id
+      - slug
+    ProductDetail:
+      type: object
+      description: The list entry. Read `public_variants` and `images`, which the
+        view prefetches.
+      properties:
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        slug:
+          type: string
+        name:
+          type: string
+        subtitle:
+          type: string
+        product_type:
+          type: string
+        brand:
+          oneOf:
+          - $ref: '#/components/schemas/Reference'
+          - type: 'null'
+        franchise:
+          oneOf:
+          - $ref: '#/components/schemas/Reference'
+          - type: 'null'
+        price_cents:
+          type:
+          - integer
+          - 'null'
+          readOnly: true
+        compare_at_cents:
+          type:
+          - integer
+          - 'null'
+          readOnly: true
+        availability:
+          allOf:
+          - $ref: '#/components/schemas/Availability'
+          readOnly: true
+        image:
+          oneOf:
+          - $ref: '#/components/schemas/PublicImage'
+          - type: 'null'
+          readOnly: true
+        description_md:
+          type: string
+        attributes: {}
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reference'
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicVariant'
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetailImage'
+        related:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductCard'
+          readOnly: true
+      required:
+      - availability
+      - brand
+      - categories
+      - compare_at_cents
+      - franchise
+      - image
+      - images
+      - name
+      - price_cents
+      - product_type
+      - public_id
+      - related
+      - slug
+      - variants
+    PublicImage:
+      type: object
+      description: A product image as its derivatives; the original is never given
+        out (T3.5).
+      properties:
+        alt:
+          type: string
+        width:
+          type:
+          - integer
+          - 'null'
+          maximum: 2147483647
+          minimum: -2147483648
+        height:
+          type:
+          - integer
+          - 'null'
+          maximum: 2147483647
+          minimum: -2147483648
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageSource'
+          readOnly: true
+      required:
+      - sources
+    PublicVariant:
+      type: object
+      properties:
+        public_id:
+          type: string
+          format: uuid
+          readOnly: true
+        sku:
+          type: string
+        options: {}
+        price_cents:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        compare_at_cents:
+          type:
+          - integer
+          - 'null'
+          maximum: 2147483647
+          minimum: -2147483648
+        availability:
+          allOf:
+          - $ref: '#/components/schemas/Availability'
+          readOnly: true
+      required:
+      - availability
+      - price_cents
+      - public_id
+      - sku
+    Reference:
+      type: object
+      description: A brand, franchise or category, by slug.
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+      required:
+      - name
+      - slug
+    StatusEnum:
+      enum:
+      - in_stock
+      - low_stock
+      - out_of_stock
+      type: string
+      description: |-
+        * `in_stock` - in_stock
+        * `low_stock` - low_stock
+        * `out_of_stock` - out_of_stock

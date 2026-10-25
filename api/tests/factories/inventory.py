@@ -31,10 +31,10 @@ class StockItemFactory(factory.django.DjangoModelFactory):
     location = factory.SubFactory(LocationFactory)
 
 
-def stocked_variant(on_hand, safety_stock=0, location=None):
+def stocked_variant(on_hand, safety_stock=0, location=None, **variant_fields):
     """A variant with `on_hand` units received into `location` (the warehouse by default)."""
     location = location or LocationFactory()
-    variant = VariantFactory()
+    variant = VariantFactory(**variant_fields)
     StockItemFactory(variant=variant, location=location, safety_stock=safety_stock)
     if on_hand:
         services.receive_stock(variant, location, on_hand)

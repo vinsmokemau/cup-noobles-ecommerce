@@ -169,3 +169,133 @@ def use_provider(settings):
 
     yield apply
     providers.clear_provider_caches()
+
+
+@pytest.fixture
+def catalog_dataset():
+    """Products across the launch types, with stock at each availability boundary (Phase 5).
+
+    Visible: a Zelda Nendoroid (in stock), a Zelda Figma (low stock, two variants), a Pokémon
+    box (out of stock). Hidden: a draft and an archived product. The pre-order product is R2
+    (T5.8) and joins this dataset then.
+    """
+    from types import SimpleNamespace
+
+    from apps.catalog.services import archive_product
+    from tests.factories.catalog import (
+        BrandFactory,
+        CategoryFactory,
+        FranchiseFactory,
+        ProductFactory,
+        ProductImageFactory,
+        ProductTypeFactory,
+    )
+    from tests.factories.inventory import stocked_variant
+
+    figure = ProductTypeFactory(code="figure", name="Figura")
+    tcg = ProductTypeFactory(code="tcg_sealed", name="TCG sellado")
+    zelda = FranchiseFactory(slug="zelda", name="Zelda")
+    pokemon = FranchiseFactory(slug="pokemon", name="Pokémon")
+    gsc = BrandFactory(slug="good-smile", name="Good Smile Company")
+    figuras = CategoryFactory(slug="figuras", name="Figuras", position=1)
+    nendoroids = CategoryFactory(
+        slug="nendoroid", name="Nendoroid", parent=figuras, position=1
+    )
+    cartas = CategoryFactory(slug="cartas", name="Cartas", position=2)
+
+    nendoroid = ProductFactory(
+        published=True,
+        name="Nendoroid Link",
+        slug="nendoroid-link",
+        product_type=figure,
+        franchise=zelda,
+        brand=gsc,
+        categories=[nendoroids],
+        attributes={"linea": "Nendoroid"},
+    )
+    stocked_variant(10, product=nendoroid, price_cents=90000, sku="NEN-LINK")
+    ProductImageFactory(product=nendoroid, alt="Link de frente")
+
+    figma = ProductFactory(
+        published=True,
+        name="Figma Zelda",
+        slug="figma-zelda",
+        product_type=figure,
+        franchise=zelda,
+        brand=gsc,
+        categories=[figuras],
+        attributes={"linea": "Figma"},
+    )
+    stocked_variant(3, product=figma, price_cents=150000, sku="FIG-ZELDA-A", position=1)
+    stocked_variant(
+        0,
+        product=figma,
+        price_cents=130000,
+        sku="FIG-ZELDA-B",
+        position=2,
+        options={"edicion": "basica"},
+    )
+
+    box = ProductFactory(
+        published=True,
+        name="Caja Prismatic Evolutions",
+        slug="caja-prismatic",
+        product_type=tcg,
+        franchise=pokemon,
+        categories=[cartas],
+    )
+    stocked_variant(0, product=box, price_cents=120000, sku="TCG-PRISMATIC")
+
+    draft = ProductFactory(name="Borrador", slug="borrador", product_type=figure)
+    stocked_variant(5, product=draft, sku="DRAFT-1")
+    archived = ProductFactory(
+        published=True, name="Archivado", slug="archivado", product_type=figure
+    )
+    stocked_variant(5, product=archived, sku="ARCH-1")
+    archive_product(archived)
+
+    return SimpleNamespace(
+        nendoroid=nendoroid,
+        figma=figma,
+        box=box,
+        draft=draft,
+        archived=archived,
+        zelda=zelda,
+        pokemon=pokemon,
+        gsc=gsc,
+        figuras=figuras,
+        nendoroids=nendoroids,
+        cartas=cartas,
+        visible=[nendoroid, figma, box],
+    )
+
+
+@pytest.fixture
+def search_corpus():
+    """Products with overlapping names and descriptions, for ranking and trigram tests."""
+    from types import SimpleNamespace
+
+    from tests.factories.catalog import ProductFactory
+
+    by_name = ProductFactory(
+        published=True,
+        name="Nendoroid Zelda",
+        slug="nendoroid-zelda",
+        description_md="Figura articulada con accesorios.",
+    )
+    by_description = ProductFactory(
+        published=True,
+        name="Estatua de colección",
+        slug="estatua-coleccion",
+        description_md="Una pieza para quien ama su nendoroid zelda favorita.",
+    )
+    unrelated = ProductFactory(
+        published=True,
+        name="Caja de sobres Pokémon",
+        slug="caja-sobres",
+        description_md="Treinta y seis sobres.",
+    )
+    draft = ProductFactory(name="Nendoroid Zelda borrador", slug="zelda-borrador")
+    return SimpleNamespace(
+        by_name=by_name, by_description=by_description, unrelated=unrelated, draft=draft
+    )
