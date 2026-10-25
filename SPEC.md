@@ -2439,7 +2439,7 @@ Cart endpoints:
 
 Every unsafe method requires `X-CSRFToken` (T6.2).
 
-- [ ] **T7.3 — Live prices, never stored**
+- [x] **T7.3 — Live prices, never stored** (2026-10-25, edd4a71)
   - Release: R1 · Gate: task
   - REQs: REQ-002
   - Verifies: P7-V03
