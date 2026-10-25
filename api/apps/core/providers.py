@@ -71,7 +71,7 @@ def invoicer() -> InvoiceProvider:
 
 
 def postal_code_lookup() -> PostalCodeLookup:
-    from apps.shipping.postal import DbPostalCodeLookup  # type: ignore[attr-defined]  # lands with the shipping phase
+    from apps.shipping.postal import DbPostalCodeLookup
 
     return DbPostalCodeLookup()
 

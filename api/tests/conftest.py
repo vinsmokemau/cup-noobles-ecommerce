@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 import time_machine
 from django.core.files.base import ContentFile
+from django.core.management import call_command
 from django.db import connection
 from hypothesis import HealthCheck
 from hypothesis import settings as hypothesis_settings
@@ -142,6 +143,13 @@ def auth_client():
 def prelaunch_on(db):
     """Turns pre-launch mode on for one test (G32, ADR-0038)."""
     SiteSetting.objects.update_or_create(pk=1, defaults={"prelaunch_mode": True})
+
+
+@pytest.fixture
+def postal_codes(db):
+    """Loads `api/fixtures/mx_postal_codes_sample.csv` into `mx_postal_code` (T6.6)."""
+    call_command("seed_states")
+    call_command("load_postal_codes")
 
 
 class Clock:

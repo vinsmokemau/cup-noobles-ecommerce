@@ -11,5 +11,6 @@ urlpatterns = [
     # T1.13b: the bare endpoint P1-V01 reads through the proxy; T5.5 extends the schema work.
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/catalog/", include("apps.catalog.urls")),
+    path("api/postal-codes/", include("apps.shipping.urls")),
     path("admin/", admin.site.urls),
 ]

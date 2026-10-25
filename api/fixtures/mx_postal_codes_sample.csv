@@ -1,0 +1,42 @@
+# SAMPLE — not authoritative. Colonia names are approximate; each state_code is the real one (§4.3).
+postal_code,neighborhood,municipality,state_code
+06700,Roma Norte,Cuauhtémoc,CMX
+06700,Roma Norte II,Cuauhtémoc,CMX
+06760,Roma Sur,Cuauhtémoc,CMX
+06600,Juárez,Cuauhtémoc,CMX
+06140,Condesa,Cuauhtémoc,CMX
+03100,Del Valle Centro,Benito Juárez,CMX
+03810,Nápoles,Benito Juárez,CMX
+04510,Ciudad Universitaria,Coyoacán,CMX
+11560,Polanco V Sección,Miguel Hidalgo,CMX
+50000,Toluca Centro,Toluca,MEX
+52140,San Jerónimo Chicahualco,Metepec,MEX
+53100,Ciudad Satélite,Naucalpan de Juárez,MEX
+54000,Tlalnepantla Centro,Tlalnepantla de Baz,MEX
+55000,Ecatepec Centro,Ecatepec de Morelos,MEX
+44100,Guadalajara Centro,Guadalajara,JAL
+44100,Barrio de Analco,Guadalajara,JAL
+44160,Americana,Guadalajara,JAL
+45010,Zapopan Centro,Zapopan,JAL
+45110,Ciudad Granja,Zapopan,JAL
+64000,Monterrey Centro,Monterrey,NLE
+64060,Obispado,Monterrey,NLE
+66220,Del Valle,San Pedro Garza García,NLE
+67100,Guadalupe Centro,Guadalupe,NLE
+97000,Mérida Centro,Mérida,YUC
+97000,Barrio de Santiago,Mérida,YUC
+97070,García Ginerés,Mérida,YUC
+97100,Itzimná,Mérida,YUC
+72000,Puebla Centro,Puebla,PUE
+72160,La Paz,Puebla,PUE
+72810,San Andrés Cholula,San Andrés Cholula,PUE
+72760,Cholula de Rivadavia,San Pedro Cholula,PUE
+76000,Querétaro Centro,Querétaro,QUE
+37000,León Centro,León,GUA
+77500,Cancún Centro,Benito Juárez,ROO
+91000,Xalapa Centro,Xalapa,VER
+68000,Oaxaca Centro,Oaxaca de Juárez,OAX
+20000,Aguascalientes Centro,Aguascalientes,AGU
+80000,Culiacán Centro,Culiacán,SIN
+83000,Hermosillo Centro,Hermosillo,SON
+86000,Villahermosa Centro,Centro,TAB

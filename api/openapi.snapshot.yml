@@ -286,6 +286,32 @@ paths:
               schema:
                 $ref: '#/components/schemas/Health'
           description: The database is unreachable.
+  /api/postal-codes/{cp}/:
+    get:
+      operationId: postal_codes_retrieve
+      description: '`GET /api/postal-codes/{cp}/`: 400 for a malformed code, 404 for
+        an unknown one.'
+      parameters:
+      - in: path
+        name: cp
+        schema:
+          type: string
+        required: true
+      tags:
+      - postal-codes
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostalCode'
+          description: ''
+        '400':
+          description: The postal code is not 5 digits.
+        '404':
+          description: The postal code is not in the dataset.
 components:
   schemas:
     Availability:
@@ -420,6 +446,24 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProductCard'
+    PostalCode:
+      type: object
+      properties:
+        state_code:
+          type: string
+        state_name:
+          type: string
+        municipality:
+          type: string
+        neighborhoods:
+          type: array
+          items:
+            type: string
+      required:
+      - municipality
+      - neighborhoods
+      - state_code
+      - state_name
     Prelaunch:
       type: object
       properties:

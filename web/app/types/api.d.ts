@@ -106,6 +106,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/postal-codes/{cp}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description `GET /api/postal-codes/{cp}/`: 400 for a malformed code, 404 for an unknown one. */
+        get: operations["postal_codes_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -163,6 +180,12 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["ProductCard"][];
+        };
+        PostalCode: {
+            state_code: string;
+            state_name: string;
+            municipality: string;
+            neighborhoods: string[];
         };
         Prelaunch: {
             prelaunch: boolean;
@@ -475,6 +498,41 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Health"];
                 };
+            };
+        };
+    };
+    postal_codes_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cp: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostalCode"];
+                };
+            };
+            /** @description The postal code is not 5 digits. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The postal code is not in the dataset. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
