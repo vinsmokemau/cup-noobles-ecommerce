@@ -1943,7 +1943,7 @@ def adjust_stock(variant, location, delta, *, reason, actor, note) -> None:
 
 `manage.py expire_reservations` — finds `inventory_reservation` rows where `state='held' AND expires_at < now()`, releases them, and transitions the owning order `pending_payment → expired`. Must be safe to run concurrently with a webhook approving the same order: take the order row `FOR UPDATE` and re-check state before acting. Add its line to `infra/crontab`: every 5 minutes (§4.8).
 
-- [ ] **T4.4 — Stock admin**
+- [x] **T4.4 — Stock admin** (2026-10-24, 5ef9a2c)
   - Release: R1 · Gate: task
   - REQs: REQ-011
   - Verifies: P4-V18
