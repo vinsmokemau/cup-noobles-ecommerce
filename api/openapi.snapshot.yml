@@ -20,6 +20,12 @@ paths:
                 items:
                   $ref: '#/components/schemas/CategoryNode'
           description: ''
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Prelaunch'
+          description: Pre-launch mode is on and the request is anonymous (G32, ADR-0038).
   /api/catalog/facets/:
     get:
       operationId: catalog_facets_retrieve
@@ -96,6 +102,12 @@ paths:
           description: ''
         '400':
           description: A query parameter is invalid.
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Prelaunch'
+          description: Pre-launch mode is on and the request is anonymous (G32, ADR-0038).
   /api/catalog/products/:
     get:
       operationId: catalog_products_list
@@ -183,6 +195,12 @@ paths:
           description: ''
         '400':
           description: A query parameter is invalid.
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Prelaunch'
+          description: Pre-launch mode is on and the request is anonymous (G32, ADR-0038).
   /api/catalog/products/{slug}/:
     get:
       operationId: catalog_products_retrieve
@@ -207,6 +225,12 @@ paths:
           description: ''
         '404':
           description: No active product has this slug.
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Prelaunch'
+          description: Pre-launch mode is on and the request is anonymous (G32, ADR-0038).
   /api/catalog/search/:
     get:
       operationId: catalog_search_list
@@ -234,6 +258,12 @@ paths:
           description: ''
         '400':
           description: A query parameter is invalid.
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Prelaunch'
+          description: Pre-launch mode is on and the request is anonymous (G32, ADR-0038).
   /api/health/:
     get:
       operationId: health_retrieve
@@ -390,6 +420,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProductCard'
+    Prelaunch:
+      type: object
+      properties:
+        prelaunch:
+          type: boolean
+      required:
+      - prelaunch
     ProductCard:
       type: object
       description: The list entry. Read `public_variants` and `images`, which the

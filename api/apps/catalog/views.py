@@ -6,12 +6,18 @@ the view prefetches variants (with their availability annotated, T5.3) and image
 
 from typing import Any
 
+from django.contrib.auth import get_user
 from django.db.models import Exists, OuterRef, Prefetch, Q, QuerySet
 from django.shortcuts import get_object_or_404
 from django.utils.cache import patch_cache_control
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
-from rest_framework import generics, serializers
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+    inline_serializer,
+)
+from rest_framework import generics, serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -35,12 +41,17 @@ from apps.catalog.serializers import (
     ProductCardSerializer,
     ProductDetailSerializer,
 )
+from apps.core.models import SiteSetting
 
 CATALOG_MAX_AGE = 60  # seconds; nothing busts it (T5.6), add-to-cart re-checks stock
 RELATED_LIMIT = 8  # products shown under a product page (G28, ADR-0030)
 SEARCH_LIMIT = 48
 
 BAD_REQUEST = OpenApiResponse(description="A query parameter is invalid.")
+PRELAUNCH = OpenApiResponse(
+    inline_serializer("Prelaunch", {"prelaunch": serializers.BooleanField()}),
+    description="Pre-launch mode is on and the request is anonymous (G32, ADR-0038).",
+)
 ATTR_PARAMETER = OpenApiParameter(
     "attr.<key>",
     OpenApiTypes.STR,
@@ -105,17 +116,48 @@ def present_params(request: Request) -> dict[str, str]:
     return {key: value for key, value in request.query_params.items() if value != ""}
 
 
+class PrelaunchActive(Exception):
+    """Pre-launch mode is on and the request is not from a staff session."""
+
+
 class CatalogView:
-    """Anonymous and cacheable: a successful response may be kept by the CDN for a minute."""
+    """Anonymous and cacheable: a successful response may be kept by the CDN for a minute.
+
+    While pre-launch mode is on (G32, ADR-0038) an anonymous request gets `503 {"prelaunch": true}`
+    with `no-store`, and a staff session gets the catalog with `private`, so the CDN never keeps
+    the hidden catalog (R-19).
+    """
 
     authentication_classes: list = []
     permission_classes = [AllowAny]
+    prelaunch_staff = False
+
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
+        super().initial(request, *args, **kwargs)  # type: ignore[misc]
+        if SiteSetting.prelaunch_active():
+            # DRF authentication is off here and DRF overwrites `request.user` with an anonymous
+            # user, so read the logged-in user from the session itself.
+            user = get_user(request._request)  # noqa: SLF001
+            if not (user.is_authenticated and user.is_active and user.is_staff):
+                raise PrelaunchActive
+            self.prelaunch_staff = True
+
+    def handle_exception(self, exc: Exception) -> Response:
+        if isinstance(exc, PrelaunchActive):
+            return Response(
+                {"prelaunch": True}, status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        return super().handle_exception(exc)  # type: ignore[misc]
 
     def finalize_response(
         self, request: Request, response: Response, *args: Any, **kwargs: Any
     ) -> Response:
         response = super().finalize_response(request, response, *args, **kwargs)  # type: ignore[misc]
-        if response.status_code == 200:
+        if response.status_code == 503 and response.data == {"prelaunch": True}:
+            patch_cache_control(response, no_store=True)
+        elif self.prelaunch_staff:
+            patch_cache_control(response, private=True)
+        elif response.status_code == 200:
             patch_cache_control(response, public=True, max_age=CATALOG_MAX_AGE)
         return response
 
@@ -135,7 +177,11 @@ class ProductListView(CatalogView, generics.ListAPIView):
     @extend_schema(
         operation_id="catalog_products_list",
         parameters=[ProductQuerySerializer, ATTR_PARAMETER],
-        responses={200: ProductCardSerializer(many=True), 400: BAD_REQUEST},
+        responses={
+            200: ProductCardSerializer(many=True),
+            400: BAD_REQUEST,
+            503: PRELAUNCH,
+        },
     )
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         return super().get(request, *args, **kwargs)
@@ -147,7 +193,7 @@ class FacetsView(CatalogView, APIView):
     @extend_schema(
         operation_id="catalog_facets_retrieve",
         parameters=[ProductQuerySerializer, ATTR_PARAMETER],
-        responses={200: FacetsSerializer, 400: BAD_REQUEST},
+        responses={200: FacetsSerializer, 400: BAD_REQUEST, 503: PRELAUNCH},
     )
     def get(self, request: Request) -> Response:
         params = parse_query(present_params(request))
@@ -165,6 +211,7 @@ class ProductDetailView(CatalogView, APIView):
         responses={
             200: ProductDetailSerializer,
             404: OpenApiResponse(description="No active product has this slug."),
+            503: PRELAUNCH,
         },
     )
     def get(self, request: Request, slug: str) -> Response:
@@ -178,7 +225,7 @@ class CategoryTreeView(CatalogView, APIView):
 
     @extend_schema(
         operation_id="catalog_categories_list",
-        responses=CategoryNodeSerializer(many=True),
+        responses={200: CategoryNodeSerializer(many=True), 503: PRELAUNCH},
     )
     def get(self, request: Request) -> Response:
         categories = list(
@@ -212,7 +259,11 @@ class SearchView(CatalogView, APIView):
                 "q", OpenApiTypes.STR, required=True, description="Words to find."
             )
         ],
-        responses={200: ProductCardSerializer(many=True), 400: BAD_REQUEST},
+        responses={
+            200: ProductCardSerializer(many=True),
+            400: BAD_REQUEST,
+            503: PRELAUNCH,
+        },
     )
     def get(self, request: Request) -> Response:
         query = SearchQuerySerializer(data=present_params(request))

@@ -16,6 +16,7 @@ from PIL import Image
 from rest_framework.test import APIClient
 
 from apps.core import providers
+from apps.core.models import SiteSetting
 
 pytest_plugins = ["pytester"]
 
@@ -135,6 +136,12 @@ def auth_client():
         return client
 
     return make
+
+
+@pytest.fixture
+def prelaunch_on(db):
+    """Turns pre-launch mode on for one test (G32, ADR-0038)."""
+    SiteSetting.objects.update_or_create(pk=1, defaults={"prelaunch_mode": True})
 
 
 class Clock:

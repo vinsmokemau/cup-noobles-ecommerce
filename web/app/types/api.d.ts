@@ -164,6 +164,9 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["ProductCard"][];
         };
+        Prelaunch: {
+            prelaunch: boolean;
+        };
         /** @description The list entry. Read `public_variants` and `images`, which the view prefetches. */
         ProductCard: {
             /** Format: uuid */
@@ -254,6 +257,15 @@ export interface operations {
                     "application/json": components["schemas"]["CategoryNode"][];
                 };
             };
+            /** @description Pre-launch mode is on and the request is anonymous (G32, ADR-0038). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Prelaunch"];
+                };
+            };
         };
     };
     catalog_facets_retrieve: {
@@ -295,6 +307,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Pre-launch mode is on and the request is anonymous (G32, ADR-0038). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Prelaunch"];
+                };
             };
         };
     };
@@ -342,6 +363,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Pre-launch mode is on and the request is anonymous (G32, ADR-0038). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Prelaunch"];
+                };
+            };
         };
     };
     catalog_products_retrieve: {
@@ -369,6 +399,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Pre-launch mode is on and the request is anonymous (G32, ADR-0038). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Prelaunch"];
+                };
             };
         };
     };
@@ -398,6 +437,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Pre-launch mode is on and the request is anonymous (G32, ADR-0038). */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Prelaunch"];
+                };
             };
         };
     };
