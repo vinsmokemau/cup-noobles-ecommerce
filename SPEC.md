@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.12 |
+| Spec version | 1.13 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -415,7 +415,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G17 | 11 | P11-V10 | `send_outbox` doesn't claim rows; an overlapping run can send an email twice | Claim rows with `SELECT … FOR UPDATE SKIP LOCKED` | R1 | Open |
 | G18 | 12 | P12-V01, P12-V22, P12-V25 | `nitro.devProxy` exists only in development, so a production build has no route from server rendering to Django | Nitro `routeRules` proxy `/api/**` to a server-only API target | R1 | Open |
 | G19 | 12 | P12-V09 | `$1,234.00 MXN` (12.4) against the `Intl` output (12.6) | Decided by DS:formatting.md (C-08, CR-30) | R1 | Decided; ADR in T1.15 |
-| G20 | 10 | P15-V05, demo step 9 | Receiving goods has no admin page, but it is daily work (GE:T30, GE:T35, GE:§5.2) | A "Recibir mercancía" admin action (variant, location, quantity) calling `receive_stock` in R1, and `receive_preorder_stock` for pre-order variants in R2 | R1 | Open |
+| G20 | 10 | P15-V05, demo step 9 | Receiving goods has no admin page, but it is daily work (GE:T30, GE:T35, GE:§5.2) | A "Recibir mercancía" admin action (variant, location, quantity) calling `receive_stock` in R1, and `receive_preorder_stock` for pre-order variants in R2 | R1 | Resolved (ADR-0035) |
 | G21 | 13 | P13-V13, P13-V14 | Guest landing pages must poll the order, but the guest endpoint needs number and email and allows 5 calls an hour | A short-lived signed order-status token, carried in `back_urls`, for a read-only status endpoint | R1 | Open |
 | G22 | 13 | P13-V15 | No endpoint retries payment for a `pending_payment` order, and when the cart counts as converted is undefined | `POST /api/orders/{public_id}/pay/` returns a fresh `checkout_url`; the cart is converted at T1 | R1 | Open |
 | G23 | 20 | plan Appendix B | The production topology (20.A) has no process that runs the scheduled jobs | A fourth container from the `api` image running supercronic, or a process supervisor inside `api` | R1 | Open |
@@ -507,6 +507,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-31 | 2026-10-24 | G12: what does `import_catalog` do with the valid rows when some rows are invalid? | Option A: the proposed resolution. All or nothing per file, reporting every invalid row. ADR-0033. |
 | OA-32 | 2026-10-24 | Phase 4 task order: T4.1 (`reserve`) raises `InsufficientStock`, which T4.2 defines, and the "Depends on" chain was otherwise arbitrary. Reorder? | Option A: T4.2 runs first, then T4.1, T4.3, T4.4, T4.9, T4.6, T4.7, T4.8 (phase-close); T4.10 and T4.5 stay R2. The "Depends on" lines of T4.1, T4.2, T4.3 and T4.8 are fixed. No ADR: cheap to reverse, spec text only. |
 | OA-33 | 2026-10-24 | G24: where is `check_stock_integrity` built, given P4-V07 tests it in Phase 4 but 21.7 specified it? | Option A: the proposed resolution. The command is built in Phase 4 (T4.9); 21.7 is absorbed and keeps only the production schedule. ADR-0034. |
+| OA-34 | 2026-10-25 | G20: how do staff receive goods in the admin? | Option A: the proposed resolution. A "Recibir mercancía" admin action (variant, location, quantity) calling `receive_stock` in R1, and `receive_preorder_stock` for pre-order variants in R2. ADR-0035. |
 
 ---
 
@@ -577,7 +578,7 @@ These come from the owner's execution guide (§1.2). Their mechanisms are propos
 | REQ-061 | A variant's purchase limit holds per customer, across guest orders. | D15 | P8-V20 · P13-V24 | R1 |
 | REQ-062 | Before launch, the public sees only a "próximamente" page while staff browse and buy for real. Going live is one switch. | — | P5-V15 ⚠️G32 · P12-V28 ⚠️G32 · P15-V16 ⚠️G32 | R1 |
 | REQ-063 | Staff can export what the weekly dashboard and the monthly report need, including each line's unit cost at the time of sale. | A19 | P8-V21 · P10-V25 | R1 |
-| REQ-064 | Staff receive goods and see where each item is stored, from the admin, without editing stock by hand. | CR-05 | P4-V19 ⚠️G20 · P4-V20 · P10-V26 | R1 |
+| REQ-064 | Staff receive goods and see where each item is stored, from the admin, without editing stock by hand. | CR-05 | P4-V19 · P4-V20 · P10-V26 | R1 |
 | REQ-065 | No placeholder, demo row or dev default reaches production. | CR-45, §2.5 | P2-V18 · P15-V12 · P22-V15 | R1 |
 
 ### 3.8 Quality gates
@@ -1980,7 +1981,6 @@ Per G2's proposed resolution, add the `enqueue_email()` helper: it writes an `em
   - Verifies: P4-V19
   - Depends on: T4.6
   - Context: "Core rules" above; GE:T30
-  - Open items: G20 (tests xfail until decided)
 
 Per G20's proposed resolution, add a "Recibir mercancía" admin action: the staff member picks the variant and location and enters a quantity, and the action calls `receive_stock` with the staff user as `actor`. A zero or negative quantity is a form error. `on_hand` is never an editable field. The pre-order path (`receive_preorder_stock`, 10.3) is R2.
 
@@ -2058,7 +2058,7 @@ Admin: an "Registrar venta en tienda" page — pick location, scan/type SKUs, qu
 
 | Test ID | Layer | File path · test | What it asserts |
 |---|---|---|---|
-| P4-V19 | integration | `api/tests/integration/inventory/test_receiving.py::test_p4_v19_receive_goods_admin_action` | The "Recibir mercancía" admin action records a receipt through `receive_stock`: `on_hand` rises by the quantity, and one `receipt` ledger row names the staff user. A zero or negative quantity shows a form error and changes nothing. ⚠️ G20 |
+| P4-V19 | integration | `api/tests/integration/inventory/test_receiving.py::test_p4_v19_receive_goods_admin_action` | The "Recibir mercancía" admin action records a receipt through `receive_stock`: `on_hand` rises by the quantity, and one `receipt` ledger row names the staff user. A zero or negative quantity shows a form error and changes nothing. |
 | P4-V20 | integration | `api/tests/integration/inventory/test_admin.py::test_p4_v20_bin_location_editable` | A stock item's bin location can be edited in the admin without touching `on_hand`; the edit writes no ledger row. |
 
 **Fixtures and factories introduced** (reused by later phases)
@@ -3349,7 +3349,7 @@ Pre-order capacity: if `preorder_limit` is set, `reserve()` must reject beyond i
   - Verifies: P10-V09, P10-V16, P10-V17, P10-V21, P10-V22
   - Depends on: T10.5
   - Context: 10.A; 8.A (T9)
-  - Open items: G9, G16, G20 (tests xfail until decided)
+  - Open items: G9, G16 (tests xfail until decided)
 
 Pre-order receiving — `apps/inventory/services.py`:
 
@@ -4333,7 +4333,7 @@ Everything is fictional and labelled: product names start with `[DEMO]`, the fra
 | 8 | Storefront | Buy `[DEMO] Figura` choosing "Pagar en OXXO"; on the voucher page press "Simular pago recibido". | `pendiente` shows the ficha; after payment the order is `paid`. |
 | 9 | Admin CFDI queue | Open the seeded order with a CFDI `requested`; record a folio, a UUID and the two sample documents. | The request is `issued`; a `cfdi_issued` email file with the PDF and XML attached. |
 | 10 | Admin + a private window | Turn pre-launch mode on; open the storefront in a private window; then turn the mode off. | The private window shows "próximamente" while the staff session still sees the catalog; after switching off, the private window shows the catalog. ⚠️ G32 |
-| 11 `[R2]` | Storefront + admin | Pre-order `[DEMO] Figura preventa`, then in the admin receive 1 unit for it. | The order moves `awaiting_stock` → `preparing` with a "ya llegó" email. ⚠️ G20 |
+| 11 `[R2]` | Storefront + admin | Pre-order `[DEMO] Figura preventa`, then in the admin receive 1 unit for it. | The order moves `awaiting_stock` → `preparing` with a "ya llegó" email. |
 | 12 `[R2]` | Admin "Registrar venta en tienda" | Sell the last `[DEMO] Juego de mesa` at the counter. | Reloading its product page shows "Agotado". |
 | 13 | `/rastrear` | Look up the seeded OXXO order with its number and `demo@cupnoobles.test`. | Its status and voucher link. In R2, logging in as `demo@cupnoobles.test` shows the history and merges the saved cart. |
 | 14 | Terminal | `make demo-reset`. | A clean dataset, ready for the next run. |
@@ -4452,7 +4452,6 @@ Offline execution:
   - Verifies: P15-V02, P15-V05, P15-V06, P15-V07, P15-V09
   - Depends on: T15.5
   - Context: 15.C; 10.A
-  - Open items: G20 (tests xfail until decided)
 
 The Release 2 journey specs (pickup, pre-orders, mixed carts, cart merge on login, counter sales), on the same terms as T15.6a.
 
@@ -4468,7 +4467,7 @@ The Release 2 journey specs (pickup, pre-orders, mixed carts, cart merge on logi
 | P15-V02 [R2] | E2E journey | `web/e2e/journeys/j2_logged_in_pickup.spec.ts` › `p15_v02 logged-in pickup purchase` | Log in as the demo customer; checkout prefills the email; "Recoger en tienda" shows the store and $0.00 shipping; pay by card → `ready_for_pickup` with `pickup_deadline_at` set and a "listo para recoger" email; staff press "Entregado" → `picked_up`; `/mi-cuenta/pedidos` shows the order as collected. |
 | P15-V03 | E2E journey | `web/e2e/journeys/j3_oxxo_paid.spec.ts` › `p15_v03 oxxo pending then paid` | "Pagar en OXXO" → `pendiente` with the voucher and its expiry, and an `oxxo_voucher` email. `inspect`: `reserved` +1, `on_hand` unchanged. The voucher page's "Simular pago recibido" → the order is `paid`; `reserved` back to 0; `on_hand` −1. |
 | P15-V04 | E2E journey | `web/e2e/journeys/j4_oxxo_expired.spec.ts` › `p15_v04 oxxo expired releases stock` | "Pagar en OXXO", then "Simular vencimiento": the order stays `pending_payment` (9.4 maps `cancelled` to no event). `run("mock_payments expire-order")` → `expired`; `reserved` back to 0 and `on_hand` unchanged; an `order_expired` email; the product page shows the original availability again. |
-| P15-V05 [R2] | E2E journey | `web/e2e/journeys/j5_preorder_to_shipped.spec.ts` › `p15_v05 preorder received allocated shipped` | Buy the pre-order figure → `awaiting_stock`; `preorder_committed` +1 and `stock_item` unchanged. Staff receive 1 unit in the admin → the order is allocated → `preparing` with a "ya llegó" email. Staff add a shipment → `shipped`. ⚠️ G20 |
+| P15-V05 [R2] | E2E journey | `web/e2e/journeys/j5_preorder_to_shipped.spec.ts` › `p15_v05 preorder received allocated shipped` | Buy the pre-order figure → `awaiting_stock`; `preorder_committed` +1 and `stock_item` unchanged. Staff receive 1 unit in the admin → the order is allocated → `preparing` with a "ya llegó" email. Staff add a shipment → `shipped`. |
 | P15-V06 [R2] | E2E journey | `web/e2e/journeys/j6_mixed_cart.spec.ts` › `p15_v06 mixed cart ships complete` | Cart with M/negro + the pre-order figure shows the ship-complete notice; pay → `awaiting_stock`; the in-stock line is already committed (`on_hand` −1); the admin action bar offers no shipment. After receiving the pre-order unit → `preparing`, and exactly one shipment → `shipped`. |
 | P15-V07 [R2] | E2E journey | `web/e2e/journeys/j7_cart_survives_login.spec.ts` › `p15_v07 anonymous cart survives login` | Two lines added anonymously; log in as the demo customer; the cart holds both, plus the saved `[DEMO] Playera`, summed and clamped per 7.2; checkout proceeds from the merged cart. |
 | P15-V08 | E2E journey | `web/e2e/journeys/j8_double_click_pay.spec.ts` › `p15_v08 double-click Pagar creates one order` | Under network throttling (to widen the race window), `dblclick` on "Pagar": `inspect.orders` shows exactly one order for the email, `reserved` rises by the cart quantity once, and the browser reaches the simulator once. |
@@ -5297,7 +5296,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 1 | ~~G1~~, ~~G29~~ |
 | Before Phase 2 (schema) | D14 (types), D16 (fields); ~~G3~~, ~~G5~~, ~~G28~~, ~~G31~~, ~~G33~~, ~~G34~~ (§4.4) |
 | Phase 3 | ~~G12~~, G39 |
-| Phase 4 | G2, G15, G20, ~~G24~~, ~~G34~~, G37, G38 |
+| Phase 4 | G2, G15, ~~G20~~, ~~G24~~, ~~G34~~, G37, G38 |
 | Phase 5 | G13 with D10, G32 |
 | Phase 6 | G30, G35 |
 | Phase 8 | ~~G3~~, G4, ~~G5~~, G25, G26, G27, ~~G31~~, ~~G33~~ |
@@ -5335,6 +5334,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.10 | 2026-10-24 | G12 resolved: `import_catalog` is all or nothing per file and reports every invalid row. T3.6 loses its G12 open item and P3-V09 loses its ⚠️ marker. No Verify ID, task or schema change. | OA-31; ADR-0033 |
 | 1.11 | 2026-10-24 | Phase 4 task order: T4.2 now precedes T4.1 (T4.1 raised an error T4.2 defines); "Depends on" fixed in T4.1, T4.2, T4.3 and T4.8; an execution-order note added. No Verify ID, schema or task-ID change. | OA-32 |
 | 1.12 | 2026-10-24 | G24 resolved: `check_stock_integrity` is built in Phase 4 (T4.9) and T21.7 stays absorbed. T4.9 loses its G24 open item and P4-V07 loses its ⚠️ marker. No Verify ID, task or schema change. | OA-33; ADR-0034 |
+| 1.13 | 2026-10-25 | G20 resolved: the "Recibir mercancía" admin action calls `receive_stock` in R1 and `receive_preorder_stock` for pre-order variants in R2. T4.7, T10.3 and the Phase 15 task lose their G20 open item; P4-V19, REQ-064, P15-V05 and demo step 11 lose their ⚠️ marker. No Verify ID, task or schema change. | OA-34; ADR-0035 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5418,6 +5418,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0032 | States are loaded in production by a separate seed command | `docs/decisions/0032-seed-states-command.md` | G41; OA-29 |
 | ADR-0033 | The catalog importer is all or nothing per file | `docs/decisions/0033-import-catalog-all-or-nothing.md` | G12; OA-31 |
 | ADR-0034 | The stock integrity command is built in Phase 4 | `docs/decisions/0034-stock-integrity-command-phase-4.md` | G24; OA-33 |
+| ADR-0035 | Goods are received through an admin action | `docs/decisions/0035-receive-goods-admin-action.md` | G20; OA-34 |
 
 ## Appendix C — Dated market facts
 
