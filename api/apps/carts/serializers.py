@@ -1,15 +1,18 @@
 """Cart request and response shapes (SPEC.md T7.1).
 
-The cart stores no prices (CR-03). Live prices, availability, totals and the shipping quote join
-the response in T7.3, T7.4 and T7.6.
+The cart stores no prices (CR-03): each read takes `variant.price_cents` as it is now (T7.3).
+Availability and the shipping quote join the response in T7.4 and T7.6.
 """
 
 import re
+from dataclasses import asdict, dataclass
+from typing import Any
 
 from rest_framework import serializers
 
 from apps.carts.models import Cart, CartLine
 from apps.catalog.models import Variant
+from apps.orders.pricing import compute_totals
 
 MAX_QUANTITY = 99
 POSTAL_CODE = re.compile(r"[0-9]{5}")
@@ -37,19 +40,62 @@ class CartFulfillmentSerializer(serializers.Serializer):
 
 class CartLineSerializer(serializers.ModelSerializer):
     variant_public_id = serializers.UUIDField(source="variant.public_id")
+    unit_price_cents = serializers.IntegerField(source="variant.price_cents")
+    line_total_cents = serializers.SerializerMethodField()
 
     class Meta:
         model = CartLine
-        fields = ["id", "variant_public_id", "quantity"]
+        fields = [
+            "id",
+            "variant_public_id",
+            "quantity",
+            "unit_price_cents",
+            "line_total_cents",
+        ]
+
+    def get_line_total_cents(self, line: CartLine) -> int:
+        return line.variant.price_cents * line.quantity
+
+
+class CartTotalsSerializer(serializers.Serializer):
+    subtotal_cents = serializers.IntegerField()
+    shipping_cents = serializers.IntegerField()
+    discount_cents = serializers.IntegerField()
+    total_cents = serializers.IntegerField()
+    tax_included_cents = serializers.IntegerField()
+
+
+def cart_totals(lines: list) -> dict[str, int]:
+    """Shipping and discount are 0 until the quote (T7.6) and discounts exist."""
+    totals = compute_totals(
+        [_PricedLine(line.variant.price_cents, line.quantity) for line in lines],
+        shipping_cents=0,
+        discount_cents=0,
+    )
+    return asdict(totals)
+
+
+@dataclass
+class _PricedLine:
+    unit_price_cents: int
+    quantity: int
 
 
 class CartSerializer(serializers.ModelSerializer):
-    lines = serializers.SerializerMethodField()
+    """Reads the lines once and builds both `lines` and `totals` from them."""
+
+    fulfillment_method = serializers.CharField(allow_null=True)
+    lines = CartLineSerializer(many=True)
+    totals = CartTotalsSerializer()
 
     class Meta:
         model = Cart
-        fields = ["fulfillment_method", "lines"]
+        fields = ["fulfillment_method", "lines", "totals"]
 
-    def get_lines(self, cart: Cart) -> list[dict]:
-        rows = cart.lines.select_related("variant").order_by("added_at", "id")
-        return CartLineSerializer(rows, many=True).data
+    def to_representation(self, instance: Cart) -> dict[str, Any]:
+        rows = list(instance.lines.select_related("variant").order_by("added_at", "id"))
+        return {
+            "fulfillment_method": instance.fulfillment_method,
+            "lines": CartLineSerializer(rows, many=True).data,
+            "totals": cart_totals(rows),
+        }

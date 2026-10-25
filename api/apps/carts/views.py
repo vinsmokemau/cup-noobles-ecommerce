@@ -26,6 +26,7 @@ from apps.carts.serializers import (
     CartLineQuantitySerializer,
     CartLineWriteSerializer,
     CartSerializer,
+    cart_totals,
 )
 from apps.catalog.models import Variant
 
@@ -86,7 +87,9 @@ class CartDetailView(CartView):
         get_token(request)  # the storefront reads `csrftoken` before its first write
         cart = get_cart(request)
         if cart is None:
-            return Response({"fulfillment_method": None, "lines": []})
+            return Response(
+                {"fulfillment_method": None, "lines": [], "totals": cart_totals([])}
+            )
         return self.reply(cart)
 
 

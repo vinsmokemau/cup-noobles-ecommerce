@@ -84,7 +84,10 @@ def test_get_without_a_token_is_empty_and_creates_nothing(anonymous_cart_client)
     response = anonymous_cart_client.get("/api/cart/")
 
     assert response.status_code == 200
-    assert response.json() == {"fulfillment_method": None, "lines": []}
+    body = response.json()
+    assert body["fulfillment_method"] is None
+    assert body["lines"] == []
+    assert body["totals"]["total_cents"] == 0
     assert response["Cache-Control"] == "no-store"
     assert not Cart.objects.exists()
 

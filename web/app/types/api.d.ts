@@ -227,20 +227,35 @@ export interface components {
         Availability: {
             status: components["schemas"]["StatusEnum"];
         };
+        /** @description Reads the lines once and builds both `lines` and `totals` from them. */
         Cart: {
-            fulfillment_method?: string | null;
-            readonly lines: {
-                [key: string]: unknown;
-            }[];
+            fulfillment_method: string | null;
+            lines: components["schemas"]["CartLine"][];
+            totals: components["schemas"]["CartTotals"];
         };
         CartFulfillment: {
             method: components["schemas"]["MethodEnum"];
             postal_code: string;
         };
+        CartLine: {
+            readonly id: number;
+            /** Format: uuid */
+            variant_public_id: string;
+            quantity: number;
+            unit_price_cents: number;
+            readonly line_total_cents: number;
+        };
         CartLineWrite: {
             /** Format: uuid */
             variant_public_id: string;
             quantity: number;
+        };
+        CartTotals: {
+            subtotal_cents: number;
+            shipping_cents: number;
+            discount_cents: number;
+            total_cents: number;
+            tax_included_cents: number;
         };
         CategoryNode: {
             slug: string;

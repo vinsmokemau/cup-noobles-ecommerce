@@ -520,6 +520,8 @@ components:
       - status
     Cart:
       type: object
+      description: Reads the lines once and builds both `lines` and `totals` from
+        them.
       properties:
         fulfillment_method:
           type:
@@ -528,11 +530,13 @@ components:
         lines:
           type: array
           items:
-            type: object
-            additionalProperties: {}
-          readOnly: true
+            $ref: '#/components/schemas/CartLine'
+        totals:
+          $ref: '#/components/schemas/CartTotals'
       required:
+      - fulfillment_method
       - lines
+      - totals
     CartFulfillment:
       type: object
       properties:
@@ -545,6 +549,30 @@ components:
       required:
       - method
       - postal_code
+    CartLine:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        variant_public_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        unit_price_cents:
+          type: integer
+        line_total_cents:
+          type: integer
+          readOnly: true
+      required:
+      - id
+      - line_total_cents
+      - quantity
+      - unit_price_cents
+      - variant_public_id
     CartLineWrite:
       type: object
       properties:
@@ -558,6 +586,25 @@ components:
       required:
       - quantity
       - variant_public_id
+    CartTotals:
+      type: object
+      properties:
+        subtotal_cents:
+          type: integer
+        shipping_cents:
+          type: integer
+        discount_cents:
+          type: integer
+        total_cents:
+          type: integer
+        tax_included_cents:
+          type: integer
+      required:
+      - discount_cents
+      - shipping_cents
+      - subtotal_cents
+      - tax_included_cents
+      - total_cents
     CategoryNode:
       type: object
       properties:
