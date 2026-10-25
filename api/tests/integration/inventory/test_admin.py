@@ -168,3 +168,23 @@ def test_p4_v20_bin_location_editable(admin_client):
     assert (item.bin_location, item.on_hand) == ("A-03-2", 5)
     assert StockLedger.objects.filter(stock_item=item).count() == ledger_rows
     assert_stock_integrity(variant)
+
+
+def test_saving_the_form_never_writes_a_stale_stock_count(admin_client, monkeypatch):
+    item = StockItem.objects.get(variant=stocked_variant(on_hand=5))
+    stock_admin = admin.site._registry[StockItem]
+    original = stock_admin.get_object
+
+    def stale_object(request, object_id, from_field=None):
+        obj = original(request, object_id, from_field)
+        # A sale commits after the page loaded the row and before the save.
+        StockItem.objects.filter(pk=obj.pk).update(on_hand=3, reserved=2)
+        return obj
+
+    monkeypatch.setattr(stock_admin, "get_object", stale_object)
+    admin_client.post(
+        reverse(CHANGE, args=[item.pk]), {"safety_stock": 1, "bin_location": "B-1"}
+    )
+
+    item.refresh_from_db()
+    assert (item.on_hand, item.reserved, item.bin_location) == (3, 2, "B-1")

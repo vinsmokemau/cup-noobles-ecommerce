@@ -106,6 +106,11 @@ class StockItemAdmin(admin.ModelAdmin):
     ) -> bool:
         return False
 
+    def save_model(self, request, obj, form, change) -> None:
+        # Write only the fields the form changed, so a stale `on_hand` or `reserved` loaded with
+        # the page can never overwrite a sale committed meanwhile (CR-05, CR-07).
+        obj.save(update_fields=[*form.changed_data, "updated_at"])
+
     def get_urls(self):
         return [
             path(
