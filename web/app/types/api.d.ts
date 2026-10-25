@@ -50,8 +50,9 @@ export interface paths {
         /**
          * @description Upsert: a variant already in the cart takes the new quantity.
          *
-         *     Quantity is checked against the 1 to 99 bound only. Availability is reported on read,
-         *     never enforced here, so the cart never silently changes a quantity (T7.4).
+         *     Quantity is checked against the 1 to 99 bound, and the variant must be sellable (P7-V11).
+         *     Stock is reported on read, never enforced here, so the cart never silently changes a
+         *     quantity (T7.4).
          */
         post: operations["cart_lines_create"];
         delete?: never;
@@ -227,6 +228,13 @@ export interface components {
         Availability: {
             status: components["schemas"]["StatusEnum"];
         };
+        /**
+         * @description * `ok` - ok
+         *     * `reduced` - reduced
+         *     * `unavailable` - unavailable
+         * @enum {string}
+         */
+        AvailabilityEnum: "ok" | "reduced" | "unavailable";
         /** @description Reads the lines once and builds both `lines` and `totals` from them. */
         Cart: {
             fulfillment_method: string | null;
@@ -244,6 +252,8 @@ export interface components {
             quantity: number;
             unit_price_cents: number;
             readonly line_total_cents: number;
+            readonly availability: components["schemas"]["AvailabilityEnum"];
+            readonly max_available: number | null;
         };
         CartLineWrite: {
             /** Format: uuid */
@@ -563,7 +573,7 @@ export interface operations {
                     "application/json": components["schemas"]["Cart"];
                 };
             };
-            /** @description Quantity outside 1 to 99, or an unknown variant. */
+            /** @description Quantity outside 1 to 99, or an unknown, inactive or archived variant. */
             400: {
                 headers: {
                     [name: string]: unknown;

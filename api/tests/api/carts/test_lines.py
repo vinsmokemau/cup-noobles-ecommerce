@@ -1,12 +1,14 @@
-"""P7-V10: cart line quantity bounds, and the line endpoints around it (T7.1)."""
+"""P7-V10, P7-V02, P7-V11: cart line bounds, availability and the line endpoints (T7.1, T7.4)."""
 
 import uuid
 
 import pytest
 
 from apps.carts.models import Cart, CartLine
+from apps.catalog.models import Product
 from tests.factories.carts import CartLineFactory
 from tests.factories.catalog import VariantFactory
+from tests.factories.inventory import holding_order, stocked_variant
 
 pytestmark = pytest.mark.django_db
 
@@ -157,3 +159,62 @@ def test_fulfillment_accepts_delivery_only_in_r1(cart_client):
     assert "method" in pickup.json()
     assert bad_cp.status_code == 400
     assert "postal_code" in bad_cp.json()
+
+
+def test_p7_v02_reduced_not_mutated(cart_client):
+    variant = stocked_variant(on_hand=2)
+    line = CartLineFactory(cart=cart_client.cart, variant=variant, quantity=3)
+
+    body = cart_client.get("/api/cart/").json()
+
+    assert body["lines"][0]["availability"] == "reduced"
+    assert body["lines"][0]["max_available"] == 2
+    assert body["lines"][0]["quantity"] == 3
+    line.refresh_from_db()
+    assert line.quantity == 3
+
+
+def test_availability_ok_and_unavailable_lines(cart_client):
+    CartLineFactory(
+        cart=cart_client.cart, variant=stocked_variant(on_hand=5), quantity=5
+    )
+    CartLineFactory(
+        cart=cart_client.cart, variant=stocked_variant(on_hand=0), quantity=1
+    )
+
+    lines = cart_client.get("/api/cart/").json()["lines"]
+
+    assert [(row["availability"], row["max_available"]) for row in lines] == [
+        ("ok", None),
+        ("unavailable", None),
+    ]
+
+
+def test_availability_counts_reservations_and_safety_stock(cart_client):
+    held = stocked_variant(on_hand=8, safety_stock=2)
+    holding_order(held, 3)
+    CartLineFactory(cart=cart_client.cart, variant=held, quantity=4)
+
+    line = cart_client.get("/api/cart/").json()["lines"][0]
+
+    assert (line["availability"], line["max_available"]) == ("reduced", 3)
+
+
+def test_p7_v11_inactive_or_archived_variant(cart_client):
+    inactive = stocked_variant(on_hand=5, is_active=False)
+    archived = stocked_variant(on_hand=5)
+    archived.product.status = Product.Status.ARCHIVED
+    archived.product.save(update_fields=["status"])
+
+    for variant in (inactive, archived):
+        response = add(cart_client, variant, 1)
+        assert response.status_code == 400
+        assert "variant_public_id" in response.json()
+    assert not CartLine.objects.exists()
+
+    # A line added while the variant was sellable is reported, not removed.
+    CartLineFactory(cart=cart_client.cart, variant=inactive, quantity=1)
+    CartLineFactory(cart=cart_client.cart, variant=archived, quantity=1)
+    lines = cart_client.get("/api/cart/").json()["lines"]
+    assert [row["availability"] for row in lines] == ["unavailable", "unavailable"]
+    assert CartLine.objects.count() == 2

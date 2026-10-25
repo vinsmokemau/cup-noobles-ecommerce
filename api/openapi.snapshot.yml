@@ -59,8 +59,9 @@ paths:
       description: |-
         Upsert: a variant already in the cart takes the new quantity.
 
-        Quantity is checked against the 1 to 99 bound only. Availability is reported on read,
-        never enforced here, so the cart never silently changes a quantity (T7.4).
+        Quantity is checked against the 1 to 99 bound, and the variant must be sellable (P7-V11).
+        Stock is reported on read, never enforced here, so the cart never silently changes a
+        quantity (T7.4).
       tags:
       - cart
       requestBody:
@@ -92,7 +93,8 @@ paths:
                 $ref: '#/components/schemas/Cart'
           description: ''
         '400':
-          description: Quantity outside 1 to 99, or an unknown variant.
+          description: Quantity outside 1 to 99, or an unknown, inactive or archived
+            variant.
         '403':
           description: The CSRF token is missing or wrong.
   /api/cart/lines/{line_id}/:
@@ -518,6 +520,16 @@ components:
           $ref: '#/components/schemas/StatusEnum'
       required:
       - status
+    AvailabilityEnum:
+      enum:
+      - ok
+      - reduced
+      - unavailable
+      type: string
+      description: |-
+        * `ok` - ok
+        * `reduced` - reduced
+        * `unavailable` - unavailable
     Cart:
       type: object
       description: Reads the lines once and builds both `lines` and `totals` from
@@ -567,9 +579,20 @@ components:
         line_total_cents:
           type: integer
           readOnly: true
+        availability:
+          allOf:
+          - $ref: '#/components/schemas/AvailabilityEnum'
+          readOnly: true
+        max_available:
+          type:
+          - integer
+          - 'null'
+          readOnly: true
       required:
+      - availability
       - id
       - line_total_cents
+      - max_available
       - quantity
       - unit_price_cents
       - variant_public_id

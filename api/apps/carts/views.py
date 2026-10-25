@@ -101,7 +101,7 @@ class CartLineListView(CartView):
             200: CartSerializer,
             201: CartSerializer,
             400: OpenApiResponse(
-                description="Quantity outside 1 to 99, or an unknown variant."
+                description="Quantity outside 1 to 99, or an unknown, inactive or archived variant."
             ),
             403: OpenApiResponse(description="The CSRF token is missing or wrong."),
         },
@@ -109,8 +109,9 @@ class CartLineListView(CartView):
     def post(self, request: Request) -> Response:
         """Upsert: a variant already in the cart takes the new quantity.
 
-        Quantity is checked against the 1 to 99 bound only. Availability is reported on read,
-        never enforced here, so the cart never silently changes a quantity (T7.4).
+        Quantity is checked against the 1 to 99 bound, and the variant must be sellable (P7-V11).
+        Stock is reported on read, never enforced here, so the cart never silently changes a
+        quantity (T7.4).
         """
         data = CartLineWriteSerializer(data=request.data)
         data.is_valid(raise_exception=True)
