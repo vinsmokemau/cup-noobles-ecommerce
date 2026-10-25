@@ -33,7 +33,13 @@ Every install needs a token:
    export NODE_AUTH_TOKEN=<your token>
    ```
 
-Docker builds receive `NODE_AUTH_TOKEN` as a build secret, so it never ends up in an image layer. Upgrading the Design System is its own task: it changes the pinned version and runs `make test-all`.
+Docker builds receive `NODE_AUTH_TOKEN` as a build secret, so it never ends up in an image layer. `docker compose build` passes it for you. A plain `docker build` must pass it explicitly, or the install fails with `401 Unauthorized`:
+
+```sh
+docker build --secret id=node_auth_token,env=NODE_AUTH_TOKEN -t cupnoobles-web web/
+```
+
+Upgrading the Design System is its own task: it changes the pinned version and runs `make test-all`.
 
 ## Start
 

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Local development image (T1.6). T20.2 adds the production build.
-FROM node:22-slim
+FROM node:22.23.4-slim
 
 RUN npm install --global pnpm@12.6.0
 
