@@ -2244,7 +2244,7 @@ Cookie settings: `HttpOnly`, `Secure`, `SameSite=Lax`, `SESSION_COOKIE_AGE = 60*
 
 In Release 1 the session belongs to staff signed in to the admin, whose session the storefront also forwards for the pre-launch catalog (G32). Customer sessions arrive with T6.1 in Release 2. The cart endpoints (Phase 7) and checkout (Phase 8) use the same CSRF scheme for every unsafe method (P7-V18).
 
-- [ ] **T6.6 — Postal-code lookup**
+- [x] **T6.6 — Postal-code lookup** (2026-10-25, deadc8a)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P6-V13
