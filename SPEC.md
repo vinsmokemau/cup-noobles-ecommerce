@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.17 |
+| Spec version | 1.18 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -516,6 +516,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-39 | 2026-10-25 | Phase 5 task order: T5.1 filtered and reported by availability (T5.3) and by attributes (T5.2), and P5-V01 needed both. Reorder? | Option A: T5.3 runs first, then T5.1, T5.2, T5.4, T5.5, T5.6, T5.7 (phase-close); T5.8 stays R2. The facets endpoint and P5-V13 move from T5.1 to T5.2. The "Depends on" lines of T5.1, T5.2, T5.3 and T5.4 are fixed. No ADR: cheap to reverse, spec text only. |
 | OA-40 | 2026-10-25 | G13 with D10: does `low_stock` include exactly 5 units, and does the storefront show counts? | Option A: the proposed resolution. `low_stock` when `1 <= available <= 5` (5 units shows `low_stock`); a low-stock badge and no raw counts. ADR-0037. |
 | OA-41 | 2026-10-25 | G32: where does the pre-launch switch live, and what do anonymous catalog requests get while it is on? | Option A and X: a single-row `site_setting` table with a `prelaunch_mode` flag, edited in the admin, so staff go live without a deploy. While on, anonymous `/api/catalog/*` requests get `503` with `{"prelaunch": true}` and `Cache-Control: no-store`; a staff session gets the normal catalog with `Cache-Control: private`. ADR-0038. |
+| OA-42 | 2026-10-25 | Phase 6 task order: T6.1 (R2) was listed first but depends on T6.2, and R1 and R2 tasks were interleaved. Reorder? | Option A: T6.2, T6.6 and T6.7b (phase-close) run first; then, in R2, T6.1, T6.3, T6.4, T6.5, T6.7a and T6.8. An execution-order note is added. No ADR: cheap to reverse, spec text only. |
 
 ---
 
@@ -2232,6 +2233,39 @@ Add to the availability payload the `preorder` status, `preorder_release_date`, 
 
 #### Tasks
 
+- [ ] **T6.2 — Session cookie and CSRF settings**
+  - Release: R1 · Gate: task
+  - REQs: —
+  - Verifies: P6-V16
+  - Depends on: Phase 5 closed
+  - Context: §4.1, §4.6 (API)
+
+Cookie settings: `HttpOnly`, `Secure`, `SameSite=Lax`, `SESSION_COOKIE_AGE = 60*60*24*30`. CSRF: Django's `CsrfViewMiddleware` stays on; Nuxt reads the `csrftoken` cookie and sends `X-CSRFToken` on every unsafe method. Same-origin makes this work without configuration gymnastics.
+
+In Release 1 the session belongs to staff signed in to the admin, whose session the storefront also forwards for the pre-launch catalog (G32). Customer sessions arrive with T6.1 in Release 2. The cart endpoints (Phase 7) and checkout (Phase 8) use the same CSRF scheme for every unsafe method (P7-V18).
+
+- [ ] **T6.6 — Postal-code lookup**
+  - Release: R1 · Gate: task
+  - REQs: —
+  - Verifies: P6-V13
+  - Depends on: Phase 5 closed
+  - Context: §4.3 (Boundaries: postal codes), §4.7
+  - Open items: G30 (decide before the phase closes, §7.2)
+
+`GET /api/postal-codes/{cp}/` → `{state_code, state_name, municipality, neighborhoods: [...]}` via `providers.postal_code_lookup()` (§4.3), backed by `mx_postal_code`. Cache aggressively. This turns a 6-field address form into "type your CP, pick your colonia", which is the single biggest usability win in Mexican checkout.
+
+Also build `manage.py load_postal_codes`, which reads `POSTAL_CODE_DATASET` and a file path and never makes a network call (§4.3). Part A loads the committed sample fixture; the full SEPOMEX load is a Phase 22 data task. If a code is missing, the form degrades to free text (P13-V06). Whether the full dataset is required at launch is G30.
+
+- [ ] **T6.7b — Guest order lookup**
+  - Release: R1 · Gate: phase-close
+  - REQs: —
+  - Verifies: P6-V14, P6-V18
+  - Depends on: T6.2, T6.6
+  - Context: §4.6 (API)
+  - Open items: G35 (tests xfail until decided)
+
+Per G35's proposed resolution: `POST /api/orders/lookup/` with the JSON body `{number, email}`, rate-limited to 5 per hour per IP with `django-ratelimit` (added to the dependencies here). A guest with the order number and the email on the order can see its status without an account: the response is the order status serializer (state, lines, totals, the tracking link, and the pending voucher once 9.6 adds it). A wrong email and a missing order return the same 404 body.
+
 - [ ] **T6.1 — Auth endpoints**
   - Release: R2 · Gate: —
   - REQs: —
@@ -2255,17 +2289,6 @@ Auth endpoints (DRF views over Django's session framework — **not** JWT, **not
 | POST | `/api/auth/change-password/` | Requires current password. |
 
 The verification and reset emails are queued through the outbox write helper (T4.6, G2).
-
-- [ ] **T6.2 — Session cookie and CSRF settings**
-  - Release: R1 · Gate: task
-  - REQs: —
-  - Verifies: P6-V16
-  - Depends on: Phase 5 closed
-  - Context: §4.1, §4.6 (API)
-
-Cookie settings: `HttpOnly`, `Secure`, `SameSite=Lax`, `SESSION_COOKIE_AGE = 60*60*24*30`. CSRF: Django's `CsrfViewMiddleware` stays on; Nuxt reads the `csrftoken` cookie and sends `X-CSRFToken` on every unsafe method. Same-origin makes this work without configuration gymnastics.
-
-In Release 1 the session belongs to staff signed in to the admin, whose session the storefront also forwards for the pre-launch catalog (G32). Customer sessions arrive with T6.1 in Release 2. The cart endpoints (Phase 7) and checkout (Phase 8) use the same CSRF scheme for every unsafe method (P7-V18).
 
 - [ ] **T6.3 — Password rules and lockout**
   - Release: R2 · Gate: —
@@ -2294,18 +2317,6 @@ Rate limits, per IP and per email: register 5/hour, login 10/15min, password res
 
 Address endpoints: `GET/POST /api/addresses/`, `PATCH/DELETE /api/addresses/{id}/`, `POST /api/addresses/{id}/default/`. Deletion is a soft delete (`deleted_at`) because orders reference the address only as a frozen snapshot, but the customer may still want undo. Enforce a cap of 10 active addresses.
 
-- [ ] **T6.6 — Postal-code lookup**
-  - Release: R1 · Gate: task
-  - REQs: —
-  - Verifies: P6-V13
-  - Depends on: Phase 5 closed
-  - Context: §4.3 (Boundaries: postal codes), §4.7
-  - Open items: G30 (decide before the phase closes, §7.2)
-
-`GET /api/postal-codes/{cp}/` → `{state_code, state_name, municipality, neighborhoods: [...]}` via `providers.postal_code_lookup()` (§4.3), backed by `mx_postal_code`. Cache aggressively. This turns a 6-field address form into "type your CP, pick your colonia", which is the single biggest usability win in Mexican checkout.
-
-Also build `manage.py load_postal_codes`, which reads `POSTAL_CODE_DATASET` and a file path and never makes a network call (§4.3). Part A loads the committed sample fixture; the full SEPOMEX load is a Phase 22 data task. If a code is missing, the form degrades to free text (P13-V06). Whether the full dataset is required at launch is G30.
-
 - [ ] **T6.7a — Customer order history**
   - Release: R2 · Gate: —
   - REQs: —
@@ -2315,16 +2326,6 @@ Also build `manage.py load_postal_codes`, which reads `POSTAL_CODE_DATASET` and 
 
 Order history: `GET /api/orders/` (the customer's own, paginated) and `GET /api/orders/{public_id}/`.
 
-- [ ] **T6.7b — Guest order lookup**
-  - Release: R1 · Gate: phase-close
-  - REQs: —
-  - Verifies: P6-V14, P6-V18
-  - Depends on: T6.2, T6.6
-  - Context: §4.6 (API)
-  - Open items: G35 (tests xfail until decided)
-
-Per G35's proposed resolution: `POST /api/orders/lookup/` with the JSON body `{number, email}`, rate-limited to 5 per hour per IP with `django-ratelimit` (added to the dependencies here). A guest with the order number and the email on the order can see its status without an account: the response is the order status serializer (state, lines, totals, the tracking link, and the pending voucher once 9.6 adds it). A wrong email and a missing order return the same 404 body.
-
 - [ ] **T6.8 — Guest-order claiming**
   - Release: R2 · Gate: —
   - REQs: —
@@ -2333,6 +2334,8 @@ Per G35's proposed resolution: `POST /api/orders/lookup/` with the JSON body `{n
   - Context: §4.6 (API)
 
 Guest-order claiming: after a verified customer logs in, offer to attach past guest orders sharing their email. **Only after `email_verified_at` is set** — otherwise registering with someone else's address exposes their order history. Implement as an explicit `POST /api/orders/claim/`, never automatically on login.
+
+Execution order: T6.2, T6.6, T6.7b (phase-close, last of Release 1); then, in R2, T6.1, T6.3, T6.4, T6.5, T6.7a, T6.8. T6.1 was listed first but depends on T6.2 and is R2. T6.3, T6.4, T6.5 and T6.7a depend on T6.1 and can run in any order; T6.8 depends on T6.7a. IDs keep their numbers (OA-42).
 
 #### Verify — test specification
 
@@ -5348,6 +5351,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.15 | 2026-10-25 | Phase 5 task order: T5.3 now precedes T5.1 and T5.2 (they depended on availability); the facets endpoint and P5-V13 move from T5.1 to T5.2; "Depends on" fixed in T5.1, T5.2, T5.3 and T5.4; an execution-order note added. No Verify ID, schema or task-ID change. | OA-39 |
 | 1.16 | 2026-10-25 | D10 decided and G13 resolved: `low_stock` is `1 <= available <= 5`, with a badge and no raw counts. T5.3 loses its open items, P5-V07 loses its ⚠️ marker, and D10 leaves the blocking list of T22.3. No Verify ID, task or schema change. | OA-40; ADR-0037 |
 | 1.17 | 2026-10-25 | G32 resolved: pre-launch mode is a `site_setting.prelaunch_mode` flag edited in the admin; anonymous catalog requests get `503` `{"prelaunch": true}` with `no-store`. New table `site_setting` in `spec/schema.sql`. T5.7, T12.15, T15.6b and T22.5 lose their G32 open item; P5-V15, P12-V28, P15-V16, P22-V21, REQ-062 and demo step 10 lose their ⚠️ marker. No Verify ID or task change. | OA-41; ADR-0038 |
+| 1.18 | 2026-10-25 | Phase 6 task order: the tasks are listed in execution order (T6.2, T6.6, T6.7b, then the R2 tasks T6.1, T6.3, T6.4, T6.5, T6.7a, T6.8); an execution-order note added. No dependency, Verify ID, schema or task-ID change. | OA-42 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5664,6 +5668,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T6.7 | Split into T6.7a (customer order history, R2) and T6.7b (guest lookup, R1, phase-close) | Mixed R1/R2 task (§1.2) |
 | T6.7b | `GET …/lookup/?number=&email=` → `POST /api/orders/lookup/` with a JSON body, per G35's proposal; adds `django-ratelimit` | G35 |
 | T6.8 | Tagged R2 | OA-11 |
+| Task order | Tasks listed in execution order: T6.2, T6.6, T6.7b (R1), then T6.1, T6.3, T6.4, T6.5, T6.7a, T6.8 (R2) | Dependencies; R2 after R1 (OA-42) |
 | P6-V01, P6-V02, P6-V03, P6-V04, P6-V05, P6-V06, P6-V07, P6-V08, P6-V09, P6-V10, P6-V12, P6-V15, P6-V17 | Tagged `[R2]` | Customer accounts are R2 (§1.2) |
 | P6-V05 | Tagged `[R2]`; the R1 CSRF check is P7-V18 | Addresses are R2 |
 | P6-V11 | Tagged `[R2]`; the guest-lookup case removed and moved to P6-V18 | Mixed R1/R2 item |
