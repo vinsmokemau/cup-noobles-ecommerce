@@ -6,7 +6,7 @@ webhook approving the same order either wins the lock first (its hold is committ
 is left to release) or finds the hold already released. Running the command twice, or two copies
 at once, releases each hold once. Releasing writes no ledger row: `on_hand` did not move.
 
-G37, proposed resolution: until `apply_event` exists (Phase 8) the command only releases holds.
+G37 (ADR-0036): until `apply_event` exists (Phase 8) the command only releases holds.
 From Phase 8 it also fires T5 (`pending_payment -> expired`) for the order.
 """
 

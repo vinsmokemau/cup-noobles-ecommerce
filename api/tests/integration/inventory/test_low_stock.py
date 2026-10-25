@@ -20,7 +20,6 @@ def run_report() -> str:
 
 @override_settings(OWNER_ALERT_EMAIL=OWNER)
 def test_p4_v17_low_stock_report_boundary():
-    # G2 and G38 are implemented as proposed and pass, so this carries no xfail (see the report).
     # on_hand 4 - safety 2 = available 2 == safety_stock: listed. on_hand 5 gives 3: not listed.
     at_limit = stocked_variant(on_hand=4, safety_stock=2)
     above = stocked_variant(on_hand=5, safety_stock=2)

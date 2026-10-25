@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.13 |
+| Spec version | 1.14 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -397,7 +397,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | ID | Owning phase | Exposed by | Gap | Proposed resolution (not applied) | Release | Status |
 |---|---|---|---|---|---|---|
 | G1 | 1 | P1-V11, P1-V17 | `/api/health/` is verified in Phase 1 but specified only in 20.4 | Move the endpoint into Phase 1; 20.4 keeps the Lightsail health-check configuration | R1 | Resolved (ADR-0028) |
-| G2 | 4 | P4-V17, P8-V01 | The outbox writer is defined in 11.1, but Phases 4 and 8 already write outbox rows. Widened from the plan's Phase 6, which is now R2. | Move `enqueue_email()` (the write only, not sending) into Phase 4 | R1 | Open |
+| G2 | 4 | P4-V17, P8-V01 | The outbox writer is defined in 11.1, but Phases 4 and 8 already write outbox rows. Widened from the plan's Phase 6, which is now R2. | Move `enqueue_email()` (the write only, not sending) into Phase 4 | R1 | Resolved (ADR-0036) |
 | G3 | 8 | P8-V03, P8-V08 | 8.4 stores the `Idempotency-Key` "on the order", but no column holds it; reuse with a different body, the key's scope and its lifetime are undefined | `idempotency_key` plus a request fingerprint, with a partial unique index per cart token; a mismatched body returns 422 `idempotency_key_reused`. Schema change. | R1 | Resolved (ADR-0030) |
 | G4 | 8 | P8-V09, P13-V19 | A price change between the last view and "Pagar" applies silently | Checkout takes `expected_total_cents`; a mismatch returns 409 with fresh totals and reserves nothing | R1 | Open |
 | G5 | 8 | P8-V12 | The timezone of the order-number year is unspecified, and so is the per-year sequence. Widened: DS:formatting.md requires an explicit `timeZone` for every displayed date (CR-31). | `America/Mexico_City` as the store timezone for numbering and display; one Postgres sequence per year, created on first use | R1 | Resolved (ADR-0030) |
@@ -410,7 +410,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G12 | 3 | P3-V09 | `import_catalog` doesn't say what happens to valid rows when some rows are invalid | All or nothing per file, reporting every invalid row | R1 | Resolved (ADR-0033) |
 | G13 | 5 | P5-V07 | D10 suggests a badge "under 5"; 5.3 defines `low_stock` as 1 ≤ available ≤ 5 | Decide together with D10 | R1 | Open |
 | G14 | 9 | P9-V14 | A webhook and `reconcile_payments` processing one approval concurrently: the second `apply_event` raises `IllegalTransition` under the lock | Treat it as `webhook_no_op` when the order already reflects the status | R1 | Open |
-| G15 | 4 | P4-V16 | `commit_reservations` is not specified as idempotent | A second commit of committed reservations is a no-op | R1 | Open |
+| G15 | 4 | P4-V16 | `commit_reservations` is not specified as idempotent | A second commit of committed reservations is a no-op | R1 | Resolved (ADR-0036) |
 | G16 | 10 | P10-V21 | T9 into `ready_for_pickup` doesn't set `pickup_deadline_at` | T9 sets it | R2 | Deferred (R2) |
 | G17 | 11 | P11-V10 | `send_outbox` doesn't claim rows; an overlapping run can send an email twice | Claim rows with `SELECT … FOR UPDATE SKIP LOCKED` | R1 | Open |
 | G18 | 12 | P12-V01, P12-V22, P12-V25 | `nitro.devProxy` exists only in development, so a production build has no route from server rendering to Django | Nitro `routeRules` proxy `/api/**` to a server-only API target | R1 | Open |
@@ -432,8 +432,8 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G34 | 4 | GE:§7.1, GE:T28 | Picking needs a bin location ("ubicación"), which the schema lacks | An optional text field on `stock_item`, shown on the order's packing view | R1 | Resolved (ADR-0030) |
 | G35 | 6 | 6.7 | The guest lookup sends the customer's email in the query string (`GET …/lookup/?number=&email=`), where proxy, CDN and error logs record it | `POST` with a JSON body, keeping the rate limit and the identical 404 for a wrong email | R1 | Open |
 | G36 | 10 | GE:§1.2 | Pre-orders need a closing date, which the schema lacks | `preorder_closes_at` on the variant; `reserve()` rejects pre-orders after it | R2 | Deferred (R2) |
-| G37 | 4 | P4-V03, T8.6 | `expire_reservations` (4.3) moves the order `pending_payment → expired`, but in Phase 4 orders are drafts and `apply_event` arrives in Phase 8; `advance_orders` (8.6) also fires T5, so two jobs own expiry | In Phase 4 the job releases lapsed holds only. From Phase 8 it fires T5 through `apply_event`, and `advance_orders` stops firing T5. P4-V03 asserts the order state from Phase 8 on. | R1 | Open |
-| G38 | 4 | P4-V17, 21.4 | `low_stock_report` and `daily_digest` email "the owner", but no setting names the address | An `OWNER_ALERT_EMAIL` setting (§4.7): a `.test` address in development, the owner's monitored inbox in production | R1 | Open |
+| G37 | 4 | P4-V03, T8.6 | `expire_reservations` (4.3) moves the order `pending_payment → expired`, but in Phase 4 orders are drafts and `apply_event` arrives in Phase 8; `advance_orders` (8.6) also fires T5, so two jobs own expiry | In Phase 4 the job releases lapsed holds only. From Phase 8 it fires T5 through `apply_event`, and `advance_orders` stops firing T5. P4-V03 asserts the order state from Phase 8 on. | R1 | Resolved (ADR-0036) |
+| G38 | 4 | P4-V17, 21.4 | `low_stock_report` and `daily_digest` email "the owner", but no setting names the address | An `OWNER_ALERT_EMAIL` setting (§4.7): a `.test` address in development, the owner's monitored inbox in production | R1 | Resolved (ADR-0036) |
 | G39 | 3 | 3.6 | The importer's `image_urls` column implies downloading images, which A13 forbids in Part A and nothing specifies for production | The column holds file paths relative to an images folder given at run time; the importer never makes a network call, and a remote URL is a row error | R1 | Open |
 | G40 | 2 | P2-V01 | Django 5.2 applies the schema's `ON DELETE` rules in Python, not in the database: an unnamed foreign key has `NO ACTION` and is deferrable, so a raw SQL delete cannot cascade or null out dependents | Accepted as is. Only the four named foreign keys (`product_image_variant_fk`, `reservation_order_fk`, `stock_ledger_order_fk`, `cart_converted_order_fk`) carry the exact rules. P2-V01 compares the others by columns and target table. Revisit on Django 6.0 (native `db_on_delete`) | R1 | Resolved (ADR-0031) |
 | G41 | 2 | 22.3 | T2.7 loads `mx_state` only through `seed_dev_defaults`, a dev command whose output `check_placeholders` treats as stand-ins; the 32 states are real data that production needs too, and no task loads them there | A separate `manage.py seed_states` command (idempotent, running `apps.shipping.seeds.seed_states`), run by the deploy step; `seed_dev_defaults` keeps calling the same function | R1 | Resolved (ADR-0032) |
@@ -508,6 +508,10 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-32 | 2026-10-24 | Phase 4 task order: T4.1 (`reserve`) raises `InsufficientStock`, which T4.2 defines, and the "Depends on" chain was otherwise arbitrary. Reorder? | Option A: T4.2 runs first, then T4.1, T4.3, T4.4, T4.9, T4.6, T4.7, T4.8 (phase-close); T4.10 and T4.5 stay R2. The "Depends on" lines of T4.1, T4.2, T4.3 and T4.8 are fixed. No ADR: cheap to reverse, spec text only. |
 | OA-33 | 2026-10-24 | G24: where is `check_stock_integrity` built, given P4-V07 tests it in Phase 4 but 21.7 specified it? | Option A: the proposed resolution. The command is built in Phase 4 (T4.9); 21.7 is absorbed and keeps only the production schedule. ADR-0034. |
 | OA-34 | 2026-10-25 | G20: how do staff receive goods in the admin? | Option A: the proposed resolution. A "Recibir mercancía" admin action (variant, location, quantity) calling `receive_stock` in R1, and `receive_preorder_stock` for pre-order variants in R2. ADR-0035. |
+| OA-35 | 2026-10-25 | G2: where does the outbox write helper live? | Option A: the proposed resolution. `enqueue_email()` is built in Phase 4 (T4.6); it writes the row and does not send. ADR-0036. |
+| OA-36 | 2026-10-25 | G15: is `commit_reservations` idempotent? | Option A: the proposed resolution. A second commit of committed reservations is a no-op. ADR-0036. |
+| OA-37 | 2026-10-25 | G37: which job expires an unpaid order, and when does the order state change? | Option A: the proposed resolution. In Phase 4 `expire_reservations` releases lapsed holds only. From Phase 8 it fires T5 through `apply_event`, and `advance_orders` stops firing T5. ADR-0036. |
+| OA-38 | 2026-10-25 | G38: which address receives the owner's alerts? | Option A: the proposed resolution. An `OWNER_ALERT_EMAIL` setting (§4.7): a `.test` address in development, the owner's monitored inbox in production. ADR-0036. |
 
 ---
 
@@ -1089,6 +1093,7 @@ Coverage never decreases (CR-44). `coverage-baseline.json` records each scope's 
 | `SITE_URL` | api | `http://localhost:8080` | The public URL | Used in emails, `back_urls` and mock URLs |
 | `SITE_ADDRESS` | proxy | `:8080` | The domain | Caddy site block |
 | `NUXT_PUBLIC_API_BASE` | web | `/api` | `/api` | See G18 for the SSR path |
+| `OWNER_ALERT_EMAIL` | api | `owner@cupnoobles.test` | The owner's monitored inbox; no default, so `prod.py` fails to start without it | Recipient of `low_stock_report` and `daily_digest` (G38) |
 | `EMAIL_REPLY_TO` | api | `tienda@cupnoobles.test` | The monitored inbox on the domain (S3) | The `Reply-To` of every email (11.4) |
 
 #### Provider switches (§4.3)
@@ -1898,7 +1903,6 @@ Execution order: T4.2, T4.1, T4.3, T4.4, T4.9, T4.6, T4.7, T4.8 (phase-close, la
   - Verifies: P4-V01, P4-V02, P4-V05, P4-V06, P4-V09, P4-V11, P4-V12, P4-V13, P4-V15, P4-V16
   - Depends on: T4.2
   - Context: "Core rules" above; §4.4; §4.6 (Property-based, Concurrency)
-  - Open items: G15 (tests xfail until decided)
 
 `apps/inventory/services.py`:
 
@@ -1941,7 +1945,6 @@ def adjust_stock(variant, location, delta, *, reason, actor, note) -> None:
   - Verifies: P4-V03, P4-V08
   - Depends on: T4.1
   - Context: "Core rules" above; §4.8
-  - Open items: G37 (tests xfail until decided)
 
 `manage.py expire_reservations` — finds `inventory_reservation` rows where `state='held' AND expires_at < now()`, releases them, and transitions the owning order `pending_payment → expired`. Must be safe to run concurrently with a webhook approving the same order: take the order row `FOR UPDATE` and re-check state before acting. Add its line to `infra/crontab`: every 5 minutes (§4.8).
 
@@ -1969,7 +1972,6 @@ Per G24 (ADR-0034), the command is built here; Phase 21 (21.7) keeps only its pr
   - Verifies: P4-V17
   - Depends on: T4.9
   - Context: §4.4 (`email_outbox`); §4.8
-  - Open items: G2 (tests xfail until decided); G38 (tests xfail until decided)
 
 Per G2's proposed resolution, add the `enqueue_email()` helper: it writes an `email_outbox` row in the caller's transaction and does not send. Sending arrives in Phase 11 (T11.1).
 
@@ -2032,7 +2034,7 @@ Admin: an "Registrar venta en tienda" page — pick location, scan/type SKUs, qu
 |---|---|---|---|
 | P4-V01 | concurrency | `api/tests/concurrency/test_reserve.py::test_p4_v01_concurrent_reserve_last_unit` | `on_hand=1`; two threads call `reserve` behind a barrier. Exactly one reservation exists; the other thread got `InsufficientStock`; `reserved == 1`. |
 | P4-V02 | integration | `api/tests/integration/inventory/test_reservations.py::test_p4_v02_commit_moves_stock_and_writes_ledger` | Reserve 2, then commit: `on_hand` drops by 2, `reserved` returns to 0, one ledger row `sale_online` with `delta=-2` and the correct `balance_after`, and the reservation is `committed`. |
-| P4-V03 | integration | `api/tests/integration/inventory/test_reservations.py::test_p4_v03_expired_hold_leaves_no_ledger` | Reserve 2, advance the clock past `expires_at`, run `expire_reservations`: `reserved` is 0, there is **no** ledger row, the reservation is `released`, and the order is `expired`. ⚠️ G37 |
+| P4-V03 | integration | `api/tests/integration/inventory/test_reservations.py::test_p4_v03_expired_hold_leaves_no_ledger` | Reserve 2, advance the clock past `expires_at`, run `expire_reservations`: `reserved` is 0, there is **no** ledger row, the reservation is `released`. From Phase 8 (T8.6a) the test also asserts the order is `expired` (G37). |
 | P4-V04 [R2] | integration | `api/tests/integration/inventory/test_counter_sale.py::test_p4_v04_counter_sale_cannot_take_reserved_unit` | With `on_hand=1, reserved=1`, `record_in_store_sale` raises with a message naming the pending order; `on_hand` is unchanged. |
 | P4-V05 | integration | `api/tests/integration/inventory/test_reservations.py::test_p4_v05_release_idempotent` | A second `release_reservations` changes nothing and raises nothing. |
 | P4-V06 | property | `api/tests/property/test_inventory_machine.py::test_p4_v06_ledger_sum_equals_on_hand` | The stateful machine (§4.6) holds all its inventory invariants after every step. |
@@ -2050,8 +2052,8 @@ Admin: an "Registrar venta en tienda" page — pick location, scan/type SKUs, qu
 | P4-V13 | unit | `api/tests/unit/inventory/test_validation.py::test_p4_v13_invalid_quantity` | Quantity 0 or negative is rejected before any query runs (`django_assert_num_queries(0)`). |
 | P4-V14 [R2] | concurrency | `api/tests/concurrency/test_counter_sale.py::test_p4_v14_counter_sale_vs_checkout` | For the last unit, a counter sale and a reservation race: exactly one succeeds, and the invariants hold. |
 | P4-V15 | integration | `api/tests/integration/inventory/test_ledger.py::test_p4_v15_every_on_hand_change_has_one_ledger_row[reason]` | `receipt`, `sale_online`, `adjustment`, `damage` and `count_correction` each write exactly one row with that reason. (`sale_in_store` is covered by P10-V11, R2.) |
-| P4-V16 | integration | `api/tests/integration/inventory/test_reservations.py::test_p4_v16_commit_twice` | Calling `commit_reservations` twice behaves as G15 decides. Proposed: the second call is a no-op. ⚠️ G15 |
-| P4-V17 | integration | `api/tests/integration/inventory/test_low_stock.py::test_p4_v17_low_stock_report_boundary` | A variant with `available == safety_stock` is included; `safety_stock + 1` is excluded; an `email_outbox` row is written, addressed to the owner's alert address. ⚠️ G2, G38 |
+| P4-V16 | integration | `api/tests/integration/inventory/test_reservations.py::test_p4_v16_commit_twice` | Calling `commit_reservations` twice is a no-op the second time (G15). |
+| P4-V17 | integration | `api/tests/integration/inventory/test_low_stock.py::test_p4_v17_low_stock_report_boundary` | A variant with `available == safety_stock` is included; `safety_stock + 1` is excluded; an `email_outbox` row is written, addressed to the owner's alert address (`OWNER_ALERT_EMAIL`). |
 | P4-V18 | integration | `api/tests/integration/inventory/test_admin.py::test_p4_v18_no_editable_on_hand` | The `StockItem` admin form has no editable `on_hand`; its adjust action goes through `adjust_stock`. |
 
 **Added in conversion:**
@@ -2228,7 +2230,6 @@ Add to the availability payload the `preorder` status, `preorder_release_date`, 
   - Verifies: P6-V01, P6-V04, P6-V08, P6-V09, P6-V10
   - Depends on: T6.2, T4.6
   - Context: §4.1, §4.6 (API)
-  - Open items: G2 (tests xfail until decided)
 
 Auth endpoints (DRF views over Django's session framework — **not** JWT, **not** DRF TokenAuth):
 
@@ -2333,10 +2334,10 @@ Guest-order claiming: after a verified customer logs in, offer to attach past gu
 
 | Test ID | Layer | File path · test | What it asserts |
 |---|---|---|---|
-| P6-V01 [R2] | API | `api/tests/api/accounts/test_registration.py::test_p6_v01_register_verify_login_me` | Register → a `verify_email` `email_outbox` row with a token → verify → log in → `GET /api/auth/me/` returns the customer. ⚠️ G2 |
+| P6-V01 [R2] | API | `api/tests/api/accounts/test_registration.py::test_p6_v01_register_verify_login_me` | Register → a `verify_email` `email_outbox` row with a token → verify → log in → `GET /api/auth/me/` returns the customer. |
 | P6-V02 [R2] | API | `api/tests/api/accounts/test_claim.py::test_p6_v02_unverified_cannot_claim` | An unverified customer can log in and browse; `POST /api/orders/claim/` returns 403 and attaches nothing. |
 | P6-V03 [R2] | API | `api/tests/api/accounts/test_login.py::test_p6_v03_lockout_after_failures` | After 5 failed logins, the next attempt is refused even with the correct password; the clock advanced 15 minutes clears it. |
-| P6-V04 [R2] | API | `api/tests/api/accounts/test_password_reset.py::test_p6_v04_no_enumeration` | An unknown email returns 200 with a body identical to a known email's, and no outbox row is written. ⚠️ G2 |
+| P6-V04 [R2] | API | `api/tests/api/accounts/test_password_reset.py::test_p6_v04_no_enumeration` | An unknown email returns 200 with a body identical to a known email's, and no outbox row is written. |
 | P6-V05 [R2] | API | `api/tests/api/accounts/test_csrf.py::test_p6_v05_csrf_required` | `POST /api/addresses/` without `X-CSRFToken` returns 403. |
 | P6-V06 [R2] | API | `api/tests/api/accounts/test_order_access.py::test_p6_v06_other_customers_order_404` | Customer B's order returns 404 to customer A, with the same body as a nonexistent id. |
 | P6-V07 [R2] | API | `api/tests/api/accounts/test_addresses.py::test_p6_v07_new_default_clears_old` | Setting a second default leaves exactly one default. |
@@ -2714,7 +2715,7 @@ Admin `OrderAdmin`: read-only lines and totals; a state-transition action bar th
   - Depends on: T8.5, T8.7, T8.8, T8.9
   - Context: 8.A; §4.8
 
-`manage.py advance_orders` — runs T12 (auto-completion) and T5 (payment deadline expiry). Idempotent, safe to run every 5 minutes: add its line to `infra/crontab` (§4.8).
+`manage.py advance_orders` — runs T12 (auto-completion). T5 (payment deadline expiry) is fired by `expire_reservations`, which from this task calls `apply_event` for the order after releasing its holds (G37); add that order-state assertion to the P4-V03 test. Idempotent, safe to run every 5 minutes: add its line to `infra/crontab` (§4.8).
 
 - [ ] **T8.6b — Pickup deadlines and pickup auto-completion**
   - Release: R2 · Gate: —
@@ -5296,7 +5297,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 1 | ~~G1~~, ~~G29~~ |
 | Before Phase 2 (schema) | D14 (types), D16 (fields); ~~G3~~, ~~G5~~, ~~G28~~, ~~G31~~, ~~G33~~, ~~G34~~ (§4.4) |
 | Phase 3 | ~~G12~~, G39 |
-| Phase 4 | G2, G15, ~~G20~~, ~~G24~~, ~~G34~~, G37, G38 |
+| Phase 4 | ~~G2~~, ~~G15~~, ~~G20~~, ~~G24~~, ~~G34~~, ~~G37~~, ~~G38~~ |
 | Phase 5 | G13 with D10, G32 |
 | Phase 6 | G30, G35 |
 | Phase 8 | ~~G3~~, G4, ~~G5~~, G25, G26, G27, ~~G31~~, ~~G33~~ |
@@ -5335,6 +5336,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.11 | 2026-10-24 | Phase 4 task order: T4.2 now precedes T4.1 (T4.1 raised an error T4.2 defines); "Depends on" fixed in T4.1, T4.2, T4.3 and T4.8; an execution-order note added. No Verify ID, schema or task-ID change. | OA-32 |
 | 1.12 | 2026-10-24 | G24 resolved: `check_stock_integrity` is built in Phase 4 (T4.9) and T21.7 stays absorbed. T4.9 loses its G24 open item and P4-V07 loses its ⚠️ marker. No Verify ID, task or schema change. | OA-33; ADR-0034 |
 | 1.13 | 2026-10-25 | G20 resolved: the "Recibir mercancía" admin action calls `receive_stock` in R1 and `receive_preorder_stock` for pre-order variants in R2. T4.7, T10.3 and the Phase 15 task lose their G20 open item; P4-V19, REQ-064, P15-V05 and demo step 11 lose their ⚠️ marker. No Verify ID, task or schema change. | OA-34; ADR-0035 |
+| 1.14 | 2026-10-25 | G2, G15, G37 and G38 resolved as proposed: `enqueue_email()` in Phase 4; `commit_reservations` idempotent; `expire_reservations` releases holds in Phase 4 and fires T5 through `apply_event` from Phase 8, and `advance_orders` stops firing T5 (T8.6a); `OWNER_ALERT_EMAIL` added to §4.7. T4.1, T4.3, T4.6 and T6.2 lose their open items; P4-V03 asserts the order state from Phase 8; P4-V16, P4-V17, P6-V01 and P6-V04 lose their ⚠️ marker. No Verify ID, task or schema change. | OA-35 to OA-38; ADR-0036 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5419,6 +5421,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0033 | The catalog importer is all or nothing per file | `docs/decisions/0033-import-catalog-all-or-nothing.md` | G12; OA-31 |
 | ADR-0034 | The stock integrity command is built in Phase 4 | `docs/decisions/0034-stock-integrity-command-phase-4.md` | G24; OA-33 |
 | ADR-0035 | Goods are received through an admin action | `docs/decisions/0035-receive-goods-admin-action.md` | G20; OA-34 |
+| ADR-0036 | Phase 4 open items: outbox helper, idempotent commit, expiry job, owner alert address | `docs/decisions/0036-phase-4-open-items.md` | G2, G15, G37, G38; OA-35 to OA-38 |
 
 ## Appendix C — Dated market facts
 

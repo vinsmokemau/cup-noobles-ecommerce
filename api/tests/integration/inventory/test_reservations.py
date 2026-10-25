@@ -118,8 +118,7 @@ def test_a_variant_with_no_stock_row_has_none_available():
 
 
 def test_p4_v16_commit_twice():
-    # G15's proposed resolution: the second call is a no-op. `commit_reservations` already
-    # behaves that way, so the test passes and carries no xfail (see the task report).
+    # G15: the second call is a no-op.
     variant = stocked_variant(on_hand=5)
     order = holding_order(variant, 2)
 
@@ -151,27 +150,8 @@ def expired_hold(clock, on_hand=5, qty=2):
     return variant, holding_order(variant, qty, ttl=timedelta(hours=1))
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="G37: the order moves to expired through apply_event, which arrives in Phase 8",
-)
 def test_p4_v03_expired_hold_leaves_no_ledger(clock):
-    variant, order = expired_hold(clock)
-    ledger_rows = StockLedger.objects.count()
-    clock.travel("2026-03-01T13:00:01Z")
-
-    call_command("expire_reservations")
-
-    item = stock_of(variant)
-    assert (item.on_hand, item.reserved) == (5, 0)
-    assert StockLedger.objects.count() == ledger_rows
-    assert InventoryReservation.objects.get(order=order).state == "released"
-    order.refresh_from_db()
-    assert order.state == "expired"
-
-
-def test_p4_v03_the_hold_is_released_without_a_ledger_row(clock):
-    # What P4-V03 asserts today; its order-state line waits for apply_event (G37).
+    # G37: in Phase 4 the job only releases holds. T8.6a adds the order-state assertion.
     variant, order = expired_hold(clock)
     ledger_rows = StockLedger.objects.count()
     clock.travel("2026-03-01T13:00:01Z")

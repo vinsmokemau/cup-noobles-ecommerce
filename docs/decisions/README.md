@@ -39,3 +39,5 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0033](0033-import-catalog-all-or-nothing.md) | The catalog importer is all or nothing per file | accepted | G12; OA-31 |
 | [ADR-0034](0034-stock-integrity-command-phase-4.md) | The stock integrity command is built in Phase 4 | accepted | G24; OA-33 |
 | [ADR-0035](0035-receive-goods-admin-action.md) | Goods are received through an admin action | accepted | G20; OA-34 |
+
+| [ADR-0036](0036-phase-4-open-items.md) | Phase 4 open items: outbox helper, idempotent commit, expiry job, owner alert address | accepted | G2, G15, G37, G38; OA-35 to OA-38 |
