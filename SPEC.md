@@ -2138,7 +2138,7 @@ Then add `GET /api/catalog/facets/`: the available filter values for the current
 
 `select_related` on type/brand/franchise, `prefetch_related` on variants, images, and stock items. Assert the product list endpoint issues a bounded number of queries regardless of page size — add `django-zen-queries` or an explicit `assertNumQueries` test. N+1 on the catalog list is the most likely performance bug in this system.
 
-- [ ] **T5.5 — OpenAPI schema and generated types**
+- [x] **T5.5 — OpenAPI schema and generated types** (2026-10-25, bcb0d9b)
   - Release: R1 · Gate: task
   - REQs: REQ-054
   - Verifies: P5-V04, P5-V11
