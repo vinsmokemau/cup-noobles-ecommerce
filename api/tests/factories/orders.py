@@ -42,3 +42,16 @@ class ShipmentFactory(factory.django.DjangoModelFactory):
     order = factory.SubFactory(OrderFactory)
     carrier = "manual"
     tracking_number = factory.Sequence(lambda n: f"GUIA{n:06d}")
+
+
+STAND_IN_ADDRESS = {"street": "Calle de prueba 1", "postal_code": "06700"}
+
+
+def order_in_state(state, **fields):
+    """An order stored directly in `state`, with a complete delivery target and a total of
+    10000. Tests start here instead of walking the machine; only the machine moves a real
+    order."""
+    fields.setdefault("shipping_address", STAND_IN_ADDRESS)
+    fields.setdefault("subtotal_cents", 10000)
+    fields.setdefault("total_cents", 10000)
+    return OrderFactory(state=state, **fields)
