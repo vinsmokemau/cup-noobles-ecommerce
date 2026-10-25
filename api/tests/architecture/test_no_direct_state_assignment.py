@@ -5,7 +5,9 @@ import pytest
 from tests.architecture.ast_scan import field_write_violations, scan_apps
 
 STATE_FIELDS = {"state"}
-STATE_ALLOWLIST = {"apps/orders/state_machine.py"}
+# The scan matches the attribute name, so it also sees `InventoryReservation.state`, which the
+# inventory services move held -> committed/released (T4.1).
+STATE_ALLOWLIST = {"apps/orders/state_machine.py", "apps/inventory/services.py"}
 
 
 def check_source(path: str, source: str) -> list[str]:

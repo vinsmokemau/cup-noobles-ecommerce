@@ -17,6 +17,10 @@ class OrderFactory(factory.django.DjangoModelFactory):
     total_cents = 0
 
 
+class DraftOrderFactory(OrderFactory):
+    """A `draft` order only. State traits arrive in Phase 8 through `order_in_state`."""
+
+
 class OrderLineFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = OrderLine

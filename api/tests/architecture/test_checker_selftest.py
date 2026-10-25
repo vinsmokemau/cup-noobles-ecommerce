@@ -22,7 +22,7 @@ def test_p1_v05_state_and_stock_violations_detected():
     assert check_stock("apps/orders/services.py", STOCK_SNIPPET)
 
     # Outside its allowlisted module the same write is a violation.
-    assert check_state("apps/inventory/services.py", STATE_SNIPPETS[0])
+    assert check_state("apps/orders/services.py", STATE_SNIPPETS[0])
     assert check_stock("apps/orders/state_machine.py", STOCK_SNIPPET)
 
     # In its allowlisted module it is not.
