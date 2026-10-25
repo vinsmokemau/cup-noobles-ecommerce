@@ -241,6 +241,40 @@ def release_reservations(order, *, reason: str) -> None:
         )
 
 
+@transaction.atomic
+def return_stock(order, *, note: str = "") -> None:
+    """Order cancelled after payment. For each 'committed' stock reservation:
+    on_hand += qty, ledger reason='return'. A second call finds the return rows and changes
+    nothing. Pre-order reservations (R2) are not handled yet.
+    """
+    committed = InventoryReservation.objects.filter(
+        order=order,
+        kind=InventoryReservation.Kind.STOCK,
+        state=InventoryReservation.State.COMMITTED,
+    )
+    items = _lock_items(
+        StockItem.objects.filter(
+            variant_id__in=committed.values("variant_id"),
+            location_id__in=committed.values("location_id"),
+        ).values_list("pk", flat=True)
+    )
+    if StockLedger.objects.filter(
+        order=order, reason=StockLedger.Reason.RETURN
+    ).exists():
+        return
+    for reservation in committed.order_by("pk"):
+        item = _item_for(items, reservation)
+        item.on_hand += reservation.quantity
+        _save(item)
+        _write_ledger(
+            item,
+            reservation.quantity,
+            StockLedger.Reason.RETURN,
+            order=order,
+            note=note,
+        )
+
+
 def adjust_stock(variant, location, delta, *, reason, actor, note) -> None:
     """Manual correction, damage, count. Rejects a delta that would push
     on_hand below reserved."""

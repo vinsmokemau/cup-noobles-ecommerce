@@ -5,8 +5,8 @@ assigns `order.state`: it takes the row lock, looks the event up, runs the guard
 effects, and writes exactly one `order_event`. Anything not in `TRANSITIONS` is illegal.
 
 Side effects that need code from a later task are named in the row's comment and added there:
-T1's reservation, number and provider checkout (T8.2, T8.3, T8.10), T16's stock return and
-refund (T8.10), and the CFDI flag of T17 and T18 (T9.14).
+T1's reservation, number and provider checkout (T8.2, T8.3), and the CFDI flag of T17
+and T18 (T9.14).
 """
 
 from collections.abc import Callable
@@ -16,6 +16,7 @@ from typing import Any
 from django.db import transaction
 from django.utils import timezone
 
+from apps.core.providers import payment_provider
 from apps.inventory import services as inventory
 from apps.notifications.outbox import enqueue_email
 from apps.orders.models import Order, OrderEvent, Shipment
@@ -204,6 +205,14 @@ def _effects_auto_after_7d(order: Order, **kwargs: Any) -> None:
 def _effects_cancelled_by_staff(order: Order, **kwargs: Any) -> None:
     order.cancel_reason = kwargs["cancel_reason"].strip()
     order.cancelled_at = timezone.now()
+    inventory.return_stock(order, note="cancelled by staff")
+    # Refund what was paid, in full (T16, ADR-0041). An order with no approved payment has
+    # nothing to refund.
+    for payment in order.payments.filter(status="approved").select_for_update():
+        result = payment_provider().refund(payment, None)
+        payment.refunded_cents += result.amount_cents
+        payment.status = "refunded"
+        payment.save(update_fields=["refunded_cents", "status", "updated_at"])
 
 
 def _effects_refund(order: Order, **kwargs: Any) -> None:
@@ -232,7 +241,7 @@ def _row(
 # land in any of them; the terminal states and `partially_refunded` are G26 and G27.
 POST_PAID = ("paid", "preparing", "shipped", "delivered")
 
-# T1 (the rest of its side effects arrive with T8.2, T8.3 and T8.10)
+# T1 (the rest of its side effects arrive with T8.2 and T8.3)
 _row(
     ("draft",),
     "checkout_submitted",
@@ -284,7 +293,7 @@ _row(
 _row(("shipped",), "marked_delivered", "delivered", effects=_effects_marked_delivered)
 # T12
 _row(("delivered",), "auto_after_7d", "completed", effects=_effects_auto_after_7d)
-# T16 from paid and preparing (the stock return and the refund arrive with T8.10)
+# T16 from paid and preparing
 _row(
     ("paid", "preparing"),
     "cancelled_by_staff",

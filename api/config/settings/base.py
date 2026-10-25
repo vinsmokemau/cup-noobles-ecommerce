@@ -37,6 +37,11 @@ PAYMENT_INSTALLMENT_OPTIONS = env.list(
 # default, so production fails to start until the owner's monitored inbox is set.
 OWNER_ALERT_EMAIL = env.str("OWNER_ALERT_EMAIL", default="owner@cupnoobles.test")
 
+# The public URL, used in mock URLs, emails and `back_urls` (§4.7), and the folder that holds the
+# mock providers' state (§4.3). Tests point the folder at a per-test directory.
+SITE_URL = env.str("SITE_URL", default="http://localhost:8080")
+MOCK_STORE_DIR = env.str("MOCK_STORE_DIR", default=str(BASE_DIR / "var" / "mocks"))
+
 # Gates the simulator, the mock tracking page, `/dev/test/` and the dev commands.
 DEV_TOOLS_ENABLED = env.bool("DEV_TOOLS_ENABLED", default=False)
 
