@@ -2129,7 +2129,7 @@ Dynamic attribute filtering: translate `?attr.linea=Nendoroid` into `attributes 
 
 Then add `GET /api/catalog/facets/`: the available filter values for the current query, driven by `product_type.filterable_keys`. The counts reflect every active filter, including `attr.*`.
 
-- [ ] **T5.4 — Query performance**
+- [x] **T5.4 — Query performance** (2026-10-25, d3bd746)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P5-V03
