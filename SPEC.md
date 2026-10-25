@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.20 |
+| Spec version | 1.21 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -520,6 +520,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-42 | 2026-10-25 | Phase 6 task order: T6.1 (R2) was listed first but depends on T6.2, and R1 and R2 tasks were interleaved. Reorder? | Option A: T6.2, T6.6 and T6.7b (phase-close) run first; then, in R2, T6.1, T6.3, T6.4, T6.5, T6.7a and T6.8. An execution-order note is added. No ADR: cheap to reverse, spec text only. |
 | OA-43 | 2026-10-25 | G30: is the full SEPOMEX dataset a launch requirement, or optional? | Yes. The full dataset is a launch requirement; the sample stays for Part A (the proposed resolution). |
 | OA-44 | 2026-10-25 | G35: does the guest order lookup send the email in the URL (`GET`) or in a JSON body (`POST`)? | Option A: the proposed resolution. `POST /api/orders/lookup/` with the JSON body `{number, email}`, limited to 5 per hour per IP, and the same 404 for a wrong email and a missing order. |
+| OA-45 | 2026-10-25 | Phase 7 task order: the tasks are listed in a valid order, but their numbers do not follow it and the phase has no execution-order note. Add one? | Option A: add the note. Execution order: T7.9, T7.7, T7.2a, T7.1, T7.3, T7.4, T7.6, T7.5a, T7.8 (phase-close); then, in R2, T7.2b and T7.5b. IDs keep their numbers. No ADR: cheap to reverse, spec text only. |
 
 ---
 
@@ -2510,6 +2511,8 @@ Mixed-cart rules:
 
 - A cart mixing pre-order and in-stock items is **allowed** and ships complete (A6, confirm D8). The cart response must say so plainly: *"Tu pedido se enviará completo a partir del 15 de noviembre."*
 - Pickup is offered only if every line has `available > 0` at a `is_pickup_point` location, **or** is a pre-order. Pre-order pickup is fine — it just waits.
+
+Execution order: T7.9, T7.7, T7.2a, T7.1, T7.3, T7.4, T7.6, T7.5a, T7.8 (phase-close, last of Release 1); then, in R2, T7.2b and T7.5b. IDs keep their numbers (OA-45). T7.1 builds the cart endpoints; the `GET /api/cart/` and `POST /api/cart/fulfillment/` payloads grow with T7.3 (live prices), T7.4 (availability) and T7.6 (the quote).
 
 #### Verify — test specification
 
@@ -5357,6 +5360,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.18 | 2026-10-25 | Phase 6 task order: the tasks are listed in execution order (T6.2, T6.6, T6.7b, then the R2 tasks T6.1, T6.3, T6.4, T6.5, T6.7a, T6.8); an execution-order note added. No dependency, Verify ID, schema or task-ID change. | OA-42 |
 | 1.19 | 2026-10-25 | G30 resolved: the full SEPOMEX dataset is a launch requirement and the sample stays for Part A. T6.6 no longer lists G30 as open and T22.3 no longer lists it as an open item. No Verify ID, schema or task-ID change. | OA-43, ADR-0039 |
 | 1.20 | 2026-10-25 | G35 resolved: the guest order lookup is `POST /api/orders/lookup/` with a JSON body. The ⚠️ G35 mark is removed from P6-V14; T6.7b and T14.6 no longer list G35 as open. No Verify ID, schema or task-ID change. | OA-44, ADR-0040 |
+| 1.21 | 2026-10-25 | Phase 7 task order: an execution-order note added (T7.9, T7.7, T7.2a, T7.1, T7.3, T7.4, T7.6, T7.5a, T7.8, then the R2 tasks T7.2b, T7.5b). No dependency, Verify ID, schema or task-ID change. | OA-45 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
