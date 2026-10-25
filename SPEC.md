@@ -2411,7 +2411,7 @@ Totals live in exactly one function, `orders/pricing.py::compute_totals(lines, s
 
 Seed `shipping_zone`, `shipping_zone_state`, `shipping_rate` from D5. In Part A, `manage.py seed_dev_defaults` seeds the placeholder shape in §2.5; replace it before production.
 
-- [ ] **T7.2a — Cart identity**
+- [x] **T7.2a — Cart identity** (2026-10-25, 6c0eb50)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: exercised by every cart API test from T7.1 on; T7.1 owns the isolation test]
