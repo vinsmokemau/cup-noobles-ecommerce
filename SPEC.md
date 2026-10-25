@@ -2484,7 +2484,7 @@ Unknown postal code → 400 with a clear message, never a silent zero. Wire `POS
 
 A cart with any `requires_shipping=false` line still behaves normally (v1 has no digital goods, but don't hard-code the assumption).
 
-- [ ] **T7.8 — Stale cart purge**
+- [x] **T7.8 — Stale cart purge** (2026-10-25, 5795eea)
   - Release: R1 · Gate: phase-close
   - REQs: —
   - Verifies: P7-V15
