@@ -2147,7 +2147,7 @@ Then add `GET /api/catalog/facets/`: the available filter values for the current
 
 `drf-spectacular` configured; `/api/schema/` serves OpenAPI 3.1. Add `pnpm gen:api` in `web/` running `openapi-typescript ../api/openapi.snapshot.yml -o app/types/api.d.ts`. Generating from the committed snapshot rather than a running server keeps it offline and deterministic; the snapshot test (§4.6) guarantees the snapshot matches the live schema. `make schema-update` runs both steps.
 
-- [ ] **T5.6 — Catalog caching**
+- [x] **T5.6 — Catalog caching** (2026-10-25, 8617066)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P5-V10
