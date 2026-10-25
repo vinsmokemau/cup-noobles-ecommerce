@@ -1881,7 +1881,7 @@ The file path is given at run time. A catalog file that holds costs is never com
 
 Execution order: T4.2, T4.1, T4.3, T4.4, T4.9, T4.6, T4.7, T4.8 (phase-close, last); then, in R2, T4.10 and T4.5. T4.2 comes first because `reserve` (T4.1) raises `InsufficientStock`. IDs keep their numbers (OA-32).
 
-- [ ] **T4.2 — Insufficient-stock error**
+- [x] **T4.2 — Insufficient-stock error** (2026-10-24, 4a45e76)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P4-V10
