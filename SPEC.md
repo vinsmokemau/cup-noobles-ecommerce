@@ -1962,7 +1962,7 @@ Admin: a read-only `StockLedger` view filtered by variant and date; a `StockItem
 
 Per G24 (ADR-0034), the command is built here; Phase 21 (21.7) keeps only its production scheduling. `manage.py check_stock_integrity` asserts that for every `stock_item`, the sum of its ledger deltas equals `on_hand`, and that `reserved` equals the sum of `held` reservations. It exits non-zero, naming the stock item, when either fails. Add its daily line to `infra/crontab` (§4.8).
 
-- [ ] **T4.6 — Low-stock report and the outbox write helper**
+- [x] **T4.6 — Low-stock report and the outbox write helper** (2026-10-25, 5de8230)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P4-V17
