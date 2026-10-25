@@ -1933,7 +1933,7 @@ def adjust_stock(variant, location, delta, *, reason, actor, note) -> None:
 
 `record_in_store_sale` moves to T4.10 (R2).
 
-- [ ] **T4.3 — Reservation expiry job**
+- [x] **T4.3 — Reservation expiry job** (2026-10-24, 44b0c32)
   - Release: R1 · Gate: task
   - REQs: REQ-012
   - Verifies: P4-V03, P4-V08
