@@ -2448,7 +2448,7 @@ Every unsafe method requires `X-CSRFToken` (T6.2).
 
 **The cart stores no prices.** `cart_line` holds only `variant_id` and `quantity`. Every `GET /api/cart/` reads the current `variant.price_cents`. Prices are frozen exactly once: when the order is created at checkout. This eliminates an entire class of stale-price bugs and disputes.
 
-- [ ] **T7.4 — Per-line availability**
+- [x] **T7.4 — Per-line availability** (2026-10-25, f5220cb)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P7-V02, P7-V11
