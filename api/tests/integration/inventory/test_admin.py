@@ -107,3 +107,44 @@ def test_stock_ledger_admin_is_read_only_and_filters_by_variant(
     deltas = [row.delta for row in response.context["cl"].result_list]
     assert deltas == [4]
     assert other.pk != kept.pk
+
+
+def test_adjust_needs_exactly_one_selected_row(admin_client):
+    first = StockItem.objects.get(variant=stocked_variant(on_hand=2))
+    second = StockItem.objects.get(variant=stocked_variant(on_hand=3))
+
+    response = admin_client.post(
+        reverse(CHANGELIST),
+        {"action": "adjust", "_selected_action": [first.pk, second.pk]},
+        follow=True,
+    )
+
+    messages = [str(message) for message in response.context["messages"]]
+    assert messages == ["Elige un solo registro de stock para ajustar."]
+    assert StockLedger.objects.count() == 2
+
+
+def test_adjust_shows_a_service_rejection_as_a_form_error(admin_client, monkeypatch):
+    from apps.inventory import admin as inventory_admin
+    from apps.inventory.errors import InvalidQuantity
+
+    def refuse(*args, **kwargs):
+        raise InvalidQuantity("cantidad inválida")
+
+    monkeypatch.setattr(inventory_admin, "adjust_stock", refuse)
+    item = StockItem.objects.get(variant=stocked_variant(on_hand=3))
+
+    response = adjust(admin_client, item, delta="-1", reason="damage", note="x")
+
+    assert response.context["form"].errors["delta"] == ["cantidad inválida"]
+
+
+def test_available_column_never_goes_negative(admin_client):
+    variant = stocked_variant(on_hand=2)
+    item = StockItem.objects.get(variant=variant)
+    StockItem.objects.filter(pk=item.pk).update(safety_stock=5)
+    model_admin = admin.site._registry[StockItem]
+
+    item.refresh_from_db()
+
+    assert model_admin.available(item) == 0
