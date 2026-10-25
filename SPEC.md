@@ -1890,7 +1890,7 @@ Execution order: T4.2, T4.1, T4.3, T4.4, T4.9, T4.6, T4.7, T4.8 (phase-close, la
 
 `InsufficientStock` must carry the variant, requested quantity and available quantity, so the checkout API can return a precise message per line ("Solo quedan 2 de Nendoroid Link").
 
-- [ ] **T4.1 — Inventory services**
+- [x] **T4.1 — Inventory services** (2026-10-24, 4f1e311)
   - Release: R1 · Gate: task
   - REQs: REQ-010, REQ-011, REQ-012, REQ-022
   - Verifies: P4-V01, P4-V02, P4-V05, P4-V06, P4-V09, P4-V11, P4-V12, P4-V13, P4-V15, P4-V16
