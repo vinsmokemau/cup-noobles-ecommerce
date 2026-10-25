@@ -20,11 +20,95 @@ paths:
                 items:
                   $ref: '#/components/schemas/CategoryNode'
           description: ''
+  /api/catalog/facets/:
+    get:
+      operationId: catalog_facets_retrieve
+      description: '`GET /api/catalog/facets/`: the filter values of the products
+        the query matches.'
+      parameters:
+      - in: query
+        name: attr.<key>
+        schema:
+          type: string
+        description: Keeps products whose attribute `<key>` equals the value, for
+          example `attr.linea=Nendoroid`. `<key>` must be in the `filterable_keys`
+          of a product type (of the `type` filter, when given); any other key is a
+          400. The facets endpoint lists the keys and their values.
+      - in: query
+        name: brand
+        schema:
+          type: string
+          maxLength: 200
+          minLength: 1
+      - in: query
+        name: category
+        schema:
+          type: string
+          maxLength: 200
+          minLength: 1
+        description: Category slug; includes its descendants.
+      - in: query
+        name: franchise
+        schema:
+          type: string
+          maxLength: 200
+          minLength: 1
+      - in: query
+        name: in_stock
+        schema:
+          type: boolean
+        description: '`true` keeps products with a unit available.'
+      - in: query
+        name: max_price
+        schema:
+          type: integer
+          minimum: 0
+        description: Centavos of MXN, IVA included.
+      - in: query
+        name: min_price
+        schema:
+          type: integer
+          minimum: 0
+        description: Centavos of MXN, IVA included.
+      - in: query
+        name: q
+        schema:
+          type: string
+          maxLength: 100
+          minLength: 1
+      - in: query
+        name: type
+        schema:
+          type: string
+          maxLength: 200
+          minLength: 1
+        description: Product type code.
+      tags:
+      - api
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Facets'
+          description: ''
+        '400':
+          description: A query parameter is invalid.
   /api/catalog/products/:
     get:
       operationId: catalog_products_list
       description: '`GET /api/catalog/products/`'
       parameters:
+      - in: query
+        name: attr.<key>
+        schema:
+          type: string
+        description: Keeps products whose attribute `<key>` equals the value, for
+          example `attr.linea=Nendoroid`. `<key>` must be in the `filterable_keys`
+          of a product type (of the `type` filter, when given); any other key is a
+          400. The facets endpoint lists the keys and their values.
       - in: query
         name: brand
         schema:
@@ -234,6 +318,42 @@ components:
       required:
       - sources
       - variant
+    Facet:
+      type: object
+      properties:
+        key:
+          type: string
+          description: The attribute key; filter with `attr.<key>`.
+        title:
+          type: string
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/FacetValue'
+      required:
+      - key
+      - title
+      - values
+    FacetValue:
+      type: object
+      properties:
+        value:
+          description: A string, number or boolean.
+        count:
+          type: integer
+          description: Products that match every active filter.
+      required:
+      - count
+      - value
+    Facets:
+      type: object
+      properties:
+        facets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Facet'
+      required:
+      - facets
     Health:
       type: object
       properties:

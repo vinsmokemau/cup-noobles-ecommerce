@@ -192,7 +192,15 @@ def catalog_dataset():
     )
     from tests.factories.inventory import stocked_variant
 
-    figure = ProductTypeFactory(code="figure", name="Figura")
+    figure = ProductTypeFactory(
+        code="figure",
+        name="Figura",
+        attribute_schema={
+            "type": "object",
+            "properties": {"linea": {"type": "string", "title": "Línea"}},
+        },
+        filterable_keys=["linea"],
+    )
     tcg = ProductTypeFactory(code="tcg_sealed", name="TCG sellado")
     zelda = FranchiseFactory(slug="zelda", name="Zelda")
     pokemon = FranchiseFactory(slug="pokemon", name="Pokémon")

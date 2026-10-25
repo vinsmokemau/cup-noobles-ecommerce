@@ -18,7 +18,8 @@ from rest_framework.views import APIView
 
 from apps.catalog import search
 from apps.catalog.availability import with_available_units
-from apps.catalog.filters import ProductQuerySerializer, filter_products
+from apps.catalog.facets import build_facets
+from apps.catalog.filters import ProductQuerySerializer, filter_products, parse_query
 from apps.catalog.models import (
     Category,
     Product,
@@ -29,6 +30,7 @@ from apps.catalog.models import (
 from apps.catalog.pagination import CatalogCursorPagination
 from apps.catalog.serializers import (
     CategoryNodeSerializer,
+    FacetsSerializer,
     ProductCardSerializer,
     ProductDetailSerializer,
 )
@@ -37,6 +39,15 @@ RELATED_LIMIT = 8  # products shown under a product page (G28, ADR-0030)
 SEARCH_LIMIT = 48
 
 BAD_REQUEST = OpenApiResponse(description="A query parameter is invalid.")
+ATTR_PARAMETER = OpenApiParameter(
+    "attr.<key>",
+    OpenApiTypes.STR,
+    description=(
+        "Keeps products whose attribute `<key>` equals the value, for example `attr.linea=Nendoroid`. "
+        "`<key>` must be in the `filterable_keys` of a product type (of the `type` filter, when "
+        "given); any other key is a 400. The facets endpoint lists the keys and their values."
+    ),
+)
 
 
 def public_products(*, detail: bool = False) -> QuerySet[Product]:
@@ -106,17 +117,32 @@ class ProductListView(CatalogView, generics.ListAPIView):
     def get_queryset(self) -> QuerySet[Product]:
         if getattr(self, "swagger_fake_view", False):
             return Product.objects.none()
-        query = ProductQuerySerializer(data=present_params(self.request))
-        query.is_valid(raise_exception=True)
-        return filter_products(public_products(), query.validated_data)
+        params = parse_query(present_params(self.request))
+        return filter_products(public_products(), params)
 
     @extend_schema(
         operation_id="catalog_products_list",
-        parameters=[ProductQuerySerializer],
+        parameters=[ProductQuerySerializer, ATTR_PARAMETER],
         responses={200: ProductCardSerializer(many=True), 400: BAD_REQUEST},
     )
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         return super().get(request, *args, **kwargs)
+
+
+class FacetsView(CatalogView, APIView):
+    """`GET /api/catalog/facets/`: the filter values of the products the query matches."""
+
+    @extend_schema(
+        operation_id="catalog_facets_retrieve",
+        parameters=[ProductQuerySerializer, ATTR_PARAMETER],
+        responses={200: FacetsSerializer, 400: BAD_REQUEST},
+    )
+    def get(self, request: Request) -> Response:
+        params = parse_query(present_params(request))
+        products = filter_products(
+            Product.objects.filter(status=Product.Status.ACTIVE), params
+        )
+        return Response({"facets": build_facets(products, params)})
 
 
 class ProductDetailView(CatalogView, APIView):

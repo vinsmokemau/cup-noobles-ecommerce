@@ -1,12 +1,16 @@
-"""The public product list (T5.1). The `attr.<key>` filters and P5-V01, V02, V03, V06 are T5.2 and
-T5.4; the tests here cover the filters, the payload and what stays hidden.
+"""The public product list (T5.1) and its `attr.<key>` filters (T5.2: P5-V01, V02, V06). P5-V03 is
+T5.4.
 """
 
 import json
 
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from apps.catalog.models import Category
+from tests.factories.catalog import ProductFactory, ProductTypeFactory
+from tests.factories.inventory import stocked_variant
 
 pytestmark = pytest.mark.django_db
 
@@ -134,3 +138,124 @@ def test_invalid_filters_are_a_400(api_client, catalog_dataset, query):
 def test_the_catalog_is_read_only(api_client, catalog_dataset):
     for method in ("post", "put", "patch", "delete"):
         assert getattr(api_client, method)(URL).status_code == 405
+
+
+def test_p5_v01_attr_filter_and_in_stock(api_client, catalog_dataset):
+    figure = catalog_dataset.nendoroid.product_type
+    sold_out = ProductFactory(
+        published=True,
+        slug="nendoroid-sin-stock",
+        product_type=figure,
+        attributes={"linea": "Nendoroid"},
+    )
+    stocked_variant(0, product=sold_out, sku="NEN-SOLD-OUT")
+    draft = ProductFactory(
+        slug="nendoroid-borrador",
+        product_type=figure,
+        attributes={"linea": "Nendoroid"},
+    )
+    stocked_variant(4, product=draft, sku="NEN-DRAFT")
+
+    both = api_client.get(f"{URL}?attr.linea=Nendoroid&in_stock=true")
+    only_attr = api_client.get(f"{URL}?attr.linea=Nendoroid")
+
+    assert slugs(both) == ["nendoroid-link"]
+    assert sorted(slugs(only_attr)) == ["nendoroid-link", "nendoroid-sin-stock"]
+
+
+def test_attr_filters_combine_with_the_other_filters(api_client, catalog_dataset):
+    assert slugs(api_client.get(f"{URL}?attr.linea=Figma&franchise=zelda")) == [
+        "figma-zelda"
+    ]
+    assert slugs(api_client.get(f"{URL}?attr.linea=Figma&franchise=pokemon")) == []
+    assert slugs(api_client.get(f"{URL}?attr.linea=Figma&type=figure")) == [
+        "figma-zelda"
+    ]
+
+
+def test_attr_value_match_is_exact(api_client, catalog_dataset):
+    assert slugs(api_client.get(f"{URL}?attr.linea=nendoroid")) == []
+    assert slugs(api_client.get(f"{URL}?attr.linea=Nendo")) == []
+
+
+def test_attr_filter_is_scoped_by_the_type_filter(api_client, catalog_dataset):
+    ProductTypeFactory(code="juego", filterable_keys=["jugadores"])
+
+    assert api_client.get(f"{URL}?attr.jugadores=2").status_code == 200
+    assert api_client.get(f"{URL}?type=figure&attr.jugadores=2").status_code == 400
+    assert api_client.get(f"{URL}?type=juego&attr.linea=Figma").status_code == 400
+
+
+def test_attr_filter_reads_the_schema_type(api_client, catalog_dataset):
+    funko = ProductTypeFactory(
+        code="funko",
+        attribute_schema={
+            "type": "object",
+            "properties": {
+                "numero": {"type": "integer"},
+                "chase": {"type": "boolean"},
+            },
+        },
+        filterable_keys=["numero", "chase"],
+    )
+    ProductFactory(
+        published=True,
+        slug="funko-1",
+        product_type=funko,
+        attributes={"numero": 7, "chase": True},
+    )
+    ProductFactory(
+        published=True,
+        slug="funko-2",
+        product_type=funko,
+        attributes={"numero": 8, "chase": False},
+    )
+
+    assert slugs(api_client.get(f"{URL}?attr.numero=7")) == ["funko-1"]
+    assert slugs(api_client.get(f"{URL}?attr.chase=true")) == ["funko-1"]
+    assert slugs(api_client.get(f"{URL}?attr.chase=FALSE")) == ["funko-2"]
+    assert api_client.get(f"{URL}?attr.numero=siete").status_code == 400
+    assert api_client.get(f"{URL}?attr.chase=quizas").status_code == 400
+
+
+def test_attr_filter_with_an_empty_value_is_ignored(api_client, catalog_dataset):
+    response = api_client.get(f"{URL}?attr.linea=")
+
+    assert response.status_code == 200
+    assert len(slugs(response)) == 3
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "attr.__proto__=x",
+        "attr.'; DROP TABLE product;--=1",
+        "attr.linea' OR '1'='1=x",
+        "attr.=x",
+        "attr..linea=x",
+        "attr.linea.extra=x",
+    ],
+)
+def test_p5_v02_malicious_attr_keys_rejected(api_client, catalog_dataset, query):
+    with CaptureQueriesContext(connection) as queries:
+        response = api_client.get(f"{URL}?{query}")
+
+    assert response.status_code == 400
+    assert not [q for q in queries.captured_queries if '"product"' in q["sql"]], (
+        "a rejected key must not reach a product query"
+    )
+    assert api_client.get(URL).status_code == 200  # the table is still there
+
+
+def test_p5_v06_non_filterable_key_rejected(api_client, catalog_dataset):
+    ProductFactory(
+        published=True,
+        slug="con-secreto",
+        product_type=catalog_dataset.nendoroid.product_type,
+        attributes={"linea": "Figma", "secreto": "x"},
+    )
+
+    response = api_client.get(f"{URL}?attr.secreto=x")
+
+    assert response.status_code == 400
+    assert "attr.secreto" in response.json()

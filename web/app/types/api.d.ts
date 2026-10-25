@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/catalog/facets/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description `GET /api/catalog/facets/`: the filter values of the products the query matches. */
+        get: operations["catalog_facets_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/catalog/products/": {
         parameters: {
             query?: never;
@@ -111,6 +128,21 @@ export interface components {
             readonly sources: components["schemas"]["ImageSource"][];
             /** Format: uuid */
             readonly variant: string | null;
+        };
+        Facet: {
+            /** @description The attribute key; filter with `attr.<key>`. */
+            key: string;
+            title: string;
+            values: components["schemas"]["FacetValue"][];
+        };
+        FacetValue: {
+            /** @description A string, number or boolean. */
+            value: unknown;
+            /** @description Products that match every active filter. */
+            count: number;
+        };
+        Facets: {
+            facets: components["schemas"]["Facet"][];
         };
         Health: {
             db: string;
@@ -224,9 +256,53 @@ export interface operations {
             };
         };
     };
+    catalog_facets_retrieve: {
+        parameters: {
+            query?: {
+                /** @description Keeps products whose attribute `<key>` equals the value, for example `attr.linea=Nendoroid`. `<key>` must be in the `filterable_keys` of a product type (of the `type` filter, when given); any other key is a 400. The facets endpoint lists the keys and their values. */
+                "attr.<key>"?: string;
+                brand?: string;
+                /** @description Category slug; includes its descendants. */
+                category?: string;
+                franchise?: string;
+                /** @description `true` keeps products with a unit available. */
+                in_stock?: boolean;
+                /** @description Centavos of MXN, IVA included. */
+                max_price?: number;
+                /** @description Centavos of MXN, IVA included. */
+                min_price?: number;
+                q?: string;
+                /** @description Product type code. */
+                type?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Facets"];
+                };
+            };
+            /** @description A query parameter is invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     catalog_products_list: {
         parameters: {
             query?: {
+                /** @description Keeps products whose attribute `<key>` equals the value, for example `attr.linea=Nendoroid`. `<key>` must be in the `filterable_keys` of a product type (of the `type` filter, when given); any other key is a 400. The facets endpoint lists the keys and their values. */
+                "attr.<key>"?: string;
                 brand?: string;
                 /** @description Category slug; includes its descendants. */
                 category?: string;

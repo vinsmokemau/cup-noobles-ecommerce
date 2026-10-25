@@ -224,6 +224,25 @@ class ProductDetailSerializer(ProductCardSerializer):
         return ProductCardSerializer(related, many=True, context=self.context).data
 
 
+class FacetValueSerializer(serializers.Serializer):
+    value = serializers.JSONField(help_text="A string, number or boolean.")
+    count = serializers.IntegerField(
+        help_text="Products that match every active filter."
+    )
+
+
+class FacetSerializer(serializers.Serializer):
+    key = serializers.CharField(
+        help_text="The attribute key; filter with `attr.<key>`."
+    )
+    title = serializers.CharField()
+    values = FacetValueSerializer(many=True)
+
+
+class FacetsSerializer(serializers.Serializer):
+    facets = FacetSerializer(many=True)
+
+
 class CategoryNodeSerializer(serializers.ModelSerializer):
     children = serializers.SerializerMethodField()
 

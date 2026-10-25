@@ -10,5 +10,6 @@ urlpatterns = [
         name="catalog-product",
     ),
     path("categories/", views.CategoryTreeView.as_view(), name="catalog-categories"),
+    path("facets/", views.FacetsView.as_view(), name="catalog-facets"),
     path("search/", views.SearchView.as_view(), name="catalog-search"),
 ]
