@@ -27,6 +27,9 @@ POSTAL_CODE_DATASET = env.str("POSTAL_CODE_DATASET")
 ERROR_TRACKING = env.str("ERROR_TRACKING")
 INVOICE_PROVIDER = env.str("INVOICE_PROVIDER", default="manual")  # not a mock (§4.3)
 
+# No default: the owner's monitored inbox (G38).
+OWNER_ALERT_EMAIL = env.str("OWNER_ALERT_EMAIL")
+
 _MOCK_VALUES = {
     "PAYMENT_PROVIDER": "mock",
     "CARRIER_PROVIDER": "mock",

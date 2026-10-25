@@ -25,6 +25,7 @@ _SCRUBBED = (
     "POSTAL_CODE_DATASET",
     "ERROR_TRACKING",
     "INVOICE_PROVIDER",
+    "OWNER_ALERT_EMAIL",
 )
 
 _PROGRAM = """
@@ -50,6 +51,7 @@ _PROD_ENV = {
     "MEDIA_STORAGE": "s3",
     "POSTAL_CODE_DATASET": "sepomex",
     "ERROR_TRACKING": "sentry",
+    "OWNER_ALERT_EMAIL": "owner@cupnoobles.example",
 }
 
 

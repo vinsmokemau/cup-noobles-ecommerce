@@ -33,6 +33,10 @@ PAYMENT_INSTALLMENT_OPTIONS = env.list(
     "PAYMENT_INSTALLMENT_OPTIONS", cast=int, default=[3, 6]
 )
 
+# Where the owner's alerts and daily summaries go (G38). A `.test` address here; prod.py has no
+# default, so production fails to start until the owner's monitored inbox is set.
+OWNER_ALERT_EMAIL = env.str("OWNER_ALERT_EMAIL", default="owner@cupnoobles.test")
+
 # Gates the simulator, the mock tracking page, `/dev/test/` and the dev commands.
 DEV_TOOLS_ENABLED = env.bool("DEV_TOOLS_ENABLED", default=False)
 

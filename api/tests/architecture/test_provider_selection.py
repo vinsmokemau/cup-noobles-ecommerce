@@ -143,6 +143,7 @@ _PROD_ENV = {
     "MEDIA_STORAGE": "s3",
     "POSTAL_CODE_DATASET": "sepomex",
     "ERROR_TRACKING": "sentry",
+    "OWNER_ALERT_EMAIL": "owner@cupnoobles.example",
 }
 
 REGISTRY_SWITCHES = [

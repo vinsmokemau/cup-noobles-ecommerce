@@ -3,3 +3,6 @@
 
 # Verify the ledger and reservation invariants daily (SPEC.md §4.8, G24)
 15 3 * * * python manage.py check_stock_integrity
+
+# Email the owner the variants at or below safety stock daily (SPEC.md §4.8, G2, G38)
+30 3 * * * python manage.py low_stock_report
