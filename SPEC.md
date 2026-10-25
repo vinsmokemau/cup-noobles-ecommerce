@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.22 |
+| Spec version | 1.23 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -523,6 +523,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-44 | 2026-10-25 | G35: does the guest order lookup send the email in the URL (`GET`) or in a JSON body (`POST`)? | Option A: the proposed resolution. `POST /api/orders/lookup/` with the JSON body `{number, email}`, limited to 5 per hour per IP, and the same 404 for a wrong email and a missing order. |
 | OA-45 | 2026-10-25 | Phase 7 task order: the tasks are listed in a valid order, but their numbers do not follow it and the phase has no execution-order note. Add one? | Option A: add the note. Execution order: T7.9, T7.7, T7.2a, T7.1, T7.3, T7.4, T7.6, T7.5a, T7.8 (phase-close); then, in R2, T7.2b and T7.5b. IDs keep their numbers. No ADR: cheap to reverse, spec text only. |
 | OA-46 | 2026-10-25 | G44: should the cart store the postal code, or does the quote keep reading it from the request? | Keep the `postal_code` query parameter on `GET /api/cart/` for now, and check it in Phase 13. Registered as G44; no ADR, because the choice is cheap to reverse until then. |
+| OA-47 | 2026-10-25 | Phase 8 task order: the tasks are listed in a valid order, but their numbers do not follow it (T8.2 needs T8.3 and T8.10; T8.5 runs near the end) and the phase has no execution-order note. Add one? | Option A: add the note. Execution order: T8.1, T8.3, T8.10, T8.2, T8.4, T8.7, T8.8, T8.9, T8.5, T8.6a (phase-close); then, in R2, T8.11 and T8.6b. IDs keep their numbers. No ADR: cheap to reverse, spec text only. |
 
 ---
 
@@ -2754,6 +2755,8 @@ Admin `OrderAdmin`: read-only lines and totals; a state-transition action bar th
   - Open items: G6 (tests xfail until decided)
 
 Add the R2 rows of 8.A to `TRANSITIONS`: T3, T8, T9, T13, T14, T15, T19, and T16 from `awaiting_stock` and `ready_for_pickup`. Checkout accepts `pickup_location_id` for pickup orders and `address_id` for a customer's saved address; `create_order_from_cart` takes the pickup branch (zero shipping, `pickup_location_id`) and sets `has_preorder_items` and `earliest_release_date`.
+
+Execution order: T8.1, T8.3, T8.10, T8.2, T8.4, T8.7, T8.8, T8.9, T8.5, T8.6a (phase-close, last of Release 1); then, in R2, T8.11 and T8.6b. IDs keep their numbers (OA-47). T8.2 needs T8.3 and T8.10 first; T8.7, T8.8 and T8.9 add their steps to `create_order_from_cart` (T8.2); T8.11 needs Phase 8 closed, and T8.6b needs T8.11.
 
 #### Verify — test specification
 
@@ -5364,6 +5367,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.20 | 2026-10-25 | G35 resolved: the guest order lookup is `POST /api/orders/lookup/` with a JSON body. The ⚠️ G35 mark is removed from P6-V14; T6.7b and T14.6 no longer list G35 as open. No Verify ID, schema or task-ID change. | OA-44, ADR-0040 |
 | 1.21 | 2026-10-25 | Phase 7 task order: an execution-order note added (T7.9, T7.7, T7.2a, T7.1, T7.3, T7.4, T7.6, T7.5a, T7.8, then the R2 tasks T7.2b, T7.5b). No dependency, Verify ID, schema or task-ID change. | OA-45 |
 | 1.22 | 2026-10-25 | G44 registered: the cart quote reads the postal code from the request, not from the cart; to be checked in Phase 13. No requirement, Verify ID, schema or task-ID change. | OA-46 |
+| 1.23 | 2026-10-25 | Phase 8 task order: an execution-order note added (T8.1, T8.3, T8.10, T8.2, T8.4, T8.7, T8.8, T8.9, T8.5, T8.6a, then the R2 tasks T8.11, T8.6b). No dependency, Verify ID, schema or task-ID change. | OA-47 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
