@@ -148,3 +148,23 @@ def test_available_column_never_goes_negative(admin_client):
     item.refresh_from_db()
 
     assert model_admin.available(item) == 0
+
+
+def test_p4_v20_bin_location_editable(admin_client):
+    variant = stocked_variant(on_hand=5)
+    item = StockItem.objects.get(variant=variant)
+    ledger_rows = StockLedger.objects.filter(stock_item=item).count()
+
+    page = admin_client.get(reverse(CHANGE, args=[item.pk]))
+    assert "bin_location" in page.context["adminform"].form.fields
+
+    response = admin_client.post(
+        reverse(CHANGE, args=[item.pk]),
+        {"safety_stock": item.safety_stock, "bin_location": "A-03-2", "on_hand": 99},
+    )
+
+    assert response.status_code == 302
+    item.refresh_from_db()
+    assert (item.bin_location, item.on_hand) == ("A-03-2", 5)
+    assert StockLedger.objects.filter(stock_item=item).count() == ledger_rows
+    assert_stock_integrity(variant)

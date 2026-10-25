@@ -92,6 +92,7 @@ class StockItemAdmin(admin.ModelAdmin):
         "on_hand",
         "reserved",
         "safety_stock",
+        "bin_location",
         "updated_at",
     )
     # `on_hand` and `reserved` are display-only: the services own them (CR-05, CR-06).
