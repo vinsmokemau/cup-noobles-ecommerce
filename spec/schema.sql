@@ -638,3 +638,15 @@ CREATE TABLE email_outbox (
 CREATE UNIQUE INDEX email_outbox_dedupe_uq ON email_outbox(dedupe_key)
   WHERE dedupe_key IS NOT NULL;
 CREATE INDEX email_outbox_pending_idx ON email_outbox(created_at) WHERE sent_at IS NULL;
+
+-- ---------------------------------------------------------------------
+-- SITE SETTINGS
+-- ---------------------------------------------------------------------
+
+-- One row, id = 1, edited in the admin. prelaunch_mode hides the public
+-- catalog while staff test the live store (G32, ADR-0038).
+CREATE TABLE site_setting (
+  id             smallint PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  prelaunch_mode boolean  NOT NULL DEFAULT false,
+  updated_at     timestamptz NOT NULL DEFAULT now()
+);

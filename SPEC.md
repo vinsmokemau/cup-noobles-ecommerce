@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.16 |
+| Spec version | 1.17 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -427,7 +427,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G29 | 1 | P1-V03, 1.9, P15-V14 | CI and branch protection are verified only in Phase 20, though Part A relies on them | Verify them in Phase 1, now that the repository is public; branch protection as a `[manual]` item | R1 | Resolved (ADR-0029) |
 | G30 | 6 | 6.6, Phase 22 | 6.6 calls the SEPOMEX data optional, but the launch checklist requires it | The full dataset is a launch requirement; the sample stays for Part A | R1 | Open |
 | G31 | 8 | GE:§7.1, GE:T20, GE:R10 | Purchase limits per customer are needed at launch, and no mechanism exists. With guest checkout, a customer has no account. | A limit per variant set in the admin; the T1 guard counts units in pending and paid orders that match the email, phone or shipping address within a window. The values are D15. | R1 | Resolved (ADR-0030) |
-| G32 | 3, 5, 12 | GE:T31, GE:T35, GE:T38, GE:M1 | The store must be live with real test purchases while the catalog is hidden, then published at once. Catalog responses are publicly cached (5.6). | A site-wide pre-launch switch. The public sees a "próximamente" page, which also serves GE:T04. Logged-in staff browse and buy, and their requests bypass the catalog cache. Going live is a bulk publish plus turning the switch off. | R1 | Open |
+| G32 | 3, 5, 12 | GE:T31, GE:T35, GE:T38, GE:M1 | The store must be live with real test purchases while the catalog is hidden, then published at once. Catalog responses are publicly cached (5.6). | A site-wide pre-launch switch. The public sees a "próximamente" page, which also serves GE:T04. Logged-in staff browse and buy, and their requests bypass the catalog cache. Going live is a bulk publish plus turning the switch off. | R1 | Resolved (ADR-0038) |
 | G33 | 2, 8, 10 | GE:T34, GE:T43, GE:§5.2 | The weekly dashboard and monthly report need data. Margin needs the unit cost at the time of sale, and `order_line` has no cost snapshot. | Admin CSV exports of orders, lines and shipments; a `unit_cost_cents` snapshot on `order_line` (schema change). Shipped-within-48-h and stock-cancellation counts come from timestamps and cancel reasons. | R1 | Resolved (ADR-0030) |
 | G34 | 4 | GE:§7.1, GE:T28 | Picking needs a bin location ("ubicación"), which the schema lacks | An optional text field on `stock_item`, shown on the order's packing view | R1 | Resolved (ADR-0030) |
 | G35 | 6 | 6.7 | The guest lookup sends the customer's email in the query string (`GET …/lookup/?number=&email=`), where proxy, CDN and error logs record it | `POST` with a JSON body, keeping the rate limit and the identical 404 for a wrong email | R1 | Open |
@@ -515,6 +515,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-38 | 2026-10-25 | G38: which address receives the owner's alerts? | Option A: the proposed resolution. An `OWNER_ALERT_EMAIL` setting (§4.7): a `.test` address in development, the owner's monitored inbox in production. ADR-0036. |
 | OA-39 | 2026-10-25 | Phase 5 task order: T5.1 filtered and reported by availability (T5.3) and by attributes (T5.2), and P5-V01 needed both. Reorder? | Option A: T5.3 runs first, then T5.1, T5.2, T5.4, T5.5, T5.6, T5.7 (phase-close); T5.8 stays R2. The facets endpoint and P5-V13 move from T5.1 to T5.2. The "Depends on" lines of T5.1, T5.2, T5.3 and T5.4 are fixed. No ADR: cheap to reverse, spec text only. |
 | OA-40 | 2026-10-25 | G13 with D10: does `low_stock` include exactly 5 units, and does the storefront show counts? | Option A: the proposed resolution. `low_stock` when `1 <= available <= 5` (5 units shows `low_stock`); a low-stock badge and no raw counts. ADR-0037. |
+| OA-41 | 2026-10-25 | G32: where does the pre-launch switch live, and what do anonymous catalog requests get while it is on? | Option A and X: a single-row `site_setting` table with a `prelaunch_mode` flag, edited in the admin, so staff go live without a deploy. While on, anonymous `/api/catalog/*` requests get `503` with `{"prelaunch": true}` and `Cache-Control: no-store`; a staff session gets the normal catalog with `Cache-Control: private`. ADR-0038. |
 
 ---
 
@@ -583,7 +584,7 @@ These come from the owner's execution guide (§1.2). Their mechanisms are propos
 |---|---|---|---|---|
 | REQ-060 | A customer can request a CFDI at checkout. Staff issue it outside the store and record it, and the store emails the PDF and XML. A refund of an invoiced order is flagged for the accountant, and an export covers the orders a global invoice needs. | A8, A12, D16 | P2-V17 · P8-V19 · P9-V22 · P10-V23 · P10-V24 · P11-V11 · P13-V23 · P15-V15 | R1 |
 | REQ-061 | A variant's purchase limit holds per customer, across guest orders. | D15 | P8-V20 · P13-V24 | R1 |
-| REQ-062 | Before launch, the public sees only a "próximamente" page while staff browse and buy for real. Going live is one switch. | — | P5-V15 ⚠️G32 · P12-V28 ⚠️G32 · P15-V16 ⚠️G32 | R1 |
+| REQ-062 | Before launch, the public sees only a "próximamente" page while staff browse and buy for real. Going live is one switch. | — | P5-V15 · P12-V28 · P15-V16 | R1 |
 | REQ-063 | Staff can export what the weekly dashboard and the monthly report need, including each line's unit cost at the time of sale. | A19 | P8-V21 · P10-V25 | R1 |
 | REQ-064 | Staff receive goods and see where each item is stored, from the admin, without editing stock by hand. | CR-05 | P4-V19 · P4-V20 · P10-V26 | R1 |
 | REQ-065 | No placeholder, demo row or dev default reaches production. | CR-45, §2.5 | P2-V18 · P15-V12 · P22-V15 | R1 |
@@ -1157,7 +1158,7 @@ Coverage never decreases (CR-44). `coverage-baseline.json` records each scope's 
 | `PICKUP_HOLD_DAYS` | api | `7` | D4 | `[R2]`, with pickup |
 | `PURCHASE_LIMIT_WINDOW_DAYS` | api | No default; tests set it (D15) | D15 | Days the purchase-limit guard looks back (G31, ADR-0030). Required while any variant carries a limit. |
 
-Settings proposed by open items (G32) are added here when the item is decided. The store timezone (G5, ADR-0030) is the constant `America/Mexico_City`, not a setting.
+The pre-launch switch (G32, ADR-0038) is not an environment variable: it is the `prelaunch_mode` column of the `site_setting` table, edited in the admin. The store timezone (G5, ADR-0030) is the constant `America/Mexico_City`, not a setting.
 
 ### 4.8 Scheduled jobs
 
@@ -2162,9 +2163,9 @@ Cache `GET /api/catalog/*` responses with `Cache-Control: public, max-age=60` an
   - Verifies: P5-V15
   - Depends on: T5.6
   - Context: §1.2 (pre-launch catalog mode); §7.1 (R-19); GE:T31
-  - Open items: G32 (tests xfail until decided)
+  - Open items: —
 
-Per G32's proposed resolution, add a site-wide pre-launch switch, turned off by staff when the store goes live. While it is on, anonymous requests to `/api/catalog/*` get the pre-launch response and never `Cache-Control: public`, so the CDN cannot cache the hidden catalog. Requests from a logged-in staff session get the normal catalog with `Cache-Control: private`. Where the switch lives and the exact pre-launch response are fixed when G32 is decided. The storefront page is T12.15.
+Per G32 (ADR-0038), add a site-wide pre-launch switch, turned off by staff when the store goes live. While it is on, anonymous requests to `/api/catalog/*` get the pre-launch response and never `Cache-Control: public`, so the CDN cannot cache the hidden catalog. Requests from a logged-in staff session get the normal catalog with `Cache-Control: private`. The switch is the `prelaunch_mode` boolean of the single-row table `site_setting`, edited in the admin, so staff turn it on and off without a deploy; it is off until staff turn it on. The pre-launch response is `503` with the JSON body `{"prelaunch": true}` and `Cache-Control: no-store`. The `prelaunch_on` fixture sets the row. The storefront page is T12.15.
 
 - [ ] **T5.8 — Pickup and pre-order availability**
   - Release: R2 · Gate: —
@@ -2213,7 +2214,7 @@ Add to the availability payload the `preorder` status, `preorder_release_date`, 
 
 | Test ID | Layer | File path · test | What it asserts |
 |---|---|---|---|
-| P5-V15 | API | `api/tests/api/catalog/test_prelaunch.py::test_p5_v15_prelaunch_hides_catalog` | With pre-launch mode on, anonymous catalog requests get the pre-launch response and never `Cache-Control: public`; a staff session gets the catalog with `Cache-Control: private`. With the mode off, P5-V10 holds. ⚠️ G32 |
+| P5-V15 | API | `api/tests/api/catalog/test_prelaunch.py::test_p5_v15_prelaunch_hides_catalog` | With pre-launch mode on, anonymous catalog requests get the pre-launch response and never `Cache-Control: public`; a staff session gets the catalog with `Cache-Control: private`. With the mode off, P5-V10 holds. |
 | P5-V16 [R2] | API | `api/tests/api/catalog/test_availability.py::test_p5_v16_preorder_status` | A pre-order variant has status `preorder` with its `preorder_release_date`. |
 
 **Fixtures and factories introduced** (reused by later phases)
@@ -3805,10 +3806,10 @@ Accessibility and mobile: real `<button>` and `<a>` elements, labelled inputs, t
   - Verifies: P12-V28
   - Depends on: T12.9
   - Context: §4.5 (Composition map); T5.7; CR-47
-  - Open items: G32 (tests xfail until decided); D17
+  - Open items: D17
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
 
-Per G32's proposed resolution: while pre-launch mode is on (T5.7), every storefront route renders a "próximamente" page for anonymous visitors, with status 200 and `noindex`, built from `CnLogo`, a DS motif and `CnMediaCard` (§4.5). The API decides: during the server render the page asks the API for the mode with the forwarded cookie, so a staff session sees the catalog. The page shows no date or countdown, and never presents the warehouse as a store (CR-47). Whether it links to an interest list follows D17 (no link until decided).
+Per G32 (ADR-0038): while pre-launch mode is on (T5.7), every storefront route renders a "próximamente" page for anonymous visitors, with status 200 and `noindex`, built from `CnLogo`, a DS motif and `CnMediaCard` (§4.5). The API decides: during the server render the page asks the API for the mode with the forwarded cookie, so a staff session sees the catalog. The page shows no date or countdown, and never presents the warehouse as a store (CR-47). Whether it links to an interest list follows D17 (no link until decided).
 
 A dev-only toggle, `POST /dev/test/prelaunch/`, registered only when `DEV_TOOLS_ENABLED` (404 in production), lets E2E specs switch the mode.
 
@@ -3896,7 +3897,7 @@ The home page's open pre-orders section: seeded pre-order products with their re
 |---|---|---|---|
 | P12-V26 | architecture | `web/tests/architecture/styling.test.ts` › `p12_v26 no visual styling in the storefront` | A scan of `web/app/**` finds no Tailwind color, border, radius, shadow, ring, font or arbitrary-value utility, and no `style` attribute or `<style>` block with a visual value. A fixture file with one of each fails the scan; the real tree passes. |
 | P12-V27 | architecture | `web/tests/architecture/ds-pin.test.ts` › `p12_v27 ds packages pinned and layer extended` | `web/package.json` pins the three DS packages at one exact version and lists no direct `@nuxt/ui` or `tailwindcss` dependency; `nuxt.config.ts` extends `@vinsmokemau/cup-noobles-nuxt`. |
-| P12-V28 | E2E | `web/e2e/p12_prelaunch.spec.ts` › `p12_v28 prelaunch page for anonymous visitors` | With pre-launch mode on, an anonymous visit to `/`, `/catalogo` and a product URL shows the "próximamente" page with status 200 and `noindex`; a staff session sees the catalog. ⚠️ G32 |
+| P12-V28 | E2E | `web/e2e/p12_prelaunch.spec.ts` › `p12_v28 prelaunch page for anonymous visitors` | With pre-launch mode on, an anonymous visit to `/`, `/catalogo` and a product URL shows the "próximamente" page with status 200 and `noindex`; a staff session sees the catalog. |
 | P12-V29 [R2] | E2E | `web/e2e/p12_catalog.spec.ts` › `p12_v29 home shows open preorders` | The seeded open pre-order appears on the home page with its release date and a working link. |
 
 **Fixtures and factories introduced** (reused by later phases)
@@ -4340,7 +4341,7 @@ Everything is fictional and labelled: product names start with `[DEMO]`, the fra
 | 7 | Mock tracking page | Press "Entregado". | The order is `delivered` in the admin timeline. |
 | 8 | Storefront | Buy `[DEMO] Figura` choosing "Pagar en OXXO"; on the voucher page press "Simular pago recibido". | `pendiente` shows the ficha; after payment the order is `paid`. |
 | 9 | Admin CFDI queue | Open the seeded order with a CFDI `requested`; record a folio, a UUID and the two sample documents. | The request is `issued`; a `cfdi_issued` email file with the PDF and XML attached. |
-| 10 | Admin + a private window | Turn pre-launch mode on; open the storefront in a private window; then turn the mode off. | The private window shows "próximamente" while the staff session still sees the catalog; after switching off, the private window shows the catalog. ⚠️ G32 |
+| 10 | Admin + a private window | Turn pre-launch mode on; open the storefront in a private window; then turn the mode off. | The private window shows "próximamente" while the staff session still sees the catalog; after switching off, the private window shows the catalog. |
 | 11 `[R2]` | Storefront + admin | Pre-order `[DEMO] Figura preventa`, then in the admin receive 1 unit for it. | The order moves `awaiting_stock` → `preparing` with a "ya llegó" email. |
 | 12 `[R2]` | Admin "Registrar venta en tienda" | Sell the last `[DEMO] Juego de mesa` at the counter. | Reloading its product page shows "Agotado". |
 | 13 | `/rastrear` | Look up the seeded OXXO order with its number and `demo@cupnoobles.test`. | Its status and voucher link. In R2, logging in as `demo@cupnoobles.test` shows the history and merges the saved cart. |
@@ -4416,7 +4417,7 @@ The journey specs for J1, J3 and J4 in `web/e2e/journeys/` (15.C). Each runs on 
   - Verifies: P15-V08, P15-V15, P15-V16
   - Depends on: T15.6a
   - Context: 15.C; 8.4; §3.7
-  - Open items: G32 (tests xfail until decided)
+  - Open items: —
 
 The journey specs for J8 (double-click "Pagar"), J10 (CFDI) and J11 (pre-launch), on the same terms as T15.6a. J10 uses the sample CFDI documents in `web/e2e/fixtures/`.
 
@@ -4496,7 +4497,7 @@ The Release 2 journey specs (pickup, pre-orders, mixed carts, cart merge on logi
 | Test ID | Layer | File | Assertion |
 |---|---|---|---|
 | P15-V15 | E2E journey | `web/e2e/journeys/j10_cfdi_request.spec.ts` › `p15_v15 cfdi requested issued and emailed` | J10: as a guest, `[DEMO] Playera` → checkout with "Quiero factura" and valid sample fiscal data → pay by card → `gracias` confirmed. Staff open the admin CFDI queue, record a folio, a UUID and the sample PDF and XML: the request is `issued`, and a `cfdi_issued` email exists with both attachments (`readLatestEmail`). |
-| P15-V16 | E2E journey | `web/e2e/journeys/j11_prelaunch.spec.ts` › `p15_v16 prelaunch hides catalog until go-live` | J11: with pre-launch mode on, an anonymous visitor sees "próximamente"; staff log in, buy `[DEMO] Playera` through the simulator and refund the order; staff publish the catalog and turn the mode off; the anonymous visitor now sees the catalog. ⚠️ G32 |
+| P15-V16 | E2E journey | `web/e2e/journeys/j11_prelaunch.spec.ts` › `p15_v16 prelaunch hides catalog until go-live` | J11: with pre-launch mode on, an anonymous visitor sees "próximamente"; staff log in, buy `[DEMO] Playera` through the simulator and refund the order; staff publish the catalog and turn the mode off; the anonymous visitor now sees the catalog. |
 
 **Fixtures and factories introduced:**
 
@@ -5194,9 +5195,9 @@ Confirm every Release 1 phase-close report is complete, and `check_stock_integri
   - Verifies: P22-V21 [manual], P22-V22 [manual], P22-V23 [manual]
   - Depends on: T22.4
   - Context: §3.7 (REQ-062); 15.B
-  - Open items: G32
+  - Open items: —
 
-Publish the catalog and turn pre-launch mode off (G32). The owner places one delivery order on a real phone, as a customer would. Open to a small group first, and read the daily digest for a week before promoting publicly.
+Publish the catalog and turn pre-launch mode off in the admin (G32, ADR-0038). The owner places one delivery order on a real phone, as a customer would. Open to a small group first, and read the daily digest for a week before promoting publicly.
 
 - [ ] **T22.6 — Pre-order terms**
   - Release: R2 · Gate: —
@@ -5256,7 +5257,7 @@ Publish the pre-order terms the owner supplies, including the FIFO allocation ru
 
 | Test ID | Layer | File path · test | What it asserts |
 |---|---|---|---|
-| P22-V21 [manual] | manual | Task report T22.5 | The catalog is published and pre-launch mode is off; an anonymous visitor sees the catalog. ⚠️ G32 |
+| P22-V21 [manual] | manual | Task report T22.5 | The catalog is published and pre-launch mode is off; an anonymous visitor sees the catalog. |
 | P22-V22 [manual] | manual | Task report T22.5 | The owner places one delivery order on a real phone, as a customer would (moved from P13-V01). Pickup and pre-order orders join in R2. |
 | P22-V23 [manual] | manual | Phase-close report | The store opens to a small group first, and the owner reads the daily digest for a week before promoting it publicly. |
 
@@ -5290,7 +5291,7 @@ Each mitigation names the requirement, test or open item that carries it, so the
 | R-16 | The phase-close suite gets slow enough to discourage running it | `make test-all` time rising phase over phase | OA-03 split; CI cancels superseded runs; record `make test-all` time in each phase-close report |
 | R-17 | A CFDI request is missed or copied wrong, because issuing is manual | A request waiting more than a few days; a customer correction | REQ-060; the admin queue (P10-V23); the daily digest lists waiting requests |
 | R-18 | A customer bypasses a purchase limit by varying email, phone and address | Several orders of a limited item to near-identical data | G31 matches any of the three; residual risk accepted (GE:R10) |
-| R-19 | The hidden catalog leaks through the CDN cache before launch | A catalog page visible to an anonymous request | G32; P5-V15 forbids public caching in pre-launch mode |
+| R-19 | The hidden catalog leaks through the CDN cache before launch | A catalog page visible to an anonymous request | ~~G32~~ (ADR-0038); P5-V15 forbids public caching in pre-launch mode |
 | R-20 | A failing webhook row is retried forever | `attempts` growing on one row | G7, decided before Phase 9 closes |
 | R-21 | Server and browser render a date in different time zones (hydration mismatch) | A hydration warning; a date off by one | CR-31; G5; the `ui-review` step (§0.5) |
 
@@ -5305,12 +5306,12 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Before Phase 2 (schema) | D14 (types), D16 (fields); ~~G3~~, ~~G5~~, ~~G28~~, ~~G31~~, ~~G33~~, ~~G34~~ (§4.4) |
 | Phase 3 | ~~G12~~, G39 |
 | Phase 4 | ~~G2~~, ~~G15~~, ~~G20~~, ~~G24~~, ~~G34~~, ~~G37~~, ~~G38~~ |
-| Phase 5 | ~~G13~~ with ~~D10~~, G32 |
+| Phase 5 | ~~G13~~ with ~~D10~~, ~~G32~~ |
 | Phase 6 | G30, G35 |
 | Phase 8 | ~~G3~~, G4, ~~G5~~, G25, G26, G27, ~~G31~~, ~~G33~~ |
 | Phase 9 | G7, G8, G11, G14 |
 | Phase 11 | G17; DSR-04, DSR-05 released |
-| Phase 12 | G18, ~~G28~~, G32, D17; DSR-01, DSR-02, DSR-03, DSR-06, DSR-07 released; DSR-09 or its fallback |
+| Phase 12 | G18, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03, DSR-06, DSR-07 released; DSR-09 or its fallback |
 | Phase 13 | G21, G22 |
 | Phase 16 | S2, D6, D7, D13 |
 | Phase 17 | S3, S4 |
@@ -5346,6 +5347,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.14 | 2026-10-25 | G2, G15, G37 and G38 resolved as proposed: `enqueue_email()` in Phase 4; `commit_reservations` idempotent; `expire_reservations` releases holds in Phase 4 and fires T5 through `apply_event` from Phase 8, and `advance_orders` stops firing T5 (T8.6a); `OWNER_ALERT_EMAIL` added to §4.7. T4.1, T4.3, T4.6 and T6.2 lose their open items; P4-V03 asserts the order state from Phase 8; P4-V16, P4-V17, P6-V01 and P6-V04 lose their ⚠️ marker. No Verify ID, task or schema change. | OA-35 to OA-38; ADR-0036 |
 | 1.15 | 2026-10-25 | Phase 5 task order: T5.3 now precedes T5.1 and T5.2 (they depended on availability); the facets endpoint and P5-V13 move from T5.1 to T5.2; "Depends on" fixed in T5.1, T5.2, T5.3 and T5.4; an execution-order note added. No Verify ID, schema or task-ID change. | OA-39 |
 | 1.16 | 2026-10-25 | D10 decided and G13 resolved: `low_stock` is `1 <= available <= 5`, with a badge and no raw counts. T5.3 loses its open items, P5-V07 loses its ⚠️ marker, and D10 leaves the blocking list of T22.3. No Verify ID, task or schema change. | OA-40; ADR-0037 |
+| 1.17 | 2026-10-25 | G32 resolved: pre-launch mode is a `site_setting.prelaunch_mode` flag edited in the admin; anonymous catalog requests get `503` `{"prelaunch": true}` with `no-store`. New table `site_setting` in `spec/schema.sql`. T5.7, T12.15, T15.6b and T22.5 lose their G32 open item; P5-V15, P12-V28, P15-V16, P22-V21, REQ-062 and demo step 10 lose their ⚠️ marker. No Verify ID or task change. | OA-41; ADR-0038 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5432,6 +5434,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0035 | Goods are received through an admin action | `docs/decisions/0035-receive-goods-admin-action.md` | G20; OA-34 |
 | ADR-0036 | Phase 4 open items: outbox helper, idempotent commit, expiry job, owner alert address | `docs/decisions/0036-phase-4-open-items.md` | G2, G15, G37, G38; OA-35 to OA-38 |
 | ADR-0037 | The storefront shows a low-stock badge, with no counts | `docs/decisions/0037-public-stock-display.md` | D10, G13; OA-40 |
+| ADR-0038 | Pre-launch mode is a database flag edited in the admin | `docs/decisions/0038-prelaunch-mode-site-setting.md` | G32; OA-41 |
 
 ## Appendix C — Dated market facts
 
@@ -5814,7 +5817,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | P12-V13 | Edited to featured products only; the open pre-order moved to P12-V29 | Mixed R1/R2 item split |
 | P12-V26 | New (pre-allocated): styling scan | REQ-050 |
 | P12-V27 | New (pre-allocated): DS pin check | REQ-050 |
-| P12-V28 | New (pre-allocated): pre-launch page ⚠️ G32 | REQ-062 |
+| P12-V28 | New (pre-allocated): pre-launch page | REQ-062 |
 | P12-V29 | New `[R2]` (beyond the pre-allocated list): home shows open pre-orders | Mixed R1/R2 item split |
 | Fixtures | `staffLogin(page)` and `setPrelaunch(on)` added; seed fixture reference → T1.13b and T15.2 | New tests |
 
@@ -5881,7 +5884,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | P15-V10 | Checks the R1 steps of the demo script | R2 steps need R2 features |
 | P15-V14 | "MVP exit criterion" → "local acceptance exit criterion" | C-06 |
 | P15-V15 | New: J10, CFDI requested, issued and emailed | REQ-060 |
-| P15-V16 | New: J11, pre-launch until go-live ⚠️ G32 | REQ-062 |
+| P15-V16 | New: J11, pre-launch until go-live | REQ-062 |
 | Fixtures | Adds the sample CFDI documents | J10 |
 
 #### Phase 16
@@ -5994,5 +5997,5 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | P22-V07 | Adds a CFDI request and the review flag on refund | REQ-060 |
 | P22-V13 | New: purchase limits configured (D15) | REQ-061 |
 | P22-V15 | `check_placeholders` exits 0 on production (cited by REQ-065) | REQ-065 |
-| P22-V21 | New: pre-launch mode off, catalog published ⚠️ G32 | REQ-062 |
+| P22-V21 | New: pre-launch mode off, catalog published | REQ-062 |
 | P22-V22 | Real-phone order is delivery only in R1 | §1.2 |
