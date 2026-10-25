@@ -1,0 +1,109 @@
+import pytest
+from django.contrib import admin
+from django.urls import reverse
+
+from apps.inventory.models import StockItem, StockLedger
+from tests.factories.inventory import assert_stock_integrity, stocked_variant
+
+pytestmark = pytest.mark.django_db
+
+CHANGELIST = "admin:inventory_stockitem_changelist"
+CHANGE = "admin:inventory_stockitem_change"
+LEDGER = "admin:inventory_stockledger_changelist"
+
+
+def adjust(admin_client, item, **fields):
+    return admin_client.post(
+        reverse(CHANGELIST),
+        {
+            "action": "adjust",
+            "_selected_action": [item.pk],
+            "apply": "1",
+            **fields,
+        },
+    )
+
+
+def test_p4_v18_no_editable_on_hand(admin_client, admin_user):
+    variant = stocked_variant(on_hand=5)
+    item = StockItem.objects.get(variant=variant)
+
+    page = admin_client.get(reverse(CHANGE, args=[item.pk]))
+    form = page.context["adminform"].form
+    assert "on_hand" not in form.fields
+    assert "reserved" not in form.fields
+
+    # A forged `on_hand` in the POST body changes nothing, and writes no ledger row.
+    admin_client.post(
+        reverse(CHANGE, args=[item.pk]), {"safety_stock": 1, "on_hand": 99}
+    )
+    item.refresh_from_db()
+    assert (item.on_hand, item.safety_stock) == (5, 1)
+    assert StockLedger.objects.filter(stock_item=item).count() == 1
+
+    # The adjust action goes through `adjust_stock`: ledger row with reason, note and actor.
+    response = adjust(admin_client, item, delta="-2", reason="damage", note="se cayó")
+    assert response.status_code == 302
+    item.refresh_from_db()
+    assert item.on_hand == 3
+    row = StockLedger.objects.get(reason="damage")
+    assert (row.delta, row.balance_after, row.note) == (-2, 3, "se cayó")
+    assert row.actor_user_id == admin_user.pk
+    assert_stock_integrity(variant)
+
+
+def test_adjust_page_shows_the_form(admin_client):
+    item = StockItem.objects.get(variant=stocked_variant(on_hand=2))
+
+    response = admin_client.post(
+        reverse(CHANGELIST), {"action": "adjust", "_selected_action": [item.pk]}
+    )
+
+    assert response.status_code == 200
+    assert "delta" in response.context["form"].fields
+
+
+def test_adjust_below_reserved_is_a_form_error(admin_client):
+    from tests.factories.inventory import holding_order
+
+    variant = stocked_variant(on_hand=3)
+    holding_order(variant, 2)
+    item = StockItem.objects.get(variant=variant)
+
+    response = adjust(admin_client, item, delta="-2", reason="damage", note="x")
+
+    assert response.status_code == 200
+    assert "delta" in response.context["form"].errors
+    item.refresh_from_db()
+    assert item.on_hand == 3
+
+
+def test_adjust_rejects_zero_and_missing_note(admin_client):
+    item = StockItem.objects.get(variant=stocked_variant(on_hand=3))
+
+    response = adjust(admin_client, item, delta="0", reason="adjustment", note="")
+
+    assert {"delta", "note"} <= set(response.context["form"].errors)
+    assert StockLedger.objects.count() == 1
+
+
+def test_stock_ledger_admin_is_read_only_and_filters_by_variant(
+    admin_client, rf, admin_user
+):
+    kept = stocked_variant(on_hand=4)
+    other = stocked_variant(on_hand=7)
+    model_admin = admin.site._registry[StockLedger]
+    request = rf.get("/")
+    request.user = admin_user
+    assert not model_admin.has_add_permission(request)
+    assert not model_admin.has_change_permission(request)
+    assert not model_admin.has_delete_permission(request)
+
+    response = admin_client.get(
+        reverse(LEDGER), {"stock_item__variant__id__exact": kept.pk}
+    )
+
+    assert response.status_code == 200
+    deltas = [row.delta for row in response.context["cl"].result_list]
+    assert deltas == [4]
+    assert other.pk != kept.pk

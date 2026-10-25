@@ -1,0 +1,19 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<p>
+  {{ item.variant }} · {{ item.location }} —
+  en mano: {{ item.on_hand }}, apartadas: {{ item.reserved }}.
+</p>
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="{{ action_name }}">
+  <input type="hidden" name="apply" value="1">
+  {% for pk in selected %}
+  <input type="hidden" name="_selected_action" value="{{ pk }}">
+  {% endfor %}
+  {{ form.as_p }}
+  <input type="submit" class="default" value="Ajustar">
+  <a href="{% url 'admin:inventory_stockitem_changelist' %}">Cancelar</a>
+</form>
+{% endblock %}
