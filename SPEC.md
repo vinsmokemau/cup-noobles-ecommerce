@@ -2118,7 +2118,7 @@ Endpoints (all under `/api/`, all read-only, all cacheable):
 
 The facets endpoint (`/api/catalog/facets/`) is built in T5.2, with the attribute filters it counts. `in_stock` and the `availability` field use the availability built in T5.3.
 
-- [ ] **T5.2 — Attribute filters**
+- [x] **T5.2 — Attribute filters** (2026-10-25, 7f5d0cf)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P5-V01, P5-V02, P5-V06, P5-V13
