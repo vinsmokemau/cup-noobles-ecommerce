@@ -1,10 +1,12 @@
 from datetime import timedelta
 
 import pytest
+from django.core.management import call_command
 
 from apps.inventory import services
 from apps.inventory.errors import InsufficientStock
 from apps.inventory.models import InventoryReservation, StockItem, StockLedger
+from apps.orders.models import Order
 from tests.factories.inventory import (
     assert_stock_integrity,
     holding_order,
@@ -141,3 +143,91 @@ def test_a_released_hold_is_not_committed_afterwards():
 
     assert stock_of(variant).on_hand == 5
     assert InventoryReservation.objects.get(order=order).state == "released"
+
+
+def expired_hold(clock, on_hand=5, qty=2):
+    clock.travel("2026-03-01T12:00:00Z")
+    variant = stocked_variant(on_hand=on_hand)
+    return variant, holding_order(variant, qty, ttl=timedelta(hours=1))
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="G37: the order moves to expired through apply_event, which arrives in Phase 8",
+)
+def test_p4_v03_expired_hold_leaves_no_ledger(clock):
+    variant, order = expired_hold(clock)
+    ledger_rows = StockLedger.objects.count()
+    clock.travel("2026-03-01T13:00:01Z")
+
+    call_command("expire_reservations")
+
+    item = stock_of(variant)
+    assert (item.on_hand, item.reserved) == (5, 0)
+    assert StockLedger.objects.count() == ledger_rows
+    assert InventoryReservation.objects.get(order=order).state == "released"
+    order.refresh_from_db()
+    assert order.state == "expired"
+
+
+def test_p4_v03_the_hold_is_released_without_a_ledger_row(clock):
+    # What P4-V03 asserts today; its order-state line waits for apply_event (G37).
+    variant, order = expired_hold(clock)
+    ledger_rows = StockLedger.objects.count()
+    clock.travel("2026-03-01T13:00:01Z")
+
+    call_command("expire_reservations")
+    call_command("expire_reservations")
+
+    item = stock_of(variant)
+    assert (item.on_hand, item.reserved) == (5, 0)
+    assert StockLedger.objects.count() == ledger_rows
+    reservation = InventoryReservation.objects.get(order=order)
+    assert reservation.state == "released"
+    assert reservation.settled_at is not None
+    assert_stock_integrity(variant)
+
+
+def test_p4_v08_ttl_boundary(clock):
+    variant, order = expired_hold(clock)
+
+    clock.travel("2026-03-01T13:00:00Z")
+    call_command("expire_reservations")
+    assert InventoryReservation.objects.get(order=order).state == "held"
+    assert stock_of(variant).reserved == 2
+
+    clock.travel("2026-03-01T13:00:00.000001Z")
+    call_command("expire_reservations")
+    assert InventoryReservation.objects.get(order=order).state == "released"
+    assert stock_of(variant).reserved == 0
+
+
+def test_expiry_leaves_unlapsed_and_settled_holds_alone(clock):
+    variant, lapsing = expired_hold(clock, on_hand=6, qty=1)
+    paid = holding_order(variant, 2)
+    services.commit_reservations(paid)
+    later = holding_order(variant, 1, ttl=timedelta(hours=3))
+    clock.travel("2026-03-01T13:30:00Z")
+
+    call_command("expire_reservations")
+
+    states = {
+        r.order_id: r.state
+        for r in InventoryReservation.objects.filter(variant=variant)
+    }
+    assert states == {
+        lapsing.pk: "released",
+        paid.pk: "committed",
+        later.pk: "held",
+    }
+    assert_stock_integrity(variant)
+
+
+def test_expiry_leaves_the_holds_of_a_paid_order_to_its_own_settlement(clock):
+    variant, order = expired_hold(clock)
+    Order.objects.filter(pk=order.pk).update(state="paid", shipping_address={})
+    clock.travel("2026-03-01T14:00:00Z")
+
+    call_command("expire_reservations")
+
+    assert InventoryReservation.objects.get(order=order).state == "held"

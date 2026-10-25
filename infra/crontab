@@ -1,0 +1,2 @@
+# Release lapsed stock holds (SPEC.md §4.8)
+*/5 * * * * python manage.py expire_reservations
