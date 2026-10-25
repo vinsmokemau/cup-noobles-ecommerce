@@ -2100,7 +2100,7 @@ Availability in the serializer, shaped by D10 (ADR-0037). Release 1 payload:
 
 Do not expose raw counts (D10, ADR-0037). `low_stock` when `1 <= available <= 5`. Release 2 adds the `preorder` status, `preorder_release_date` and `pickup_available` (T5.8).
 
-- [ ] **T5.1 — Catalog endpoints**
+- [x] **T5.1 — Catalog endpoints** (2026-10-25, 57b9219)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P5-V05, P5-V09, P5-V12
