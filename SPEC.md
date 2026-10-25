@@ -1986,7 +1986,7 @@ Per G2's proposed resolution, add the `enqueue_email()` helper: it writes an `em
 
 Per G20's proposed resolution, add a "Recibir mercancía" admin action: the staff member picks the variant and location and enters a quantity, and the action calls `receive_stock` with the staff user as `actor`. A zero or negative quantity is a form error. `on_hand` is never an editable field. The pre-order path (`receive_preorder_stock`, 10.3) is R2.
 
-- [ ] **T4.8 — Bin locations**
+- [x] **T4.8 — Bin locations** (2026-10-25, 8befc86)
   - Release: R1 · Gate: phase-close
   - REQs: REQ-064
   - Verifies: P4-V20
