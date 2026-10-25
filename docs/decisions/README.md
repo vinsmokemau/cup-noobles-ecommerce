@@ -44,3 +44,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0037](0037-public-stock-display.md) | The storefront shows a low-stock badge, with no counts | accepted | D10, G13; OA-40 |
 | [ADR-0038](0038-prelaunch-mode-site-setting.md) | Pre-launch mode is a database flag edited in the admin | accepted | G32; OA-41 |
 | [ADR-0039](0039-sepomex-launch-requirement.md) | The full SEPOMEX dataset is a launch requirement | accepted | G30; OA-43 |
+| [ADR-0040](0040-guest-lookup-post.md) | The guest order lookup is a POST with a JSON body | accepted | G35; OA-44 |

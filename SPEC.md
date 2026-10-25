@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.19 |
+| Spec version | 1.20 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -430,7 +430,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G32 | 3, 5, 12 | GE:T31, GE:T35, GE:T38, GE:M1 | The store must be live with real test purchases while the catalog is hidden, then published at once. Catalog responses are publicly cached (5.6). | A site-wide pre-launch switch. The public sees a "próximamente" page, which also serves GE:T04. Logged-in staff browse and buy, and their requests bypass the catalog cache. Going live is a bulk publish plus turning the switch off. | R1 | Resolved (ADR-0038) |
 | G33 | 2, 8, 10 | GE:T34, GE:T43, GE:§5.2 | The weekly dashboard and monthly report need data. Margin needs the unit cost at the time of sale, and `order_line` has no cost snapshot. | Admin CSV exports of orders, lines and shipments; a `unit_cost_cents` snapshot on `order_line` (schema change). Shipped-within-48-h and stock-cancellation counts come from timestamps and cancel reasons. | R1 | Resolved (ADR-0030) |
 | G34 | 4 | GE:§7.1, GE:T28 | Picking needs a bin location ("ubicación"), which the schema lacks | An optional text field on `stock_item`, shown on the order's packing view | R1 | Resolved (ADR-0030) |
-| G35 | 6 | 6.7 | The guest lookup sends the customer's email in the query string (`GET …/lookup/?number=&email=`), where proxy, CDN and error logs record it | `POST` with a JSON body, keeping the rate limit and the identical 404 for a wrong email | R1 | Open |
+| G35 | 6 | 6.7 | The guest lookup sends the customer's email in the query string (`GET …/lookup/?number=&email=`), where proxy, CDN and error logs record it | `POST` with a JSON body, keeping the rate limit and the identical 404 for a wrong email | R1 | Resolved (ADR-0040) |
 | G36 | 10 | GE:§1.2 | Pre-orders need a closing date, which the schema lacks | `preorder_closes_at` on the variant; `reserve()` rejects pre-orders after it | R2 | Deferred (R2) |
 | G37 | 4 | P4-V03, T8.6 | `expire_reservations` (4.3) moves the order `pending_payment → expired`, but in Phase 4 orders are drafts and `apply_event` arrives in Phase 8; `advance_orders` (8.6) also fires T5, so two jobs own expiry | In Phase 4 the job releases lapsed holds only. From Phase 8 it fires T5 through `apply_event`, and `advance_orders` stops firing T5. P4-V03 asserts the order state from Phase 8 on. | R1 | Resolved (ADR-0036) |
 | G38 | 4 | P4-V17, 21.4 | `low_stock_report` and `daily_digest` email "the owner", but no setting names the address | An `OWNER_ALERT_EMAIL` setting (§4.7): a `.test` address in development, the owner's monitored inbox in production | R1 | Resolved (ADR-0036) |
@@ -518,6 +518,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-41 | 2026-10-25 | G32: where does the pre-launch switch live, and what do anonymous catalog requests get while it is on? | Option A and X: a single-row `site_setting` table with a `prelaunch_mode` flag, edited in the admin, so staff go live without a deploy. While on, anonymous `/api/catalog/*` requests get `503` with `{"prelaunch": true}` and `Cache-Control: no-store`; a staff session gets the normal catalog with `Cache-Control: private`. ADR-0038. |
 | OA-42 | 2026-10-25 | Phase 6 task order: T6.1 (R2) was listed first but depends on T6.2, and R1 and R2 tasks were interleaved. Reorder? | Option A: T6.2, T6.6 and T6.7b (phase-close) run first; then, in R2, T6.1, T6.3, T6.4, T6.5, T6.7a and T6.8. An execution-order note is added. No ADR: cheap to reverse, spec text only. |
 | OA-43 | 2026-10-25 | G30: is the full SEPOMEX dataset a launch requirement, or optional? | Yes. The full dataset is a launch requirement; the sample stays for Part A (the proposed resolution). |
+| OA-44 | 2026-10-25 | G35: does the guest order lookup send the email in the URL (`GET`) or in a JSON body (`POST`)? | Option A: the proposed resolution. `POST /api/orders/lookup/` with the JSON body `{number, email}`, limited to 5 per hour per IP, and the same 404 for a wrong email and a missing order. |
 
 ---
 
@@ -2263,9 +2264,9 @@ Also build `manage.py load_postal_codes`, which reads `POSTAL_CODE_DATASET` and 
   - Verifies: P6-V14, P6-V18
   - Depends on: T6.2, T6.6
   - Context: §4.6 (API)
-  - Open items: G35 (tests xfail until decided)
+  - Open items: —
 
-Per G35's proposed resolution: `POST /api/orders/lookup/` with the JSON body `{number, email}`, rate-limited to 5 per hour per IP with `django-ratelimit` (added to the dependencies here). A guest with the order number and the email on the order can see its status without an account: the response is the order status serializer (state, lines, totals, the tracking link, and the pending voucher once 9.6 adds it). A wrong email and a missing order return the same 404 body.
+Per G35 (ADR-0040): `POST /api/orders/lookup/` with the JSON body `{number, email}`, rate-limited to 5 per hour per IP with `django-ratelimit` (added to the dependencies here). A guest with the order number and the email on the order can see its status without an account: the email never goes in the URL, so proxy, CDN and error logs cannot record it. The response is the order status serializer (state, lines, totals, the tracking link, and the pending voucher once 9.6 adds it). A wrong email and a missing order return the same 404 body.
 
 - [ ] **T6.1 — Auth endpoints**
   - Release: R2 · Gate: —
@@ -2364,7 +2365,7 @@ Execution order: T6.2, T6.6, T6.7b (phase-close, last of Release 1); then, in R2
 | P6-V11 [R2] | API | `api/tests/api/accounts/test_rate_limits.py::test_p6_v11_rate_limit_boundaries[endpoint]` | Per 6.4, the limit-th request succeeds and the next returns 429: register 5/h, login 10/15 min, reset 3/h, resend 3/h. The window resets after the period. *The guest-lookup case is P6-V18.* |
 | P6-V12 [R2] | API | `api/tests/api/accounts/test_addresses.py::test_p6_v12_address_cap` | 10 active addresses are allowed and the 11th is rejected; soft-deleted addresses neither count nor appear in the list. |
 | P6-V13 | API | `api/tests/api/accounts/test_postal_codes.py::test_p6_v13_postal_lookup` | A sample CP returns state, municipality and neighborhoods; an unknown CP returns 404; a malformed one returns 400. |
-| P6-V14 | API | `api/tests/api/accounts/test_guest_lookup.py::test_p6_v14_guest_lookup` | Order number with the matching email returns the order; a wrong email returns the same 404 as a missing order. ⚠️ G35 |
+| P6-V14 | API | `api/tests/api/accounts/test_guest_lookup.py::test_p6_v14_guest_lookup` | Order number with the matching email returns the order; a wrong email returns the same 404 as a missing order. |
 | P6-V15 [R2] | API | `api/tests/api/accounts/test_claim.py::test_p6_v15_claim_only_matching_email` | A verified customer claims only guest orders with their email — not other customers' orders, and not other emails. |
 | P6-V16 | integration | `api/tests/integration/accounts/test_cookies.py::test_p6_v16_session_cookie_flags` | Under `prod.py`: `HttpOnly`, `Secure`, `SameSite=Lax`, and a 30-day age. |
 | P6-V17 [R2] | unit | `api/tests/unit/accounts/test_passwords.py::test_p6_v17_min_length` | A 9-character password is rejected and a 10-character one accepted. |
@@ -4183,10 +4184,10 @@ Pickup and pre-orders in the cart and checkout: the delivery or pickup toggle in
   - Verifies: P14-V09, P14-V17
   - Depends on: Phase 13 closed
   - Context: 14.A; §4.5 (Consumption rules, Composition map); 6.7
-  - Open items: G35 (decides the request method; P6-V14 carries the xfail)
+  - Open items: —
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
 
-`/rastrear` calls the guest lookup endpoint (6.7): `POST` with a JSON body under G35's proposed resolution, `GET /api/orders/lookup/` otherwise. A wrong email and a missing order show the same message. The form is built from DS parts with `UForm` and Zod (CR-28), and submits through `useApi`. The result shows the order's status as a DS badge with its Spanish label; the full timeline is R2 (DSR-08).
+`/rastrear` calls the guest lookup endpoint (6.7): `POST` with a JSON body (G35, ADR-0040). A wrong email and a missing order show the same message. The form is built from DS parts with `UForm` and Zod (CR-28), and submits through `useApi`. The result shows the order's status as a DS badge with its Spanish label; the full timeline is R2 (DSR-08).
 
 - [ ] **T14.1 — Account route guard**
   - Release: R2 · Gate: —
@@ -5311,7 +5312,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 3 | ~~G12~~, G39 |
 | Phase 4 | ~~G2~~, ~~G15~~, ~~G20~~, ~~G24~~, ~~G34~~, ~~G37~~, ~~G38~~ |
 | Phase 5 | ~~G13~~ with ~~D10~~, ~~G32~~ |
-| Phase 6 | ~~G30~~, G35 |
+| Phase 6 | ~~G30~~, ~~G35~~ |
 | Phase 8 | ~~G3~~, G4, ~~G5~~, G25, G26, G27, ~~G31~~, ~~G33~~ |
 | Phase 9 | G7, G8, G11, G14 |
 | Phase 11 | G17; DSR-04, DSR-05 released |
@@ -5354,6 +5355,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.17 | 2026-10-25 | G32 resolved: pre-launch mode is a `site_setting.prelaunch_mode` flag edited in the admin; anonymous catalog requests get `503` `{"prelaunch": true}` with `no-store`. New table `site_setting` in `spec/schema.sql`. T5.7, T12.15, T15.6b and T22.5 lose their G32 open item; P5-V15, P12-V28, P15-V16, P22-V21, REQ-062 and demo step 10 lose their ⚠️ marker. No Verify ID or task change. | OA-41; ADR-0038 |
 | 1.18 | 2026-10-25 | Phase 6 task order: the tasks are listed in execution order (T6.2, T6.6, T6.7b, then the R2 tasks T6.1, T6.3, T6.4, T6.5, T6.7a, T6.8); an execution-order note added. No dependency, Verify ID, schema or task-ID change. | OA-42 |
 | 1.19 | 2026-10-25 | G30 resolved: the full SEPOMEX dataset is a launch requirement and the sample stays for Part A. T6.6 no longer lists G30 as open and T22.3 no longer lists it as an open item. No Verify ID, schema or task-ID change. | OA-43, ADR-0039 |
+| 1.20 | 2026-10-25 | G35 resolved: the guest order lookup is `POST /api/orders/lookup/` with a JSON body. The ⚠️ G35 mark is removed from P6-V14; T6.7b and T14.6 no longer list G35 as open. No Verify ID, schema or task-ID change. | OA-44, ADR-0040 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5442,6 +5444,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0037 | The storefront shows a low-stock badge, with no counts | `docs/decisions/0037-public-stock-display.md` | D10, G13; OA-40 |
 | ADR-0038 | Pre-launch mode is a database flag edited in the admin | `docs/decisions/0038-prelaunch-mode-site-setting.md` | G32; OA-41 |
 | ADR-0039 | The full SEPOMEX dataset is a launch requirement | `docs/decisions/0039-sepomex-launch-requirement.md` | G30; OA-43 |
+| ADR-0040 | The guest order lookup is a POST with a JSON body | `docs/decisions/0040-guest-lookup-post.md` | G35; OA-44 |
 
 ## Appendix C — Dated market facts
 
