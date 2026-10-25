@@ -11,7 +11,8 @@
     "typecheck": "nuxt typecheck",
     "lint": "eslint .",
     "format:check": "prettier --check .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "gen:api": "openapi-typescript ../api/openapi.snapshot.yml -o app/types/api.d.ts"
   },
   "dependencies": {
     "@nuxt/image": "2.2.0",

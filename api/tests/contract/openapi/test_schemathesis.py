@@ -46,3 +46,14 @@ def test_runner_fails_a_nonconforming_endpoint(settings):
     settings.ROOT_URLCONF = "tests.contract.openapi.urls_broken"
     with pytest.raises(BaseExceptionGroup, match="Schemathesis found"):
         fuzz_schema(generate_schema_text(), WSGIHandler(), max_examples=5)
+
+
+@pytest.mark.django_db
+def test_p5_v11_catalog_fuzz():
+    ran = fuzz_schema(
+        generate_schema_text(),
+        WSGIHandler(),
+        max_examples=MAX_EXAMPLES,
+        path_prefix="/api/catalog/",
+    )
+    assert ran == 5

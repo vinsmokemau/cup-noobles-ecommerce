@@ -121,7 +121,7 @@ MEDIA_ROOT = BASE_DIR / "var" / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# OpenAPI (§4.6). The harness needs a generator; T1.13b mounts the bare schema endpoint; T5.5 adds tags.
+# OpenAPI (§4.6). The harness needs a generator; T1.13b mounts the bare schema endpoint; T5.5 tags each operation by its API area.
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
@@ -130,5 +130,5 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "OAS_VERSION": "3.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
-    "SCHEMA_PATH_PREFIX": "/",
+    "SCHEMA_PATH_PREFIX": "/api/",
 }

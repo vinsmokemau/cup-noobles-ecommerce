@@ -71,7 +71,7 @@ check-migrations:
 
 schema-update:
 	@$(STEP) "openapi snapshot" $(API_TEST) python manage.py spectacular --validate --fail-on-warn --file openapi.snapshot.yml
-	@$(STEP) "api.d.ts" sh -c 'mkdir -p web/app/types && cd web && pnpm exec openapi-typescript ../api/openapi.snapshot.yml -o app/types/api.d.ts'
+	@$(STEP) "api.d.ts" sh -c 'mkdir -p web/app/types && cd web && pnpm gen:api'
 
 coverage-ratchet:
 	@$(STEP) "coverage baseline" $(API) $(RATCHET) --update

@@ -1,5 +1,6 @@
 """In-process schemathesis runner for the live OpenAPI schema (SPEC.md §4.6)."""
 
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -26,27 +27,46 @@ EXCLUDED_PATH_REGEX = r"^/(api/webhooks|dev)/"
 
 
 def fuzz_schema(
-    schema_text: str, app: Callable, *, max_examples: int, headers: dict | None = None
+    schema_text: str,
+    app: Callable,
+    *,
+    max_examples: int,
+    headers: dict | None = None,
+    path_prefix: str = "/",
 ) -> int:
     """Fuzz every operation of the schema against the WSGI app; return how many ran.
 
-    Raises on the first failed check. A schema with no operations passes.
+    Raises on the first failed check. A schema with no operations passes. `path_prefix`
+    narrows the run to the operations under it.
     """
     # The Django test client does this too: a request must not close the test's connection.
     request_started.disconnect(close_old_connections)
     request_finished.disconnect(close_old_connections)
     try:
-        return _fuzz(schema_text, app, max_examples=max_examples, headers=headers)
+        return _fuzz(
+            schema_text,
+            app,
+            max_examples=max_examples,
+            headers=headers,
+            path_prefix=path_prefix,
+        )
     finally:
         request_started.connect(close_old_connections)
         request_finished.connect(close_old_connections)
 
 
 def _fuzz(
-    schema_text: str, app: Callable, *, max_examples: int, headers: dict | None
+    schema_text: str,
+    app: Callable,
+    *,
+    max_examples: int,
+    headers: dict | None,
+    path_prefix: str,
 ) -> int:
     schema: Any = schemathesis.openapi.from_dict(yaml.safe_load(schema_text))
-    schema = schema.exclude(path_regex=EXCLUDED_PATH_REGEX)
+    schema = schema.exclude(path_regex=EXCLUDED_PATH_REGEX).include(
+        path_regex=f"^{re.escape(path_prefix)}"
+    )
     count = 0
     for result in schema.get_all_operations():
         operation = result.ok()

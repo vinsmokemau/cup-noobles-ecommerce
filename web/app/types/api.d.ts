@@ -97,7 +97,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description `GET /api/health/`: the database answers `SELECT 1`, or the service is unhealthy. */
-        get: operations["api_health_retrieve"];
+        get: operations["health_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -401,7 +401,7 @@ export interface operations {
             };
         };
     };
-    api_health_retrieve: {
+    health_retrieve: {
         parameters: {
             query?: never;
             header?: never;

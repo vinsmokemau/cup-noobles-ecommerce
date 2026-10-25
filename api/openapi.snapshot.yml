@@ -8,7 +8,7 @@ paths:
       operationId: catalog_categories_list
       description: '`GET /api/catalog/categories/`: active categories, nested by parent.'
       tags:
-      - api
+      - catalog
       security:
       - {}
       responses:
@@ -84,7 +84,7 @@ paths:
           minLength: 1
         description: Product type code.
       tags:
-      - api
+      - catalog
       security:
       - {}
       responses:
@@ -171,7 +171,7 @@ paths:
           minLength: 1
         description: Product type code.
       tags:
-      - api
+      - catalog
       security:
       - {}
       responses:
@@ -195,7 +195,7 @@ paths:
           type: string
         required: true
       tags:
-      - api
+      - catalog
       security:
       - {}
       responses:
@@ -220,7 +220,7 @@ paths:
         description: Words to find.
         required: true
       tags:
-      - api
+      - catalog
       security:
       - {}
       responses:
@@ -236,11 +236,11 @@ paths:
           description: A query parameter is invalid.
   /api/health/:
     get:
-      operationId: api_health_retrieve
+      operationId: health_retrieve
       description: '`GET /api/health/`: the database answers `SELECT 1`, or the service
         is unhealthy.'
       tags:
-      - api
+      - health
       security:
       - {}
       responses:
