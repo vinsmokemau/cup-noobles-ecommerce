@@ -23,7 +23,7 @@ IN_STOCK = "in_stock"
 LOW_STOCK = "low_stock"
 OUT_OF_STOCK = "out_of_stock"
 
-# 5.3: `low_stock` when 1 <= available <= 5. G13 asks whether D10 means "under 5".
+# 5.3: `low_stock` when 1 <= available <= 5. ADR-0037.
 LOW_STOCK_MAX = 5
 
 ANNOTATION = "available_units"

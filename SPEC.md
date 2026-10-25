@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.15 |
+| Spec version | 1.16 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -380,7 +380,7 @@ Status values: **Open**; **Decided** (an owner answer exists; its ADR is written
 | D7 | Meses sin intereses: enable it, and at which terms? The store absorbs the fee. | Phase 16 | R1 | §2.5 | Open |
 | D8 | Mixed pre-order and in-stock orders ship complete (A6), or in-stock items ship first | — | R2 | — | Deferred (R2) |
 | D9 | Pre-order cancellation policy | — | R2 | — | Deferred (R2) |
-| D10 | Show exact stock counts, a low-stock badge, or only in or out of stock (G13) | Phase 22 | R1 | Low-stock badge, no counts (5.3) | Open |
+| D10 | Show exact stock counts, a low-stock badge, or only in or out of stock (G13) | Phase 22 | R1 | Low-stock badge, no counts (5.3) | Decided (ADR-0037) |
 | D11 | Brand assets: logo, colors, photography standards | — | R1 | — | Resolved by the DS: logos DS:ADR-0016, icons DS:ADR-0012, focus DS:ADR-0009, photos DS:ADR-0056 and DS:ADR-0057, colors DS:BR-01 to BR-03. ADR in T1.15. |
 | D12 | The initial catalog file for the importer (3.6), from GE:T31. It is never committed (CR-49). | Phase 22 | R1 | `seed_demo`, generated CSVs | Open |
 | D13 | Mercado Pago settlement speed. Faster settlement costs a higher fee. | Phase 16 | R1 | — | Open |
@@ -408,7 +408,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G10 | 10 | P10-V13 | The pickup reminder has no defined window | Send at ≤ 24 h remaining, with a dedupe key | R2 | Deferred (R2) |
 | G11 | 9 | P9-V21 | T1 reserves stock for the card TTL before the payment method is known; an OXXO voucher can arrive for an expired order | A separate checkout-session TTL; a `pending` notification for an expired order alerts and, where possible, cancels the voucher | R1 | Open |
 | G12 | 3 | P3-V09 | `import_catalog` doesn't say what happens to valid rows when some rows are invalid | All or nothing per file, reporting every invalid row | R1 | Resolved (ADR-0033) |
-| G13 | 5 | P5-V07 | D10 suggests a badge "under 5"; 5.3 defines `low_stock` as 1 ≤ available ≤ 5 | Decide together with D10 | R1 | Open |
+| G13 | 5 | P5-V07 | D10 suggests a badge "under 5"; 5.3 defines `low_stock` as 1 ≤ available ≤ 5 | Decide together with D10 | R1 | Resolved (ADR-0037) |
 | G14 | 9 | P9-V14 | A webhook and `reconcile_payments` processing one approval concurrently: the second `apply_event` raises `IllegalTransition` under the lock | Treat it as `webhook_no_op` when the order already reflects the status | R1 | Open |
 | G15 | 4 | P4-V16 | `commit_reservations` is not specified as idempotent | A second commit of committed reservations is a no-op | R1 | Resolved (ADR-0036) |
 | G16 | 10 | P10-V21 | T9 into `ready_for_pickup` doesn't set `pickup_deadline_at` | T9 sets it | R2 | Deferred (R2) |
@@ -514,6 +514,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-37 | 2026-10-25 | G37: which job expires an unpaid order, and when does the order state change? | Option A: the proposed resolution. In Phase 4 `expire_reservations` releases lapsed holds only. From Phase 8 it fires T5 through `apply_event`, and `advance_orders` stops firing T5. ADR-0036. |
 | OA-38 | 2026-10-25 | G38: which address receives the owner's alerts? | Option A: the proposed resolution. An `OWNER_ALERT_EMAIL` setting (§4.7): a `.test` address in development, the owner's monitored inbox in production. ADR-0036. |
 | OA-39 | 2026-10-25 | Phase 5 task order: T5.1 filtered and reported by availability (T5.3) and by attributes (T5.2), and P5-V01 needed both. Reorder? | Option A: T5.3 runs first, then T5.1, T5.2, T5.4, T5.5, T5.6, T5.7 (phase-close); T5.8 stays R2. The facets endpoint and P5-V13 move from T5.1 to T5.2. The "Depends on" lines of T5.1, T5.2, T5.3 and T5.4 are fixed. No ADR: cheap to reverse, spec text only. |
+| OA-40 | 2026-10-25 | G13 with D10: does `low_stock` include exactly 5 units, and does the storefront show counts? | Option A: the proposed resolution. `low_stock` when `1 <= available <= 5` (5 units shows `low_stock`); a low-stock badge and no raw counts. ADR-0037. |
 
 ---
 
@@ -1213,7 +1214,7 @@ Three kinds of work run in parallel with any phase, because they happen outside 
 | 19 | Carrier integration | B | All | The carrier contract suite passes with the manual carrier | S7 |
 | 20 | Deployment, CI/CD and cost | B | All, plus the scheduler (G23) | A push to `main` reaches production with no manual step | D1 |
 | 21 | Observability, backups and the runbook | B | All | Problems alert the owner; a restore has been practised | S6 |
-| 22 | Launch (Release 1) | B | The launch checklist | Every checklist item is ticked; `check_placeholders` exits 0 | D2, D4, D5, D10, D12, D15, D16, D18 |
+| 22 | Launch (Release 1) | B | The launch checklist | Every checklist item is ticked; `check_placeholders` exits 0 | D2, D4, D5, D12, D15, D16, D18 |
 
 **Milestones.** Local acceptance: P15-V14 passes; Part B starts only after it. Release 1: the Phase 22 checklist is complete and the store is open.
 
@@ -2090,15 +2091,14 @@ Execution order: T5.3, T5.1, T5.2, T5.4, T5.5, T5.6, T5.7 (phase-close, last); t
   - Verifies: P5-V07, P5-V08
   - Depends on: Phase 4 closed
   - Context: "Core rules" of Phase 4
-  - Open items: D10 (stand-in §2.5); G13 (tests xfail until decided)
 
-Availability in the serializer, shaped by D10. Release 1 payload:
+Availability in the serializer, shaped by D10 (ADR-0037). Release 1 payload:
 
 ```json
 {"status": "in_stock" | "low_stock" | "out_of_stock"}
 ```
 
-Do not expose raw counts unless D10 says to. `low_stock` when `1 <= available <= 5`. Release 2 adds the `preorder` status, `preorder_release_date` and `pickup_available` (T5.8).
+Do not expose raw counts (D10, ADR-0037). `low_stock` when `1 <= available <= 5`. Release 2 adds the `preorder` status, `preorder_release_date` and `pickup_available` (T5.8).
 
 - [ ] **T5.1 — Catalog endpoints**
   - Release: R1 · Gate: task
@@ -2200,8 +2200,8 @@ Add to the availability payload the `preorder` status, `preorder_release_date`, 
 | Test ID | Layer | File path · test | What it asserts |
 |---|---|---|---|
 | P5-V06 | API | `api/tests/api/catalog/test_product_list.py::test_p5_v06_non_filterable_key_rejected` | An attribute key not in `filterable_keys` returns 400. |
-| P5-V07 | API | `api/tests/api/catalog/test_availability.py::test_p5_v07_status_boundaries[available]` | `0 → out_of_stock`; `1` and `5 → low_stock`; `6 → in_stock`. ⚠️ G13 |
-| P5-V08 | API | `api/tests/api/catalog/test_availability.py::test_p5_v08_no_raw_counts_exposed` | No response contains `on_hand`, `reserved` or a numeric availability (D10 default). |
+| P5-V07 | API | `api/tests/api/catalog/test_availability.py::test_p5_v07_status_boundaries[available]` | `0 → out_of_stock`; `1` and `5 → low_stock`; `6 → in_stock`. |
+| P5-V08 | API | `api/tests/api/catalog/test_availability.py::test_p5_v08_no_raw_counts_exposed` | No response contains `on_hand`, `reserved` or a numeric availability (D10). |
 | P5-V09 | API | `api/tests/api/catalog/test_product_detail.py::test_p5_v09_draft_and_archived_hidden` | Draft and archived products are absent from the list and return 404 on detail. |
 | P5-V10 | API | `api/tests/api/catalog/test_caching.py::test_p5_v10_cache_control` | Catalog GETs send `Cache-Control: public, max-age=60`; cart and order endpoints do not. |
 | P5-V11 | contract | `api/tests/contract/openapi/test_schemathesis.py::test_p5_v11_catalog_fuzz` | Catalog endpoints never return 5xx and every response conforms to the schema. |
@@ -5166,7 +5166,7 @@ Swap in the Mercado Pago production credentials and webhook secret (the owner se
   - Verifies: P22-V09 [manual], P22-V10 [manual], P22-V11 [manual], P22-V12 [manual], P22-V13 [manual], P22-V14 [manual], P22-V15 [manual]
   - Depends on: T22.2
   - Context: §2.5; 3.6; 6.6; T4.7; T2.9
-  - Open items: D4, D5, D10, D12, D15 (blocking); G30
+  - Open items: D4, D5, D12, D15 (blocking); G30
 
 Load the production data, replacing every §2.5 dev default:
 
@@ -5305,7 +5305,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Before Phase 2 (schema) | D14 (types), D16 (fields); ~~G3~~, ~~G5~~, ~~G28~~, ~~G31~~, ~~G33~~, ~~G34~~ (§4.4) |
 | Phase 3 | ~~G12~~, G39 |
 | Phase 4 | ~~G2~~, ~~G15~~, ~~G20~~, ~~G24~~, ~~G34~~, ~~G37~~, ~~G38~~ |
-| Phase 5 | G13 with D10, G32 |
+| Phase 5 | ~~G13~~ with ~~D10~~, G32 |
 | Phase 6 | G30, G35 |
 | Phase 8 | ~~G3~~, G4, ~~G5~~, G25, G26, G27, ~~G31~~, ~~G33~~ |
 | Phase 9 | G7, G8, G11, G14 |
@@ -5318,7 +5318,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 19 | S7 |
 | Phase 20 | D1, G23 |
 | Phase 21 | S6 |
-| Phase 22 | D2, D4, D5, D10, D12, D15, D16 (the rest), D18 |
+| Phase 22 | D2, D4, D5, ~~D10~~, D12, D15, D16 (the rest), D18 |
 | Release 2 | D8, D9, G6, G9, G10, G16, G36, DSR-08 |
 
 ## 8. Spec change log
@@ -5345,6 +5345,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.13 | 2026-10-25 | G20 resolved: the "Recibir mercancía" admin action calls `receive_stock` in R1 and `receive_preorder_stock` for pre-order variants in R2. T4.7, T10.3 and the Phase 15 task lose their G20 open item; P4-V19, REQ-064, P15-V05 and demo step 11 lose their ⚠️ marker. No Verify ID, task or schema change. | OA-34; ADR-0035 |
 | 1.14 | 2026-10-25 | G2, G15, G37 and G38 resolved as proposed: `enqueue_email()` in Phase 4; `commit_reservations` idempotent; `expire_reservations` releases holds in Phase 4 and fires T5 through `apply_event` from Phase 8, and `advance_orders` stops firing T5 (T8.6a); `OWNER_ALERT_EMAIL` added to §4.7. T4.1, T4.3, T4.6 and T6.2 lose their open items; P4-V03 asserts the order state from Phase 8; P4-V16, P4-V17, P6-V01 and P6-V04 lose their ⚠️ marker. No Verify ID, task or schema change. | OA-35 to OA-38; ADR-0036 |
 | 1.15 | 2026-10-25 | Phase 5 task order: T5.3 now precedes T5.1 and T5.2 (they depended on availability); the facets endpoint and P5-V13 move from T5.1 to T5.2; "Depends on" fixed in T5.1, T5.2, T5.3 and T5.4; an execution-order note added. No Verify ID, schema or task-ID change. | OA-39 |
+| 1.16 | 2026-10-25 | D10 decided and G13 resolved: `low_stock` is `1 <= available <= 5`, with a badge and no raw counts. T5.3 loses its open items, P5-V07 loses its ⚠️ marker, and D10 leaves the blocking list of T22.3. No Verify ID, task or schema change. | OA-40; ADR-0037 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5430,6 +5431,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0034 | The stock integrity command is built in Phase 4 | `docs/decisions/0034-stock-integrity-command-phase-4.md` | G24; OA-33 |
 | ADR-0035 | Goods are received through an admin action | `docs/decisions/0035-receive-goods-admin-action.md` | G20; OA-34 |
 | ADR-0036 | Phase 4 open items: outbox helper, idempotent commit, expiry job, owner alert address | `docs/decisions/0036-phase-4-open-items.md` | G2, G15, G37, G38; OA-35 to OA-38 |
+| ADR-0037 | The storefront shows a low-stock badge, with no counts | `docs/decisions/0037-public-stock-display.md` | D10, G13; OA-40 |
 
 ## Appendix C — Dated market facts
 

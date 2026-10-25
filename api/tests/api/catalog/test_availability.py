@@ -26,7 +26,7 @@ def payload(variants) -> dict:
     return {row["public_id"]: json.loads(JSONRenderer().render(row)) for row in data}
 
 
-# G13: the boundary at 5 follows 5.3 (1 <= available <= 5); D10 says "under 5".
+# G13 (ADR-0037): 5 units available is still low_stock.
 @pytest.mark.parametrize(
     ("available", "status"),
     [
