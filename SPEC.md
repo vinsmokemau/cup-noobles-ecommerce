@@ -1952,7 +1952,7 @@ def adjust_stock(variant, location, delta, *, reason, actor, note) -> None:
 
 Admin: a read-only `StockLedger` view filtered by variant and date; a `StockItem` changelist with an inline "adjust" action that calls `adjust_stock` (never a raw editable `on_hand` field — that would bypass the ledger).
 
-- [ ] **T4.9 — Stock integrity command**
+- [x] **T4.9 — Stock integrity command** (2026-10-24, e5e78de)
   - Release: R1 · Gate: task
   - REQs: REQ-011
   - Verifies: P4-V07
