@@ -259,3 +259,37 @@ def test_p5_v06_non_filterable_key_rejected(api_client, catalog_dataset):
 
     assert response.status_code == 400
     assert "attr.secreto" in response.json()
+
+
+def test_p5_v03_query_count_bounded(api_client, django_assert_max_num_queries):
+    """No N+1: the list costs the same few queries at 24 and at 48 rows per page."""
+    from tests.factories.catalog import (
+        BrandFactory,
+        FranchiseFactory,
+        ProductImageFactory,
+    )
+
+    figure = ProductTypeFactory(code="figure")
+    for n in range(50):
+        product = ProductFactory(
+            published=True,
+            slug=f"producto-{n}",
+            product_type=figure,
+            brand=BrandFactory(),
+            franchise=FranchiseFactory(),
+        )
+        stocked_variant(5, product=product, sku=f"P-{n}-A", position=1)
+        stocked_variant(
+            0,
+            product=product,
+            sku=f"P-{n}-B",
+            position=2,
+            options={"edicion": "basica"},
+        )
+        ProductImageFactory(product=product)
+
+    for page_size in (24, 48):
+        with django_assert_max_num_queries(9):
+            response = api_client.get(f"{URL}?page_size={page_size}")
+        assert response.status_code == 200
+        assert len(response.json()["results"]) == page_size
