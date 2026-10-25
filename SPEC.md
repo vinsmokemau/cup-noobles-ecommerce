@@ -2420,7 +2420,7 @@ Seed `shipping_zone`, `shipping_zone_state`, `shipping_rate` from D5. In Part A,
 
 Cart identity: an opaque `cart_token` cookie (`HttpOnly`, `SameSite=Lax`, 30 days). A request without a valid token gets a new cart on its first write.
 
-- [ ] **T7.1 — Cart endpoints**
+- [x] **T7.1 — Cart endpoints** (2026-10-25, 28b77e6)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P7-V10, P7-V16, P7-V18
