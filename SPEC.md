@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.14 |
+| Spec version | 1.15 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -513,6 +513,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-36 | 2026-10-25 | G15: is `commit_reservations` idempotent? | Option A: the proposed resolution. A second commit of committed reservations is a no-op. ADR-0036. |
 | OA-37 | 2026-10-25 | G37: which job expires an unpaid order, and when does the order state change? | Option A: the proposed resolution. In Phase 4 `expire_reservations` releases lapsed holds only. From Phase 8 it fires T5 through `apply_event`, and `advance_orders` stops firing T5. ADR-0036. |
 | OA-38 | 2026-10-25 | G38: which address receives the owner's alerts? | Option A: the proposed resolution. An `OWNER_ALERT_EMAIL` setting (§4.7): a `.test` address in development, the owner's monitored inbox in production. ADR-0036. |
+| OA-39 | 2026-10-25 | Phase 5 task order: T5.1 filtered and reported by availability (T5.3) and by attributes (T5.2), and P5-V01 needed both. Reorder? | Option A: T5.3 runs first, then T5.1, T5.2, T5.4, T5.5, T5.6, T5.7 (phase-close); T5.8 stays R2. The facets endpoint and P5-V13 move from T5.1 to T5.2. The "Depends on" lines of T5.1, T5.2, T5.3 and T5.4 are fixed. No ADR: cheap to reverse, spec text only. |
 
 ---
 
@@ -2081,37 +2082,13 @@ Admin: an "Registrar venta en tienda" page — pick location, scan/type SKUs, qu
 
 #### Tasks
 
-- [ ] **T5.1 — Catalog endpoints**
-  - Release: R1 · Gate: task
-  - REQs: —
-  - Verifies: P5-V05, P5-V09, P5-V12, P5-V13
-  - Depends on: Phase 4 closed
-  - Context: §4.4 (the attribute-agnostic catalog)
-
-Endpoints (all under `/api/`, all read-only, all cacheable):
-
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/api/catalog/products/` | List. Filters: `category`, `franchise`, `brand`, `type`, `q`, `min_price`, `max_price`, `in_stock`, plus dynamic `attr.<key>=<value>` (the `preorder` filter is R2). Cursor pagination. |
-| GET | `/api/catalog/products/{slug}/` | Detail with variants, images, availability, related products (G28, ADR-0030: products that share the franchise or a category). |
-| GET | `/api/catalog/categories/` | Tree. |
-| GET | `/api/catalog/facets/` | Available filter values for the current query, driven by `product_type.filterable_keys`. |
-| GET | `/api/catalog/search/?q=` | Full-text over `search_tsv` with trigram fallback for typos. |
-
-- [ ] **T5.2 — Attribute filters**
-  - Release: R1 · Gate: task
-  - REQs: —
-  - Verifies: P5-V01, P5-V02, P5-V06
-  - Depends on: T5.1
-  - Context: §4.4 (the attribute-agnostic catalog)
-
-Dynamic attribute filtering: translate `?attr.linea=Nendoroid` into `attributes @> '{"linea":"Nendoroid"}'` using a parameterised query. **Whitelist the key against `product_type.filterable_keys`** before building the query — never interpolate a user-supplied key into SQL.
+Execution order: T5.3, T5.1, T5.2, T5.4, T5.5, T5.6, T5.7 (phase-close, last); then, in R2, T5.8. T5.3 comes first because the list and detail endpoints (T5.1) filter and report by availability, and P5-V01 (T5.2) combines an attribute filter with `in_stock`. The facets endpoint and P5-V13 move from T5.1 to T5.2, which builds the filters they count. IDs keep their numbers (OA-39).
 
 - [ ] **T5.3 — Availability**
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P5-V07, P5-V08
-  - Depends on: T5.2
+  - Depends on: Phase 4 closed
   - Context: "Core rules" of Phase 4
   - Open items: D10 (stand-in §2.5); G13 (tests xfail until decided)
 
@@ -2123,11 +2100,40 @@ Availability in the serializer, shaped by D10. Release 1 payload:
 
 Do not expose raw counts unless D10 says to. `low_stock` when `1 <= available <= 5`. Release 2 adds the `preorder` status, `preorder_release_date` and `pickup_available` (T5.8).
 
+- [ ] **T5.1 — Catalog endpoints**
+  - Release: R1 · Gate: task
+  - REQs: —
+  - Verifies: P5-V05, P5-V09, P5-V12
+  - Depends on: T5.3
+  - Context: §4.4 (the attribute-agnostic catalog)
+
+Endpoints (all under `/api/`, all read-only, all cacheable):
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/catalog/products/` | List. Filters: `category`, `franchise`, `brand`, `type`, `q`, `min_price`, `max_price`, `in_stock` (the dynamic `attr.<key>` filters are T5.2; the `preorder` filter is R2). Cursor pagination. |
+| GET | `/api/catalog/products/{slug}/` | Detail with variants, images, availability, related products (G28, ADR-0030: products that share the franchise or a category). |
+| GET | `/api/catalog/categories/` | Tree. |
+| GET | `/api/catalog/search/?q=` | Full-text over `search_tsv` with trigram fallback for typos. |
+
+The facets endpoint (`/api/catalog/facets/`) is built in T5.2, with the attribute filters it counts. `in_stock` and the `availability` field use the availability built in T5.3.
+
+- [ ] **T5.2 — Attribute filters**
+  - Release: R1 · Gate: task
+  - REQs: —
+  - Verifies: P5-V01, P5-V02, P5-V06, P5-V13
+  - Depends on: T5.1
+  - Context: §4.4 (the attribute-agnostic catalog)
+
+Dynamic attribute filtering: translate `?attr.linea=Nendoroid` into `attributes @> '{"linea":"Nendoroid"}'` using a parameterised query. **Whitelist the key against `product_type.filterable_keys`** before building the query — never interpolate a user-supplied key into SQL.
+
+Then add `GET /api/catalog/facets/`: the available filter values for the current query, driven by `product_type.filterable_keys`. The counts reflect every active filter, including `attr.*`.
+
 - [ ] **T5.4 — Query performance**
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P5-V03
-  - Depends on: T5.3
+  - Depends on: T5.2
   - Context: §4.6 (API)
 
 `select_related` on type/brand/franchise, `prefetch_related` on variants, images, and stock items. Assert the product list endpoint issues a bounded number of queries regardless of page size — add `django-zen-queries` or an explicit `assertNumQueries` test. N+1 on the catalog list is the most likely performance bug in this system.
@@ -5338,6 +5344,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.12 | 2026-10-24 | G24 resolved: `check_stock_integrity` is built in Phase 4 (T4.9) and T21.7 stays absorbed. T4.9 loses its G24 open item and P4-V07 loses its ⚠️ marker. No Verify ID, task or schema change. | OA-33; ADR-0034 |
 | 1.13 | 2026-10-25 | G20 resolved: the "Recibir mercancía" admin action calls `receive_stock` in R1 and `receive_preorder_stock` for pre-order variants in R2. T4.7, T10.3 and the Phase 15 task lose their G20 open item; P4-V19, REQ-064, P15-V05 and demo step 11 lose their ⚠️ marker. No Verify ID, task or schema change. | OA-34; ADR-0035 |
 | 1.14 | 2026-10-25 | G2, G15, G37 and G38 resolved as proposed: `enqueue_email()` in Phase 4; `commit_reservations` idempotent; `expire_reservations` releases holds in Phase 4 and fires T5 through `apply_event` from Phase 8, and `advance_orders` stops firing T5 (T8.6a); `OWNER_ALERT_EMAIL` added to §4.7. T4.1, T4.3, T4.6 and T6.2 lose their open items; P4-V03 asserts the order state from Phase 8; P4-V16, P4-V17, P6-V01 and P6-V04 lose their ⚠️ marker. No Verify ID, task or schema change. | OA-35 to OA-38; ADR-0036 |
+| 1.15 | 2026-10-25 | Phase 5 task order: T5.3 now precedes T5.1 and T5.2 (they depended on availability); the facets endpoint and P5-V13 move from T5.1 to T5.2; "Depends on" fixed in T5.1, T5.2, T5.3 and T5.4; an execution-order note added. No Verify ID, schema or task-ID change. | OA-39 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
