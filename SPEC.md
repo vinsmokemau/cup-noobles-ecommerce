@@ -2401,7 +2401,7 @@ Execution order: T6.2, T6.6, T6.7b (phase-close, last of Release 1); then, in R2
 
 Totals live in exactly one function, `orders/pricing.py::compute_totals(lines, shipping_cents, discount_cents)`, returning subtotal, shipping, discount, total, and `tax_included_cents = round(total * 16 / 116)`. The cart endpoint, the checkout endpoint and the order creation path all call it. Never duplicate this arithmetic (CR-02).
 
-- [ ] **T7.7 — Shipping zones and rates seed**
+- [x] **T7.7 — Shipping zones and rates seed** (2026-10-25, 33b9a08)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: seed data; the quote tests of T7.6 assert the seeded shape]
