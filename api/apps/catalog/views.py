@@ -8,6 +8,7 @@ from typing import Any
 
 from django.db.models import Exists, OuterRef, Prefetch, Q, QuerySet
 from django.shortcuts import get_object_or_404
+from django.utils.cache import patch_cache_control
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import generics, serializers
@@ -35,6 +36,7 @@ from apps.catalog.serializers import (
     ProductDetailSerializer,
 )
 
+CATALOG_MAX_AGE = 60  # seconds; nothing busts it (T5.6), add-to-cart re-checks stock
 RELATED_LIMIT = 8  # products shown under a product page (G28, ADR-0030)
 SEARCH_LIMIT = 48
 
@@ -104,8 +106,18 @@ def present_params(request: Request) -> dict[str, str]:
 
 
 class CatalogView:
+    """Anonymous and cacheable: a successful response may be kept by the CDN for a minute."""
+
     authentication_classes: list = []
     permission_classes = [AllowAny]
+
+    def finalize_response(
+        self, request: Request, response: Response, *args: Any, **kwargs: Any
+    ) -> Response:
+        response = super().finalize_response(request, response, *args, **kwargs)  # type: ignore[misc]
+        if response.status_code == 200:
+            patch_cache_control(response, public=True, max_age=CATALOG_MAX_AGE)
+        return response
 
 
 class ProductListView(CatalogView, generics.ListAPIView):
