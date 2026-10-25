@@ -1974,7 +1974,7 @@ Per G2's proposed resolution, add the `enqueue_email()` helper: it writes an `em
 
 `manage.py low_stock_report` — emails the owner a list of variants with `available <= safety_stock`. Run daily: add its line to `infra/crontab` (§4.8).
 
-- [ ] **T4.7 — Receiving goods in the admin**
+- [x] **T4.7 — Receiving goods in the admin** (2026-10-25, a0a981e)
   - Release: R1 · Gate: task
   - REQs: REQ-064
   - Verifies: P4-V19
