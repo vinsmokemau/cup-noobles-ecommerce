@@ -2233,7 +2233,7 @@ Add to the availability payload the `preorder` status, `preorder_release_date`, 
 
 #### Tasks
 
-- [ ] **T6.2 — Session cookie and CSRF settings**
+- [x] **T6.2 — Session cookie and CSRF settings** (2026-10-25, 6e6879a)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P6-V16
