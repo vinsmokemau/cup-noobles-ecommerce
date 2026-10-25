@@ -2084,7 +2084,7 @@ Admin: an "Registrar venta en tienda" page — pick location, scan/type SKUs, qu
 
 Execution order: T5.3, T5.1, T5.2, T5.4, T5.5, T5.6, T5.7 (phase-close, last); then, in R2, T5.8. T5.3 comes first because the list and detail endpoints (T5.1) filter and report by availability, and P5-V01 (T5.2) combines an attribute filter with `in_stock`. The facets endpoint and P5-V13 move from T5.1 to T5.2, which builds the filters they count. IDs keep their numbers (OA-39).
 
-- [ ] **T5.3 — Availability**
+- [x] **T5.3 — Availability** (2026-10-25, 47b9707)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P5-V07, P5-V08
