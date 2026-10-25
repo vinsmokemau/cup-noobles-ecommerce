@@ -2475,7 +2475,7 @@ Per-line availability in the cart response: `ok`, `reduced` (fewer available tha
 
 Unknown postal code → 400 with a clear message, never a silent zero. Wire `POST /api/cart/fulfillment/` (T7.1) to this service. In Release 2, pickup always quotes `price_cents = 0` (enforced by the `order_pickup_has_no_shipping_fee` constraint).
 
-- [ ] **T7.5a — Lines that need no shipping**
+- [x] **T7.5a — Lines that need no shipping** (2026-10-25, 4556332)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: a constraint on T7.1 and T7.6 that no plan Verify item isolates; the default path is covered by the tests of T7.3 and T7.4]
