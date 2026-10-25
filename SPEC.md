@@ -2457,7 +2457,7 @@ Every unsafe method requires `X-CSRFToken` (T6.2).
 
 Per-line availability in the cart response: `ok`, `reduced` (fewer available than requested — return `max_available`), or `unavailable`. Release 2 adds `preorder`. The cart never silently changes quantities; it reports and lets the customer decide.
 
-- [ ] **T7.6 — Shipping quote**
+- [x] **T7.6 — Shipping quote** (2026-10-25, e971c8f)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P7-V04, P7-V05, P7-V08, P7-V09
