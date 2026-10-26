@@ -167,6 +167,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/checkout/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description `POST /api/checkout/`: the cart named by the `cart_token` cookie becomes an order.
+         *
+         *     Atomic and safe to repeat (REQ-021). The cart row is locked first, so two requests with the
+         *     same `Idempotency-Key` take turns: the second finds the order the first created. Any refusal
+         *     rolls back, so it leaves no order and no reservation.
+         */
+        post: operations["checkout_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health/": {
         parameters: {
             query?: never;
@@ -277,6 +300,62 @@ export interface components {
             description?: string;
             readonly children: components["schemas"]["CategoryNode"][];
         };
+        /**
+         * @description The delivery address given in the request, frozen into `order.shipping_address` (T8.2).
+         *     The fields are the NOT NULL columns of `address` in `spec/schema.sql`.
+         */
+        CheckoutAddress: {
+            recipient_name: string;
+            street: string;
+            ext_number: string;
+            /** @default  */
+            int_number: string;
+            neighborhood: string;
+            municipality: string;
+            state_code: string;
+            postal_code: string;
+            /** @default  */
+            delivery_notes: string;
+        };
+        CheckoutLineError: {
+            /** Format: uuid */
+            variant_public_id: string;
+            sku: string;
+            code: components["schemas"]["CodeEnum"];
+            requested: number;
+            available: number | null;
+        };
+        CheckoutLinesUnavailable: {
+            code: string;
+            line_errors: components["schemas"]["CheckoutLineError"][];
+        };
+        /**
+         * @description `POST /api/checkout/` in Release 1: delivery only. A saved `address_id` and a
+         *     `pickup_location_id` are Release 2 (T8.11).
+         */
+        CheckoutRequest: {
+            /** Format: email */
+            email: string;
+            /** @default  */
+            phone: string;
+            /** @description `delivery` is the only method in Release 1. */
+            fulfillment_method: string;
+            address_payload: components["schemas"]["CheckoutAddress"];
+            /** @default  */
+            customer_note: string;
+        };
+        CheckoutResponse: {
+            order_number: string;
+            /** Format: uuid */
+            order_public_id: string;
+            checkout_url: string;
+        };
+        /**
+         * @description * `unavailable` - unavailable
+         *     * `insufficient_stock` - insufficient_stock
+         * @enum {string}
+         */
+        CodeEnum: "unavailable" | "insufficient_stock";
         /** @description A product image as its derivatives; the original is never given out (T3.5). */
         DetailImage: {
             alt?: string;
@@ -899,6 +978,72 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Prelaunch"];
                 };
+            };
+        };
+    };
+    checkout_create: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Repeating the key with the same body returns the same order. */
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CheckoutRequest"];
+                "multipart/form-data": components["schemas"]["CheckoutRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutResponse"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutResponse"];
+                };
+            };
+            /** @description Field errors, an empty cart, or an address with no shipping price. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The CSRF token is missing or wrong. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A line is unavailable or short of stock; nothing was reserved. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutLinesUnavailable"];
+                };
+            };
+            /** @description `idempotency_key_reused`: the key was used with a different body. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

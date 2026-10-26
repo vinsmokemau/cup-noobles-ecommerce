@@ -434,6 +434,65 @@ paths:
               schema:
                 $ref: '#/components/schemas/Prelaunch'
           description: Pre-launch mode is on and the request is anonymous (G32, ADR-0038).
+  /api/checkout/:
+    post:
+      operationId: checkout_create
+      description: |-
+        `POST /api/checkout/`: the cart named by the `cart_token` cookie becomes an order.
+
+        Atomic and safe to repeat (REQ-021). The cart row is locked first, so two requests with the
+        same `Idempotency-Key` take turns: the second finds the order the first created. Any refusal
+        rolls back, so it leaves no order and no reservation.
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        schema:
+          type: string
+        description: Repeating the key with the same body returns the same order.
+      tags:
+      - checkout
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+        required: true
+      security:
+      - csrfToken: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutResponse'
+          description: ''
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutResponse'
+          description: ''
+        '400':
+          description: Field errors, an empty cart, or an address with no shipping
+            price.
+        '403':
+          description: The CSRF token is missing or wrong.
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutLinesUnavailable'
+          description: A line is unavailable or short of stock; nothing was reserved.
+        '422':
+          description: '`idempotency_key_reused`: the key was used with a different
+            body.'
   /api/health/:
     get:
       operationId: health_retrieve
@@ -661,6 +720,133 @@ components:
       - children
       - name
       - slug
+    CheckoutAddress:
+      type: object
+      description: |-
+        The delivery address given in the request, frozen into `order.shipping_address` (T8.2).
+        The fields are the NOT NULL columns of `address` in `spec/schema.sql`.
+      properties:
+        recipient_name:
+          type: string
+          maxLength: 200
+        street:
+          type: string
+          maxLength: 200
+        ext_number:
+          type: string
+          maxLength: 40
+        int_number:
+          type: string
+          default: ''
+          maxLength: 40
+        neighborhood:
+          type: string
+          maxLength: 200
+        municipality:
+          type: string
+          maxLength: 200
+        state_code:
+          type: string
+          maxLength: 3
+        postal_code:
+          type: string
+          maxLength: 5
+          pattern: ^[0-9]{5}$
+        delivery_notes:
+          type: string
+          default: ''
+          maxLength: 500
+      required:
+      - ext_number
+      - municipality
+      - neighborhood
+      - postal_code
+      - recipient_name
+      - state_code
+      - street
+    CheckoutLineError:
+      type: object
+      properties:
+        variant_public_id:
+          type: string
+          format: uuid
+        sku:
+          type: string
+        code:
+          $ref: '#/components/schemas/CodeEnum'
+        requested:
+          type: integer
+        available:
+          type:
+          - integer
+          - 'null'
+      required:
+      - available
+      - code
+      - requested
+      - sku
+      - variant_public_id
+    CheckoutLinesUnavailable:
+      type: object
+      properties:
+        code:
+          type: string
+        line_errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/CheckoutLineError'
+      required:
+      - code
+      - line_errors
+    CheckoutRequest:
+      type: object
+      description: |-
+        `POST /api/checkout/` in Release 1: delivery only. A saved `address_id` and a
+        `pickup_location_id` are Release 2 (T8.11).
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone:
+          type: string
+          default: ''
+          maxLength: 40
+        fulfillment_method:
+          type: string
+          description: '`delivery` is the only method in Release 1.'
+        address_payload:
+          $ref: '#/components/schemas/CheckoutAddress'
+        customer_note:
+          type: string
+          default: ''
+          maxLength: 1000
+      required:
+      - address_payload
+      - email
+      - fulfillment_method
+    CheckoutResponse:
+      type: object
+      properties:
+        order_number:
+          type: string
+        order_public_id:
+          type: string
+          format: uuid
+        checkout_url:
+          type: string
+      required:
+      - checkout_url
+      - order_number
+      - order_public_id
+    CodeEnum:
+      enum:
+      - unavailable
+      - insufficient_stock
+      type: string
+      description: |-
+        * `unavailable` - unavailable
+        * `insufficient_stock` - insufficient_stock
     DetailImage:
       type: object
       description: A product image as its derivatives; the original is never given

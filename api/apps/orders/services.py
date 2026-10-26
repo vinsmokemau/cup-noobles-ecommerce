@@ -79,6 +79,8 @@ def create_order_from_cart(
     customer=None,
     phone: str = "",
     customer_note: str = "",
+    idempotency_key: str | None = None,
+    idempotency_fingerprint: str | None = None,
 ) -> Order:
     """Create the order for `cart` and move it to `pending_payment`.
 
@@ -133,6 +135,8 @@ def create_order_from_cart(
         earliest_release_date=None,
         customer_note=customer_note,
         cart_token=cart.token,
+        idempotency_key=idempotency_key,
+        idempotency_fingerprint=idempotency_fingerprint,
     )
     OrderLine.objects.bulk_create(
         OrderLine(

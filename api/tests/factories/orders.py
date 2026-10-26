@@ -104,3 +104,33 @@ def order_through_checkout(state, *, quantity=2, stock=10):
 def _with_shipment(order):
     ShipmentFactory(order=order)
     return {}
+
+
+CHECKOUT_ADDRESS = {
+    "recipient_name": "Ana Prueba",
+    "street": "Calle de prueba",
+    "ext_number": "1",
+    "neighborhood": "Juárez",
+    "municipality": "Cuauhtémoc",
+    "state_code": "CMX",
+    "postal_code": "06700",
+}
+
+
+def checkout(client, cart=None, *, idempotency_key=None, **body):
+    """POST `/api/checkout/` as the storefront does and return the response. With `cart`, the
+    client carries that cart's token; a body field can be overridden or, set to None, dropped.
+    Needs the `dev_defaults` fixture for a shipping quote."""
+    if cart is not None:
+        client.cookies["cart_token"] = str(cart.token)
+    payload = {
+        "email": "cliente@example.com",
+        "phone": "5555555555",
+        "fulfillment_method": "delivery",
+        "address_payload": CHECKOUT_ADDRESS,
+        "customer_note": "",
+        **body,
+    }
+    payload = {name: value for name, value in payload.items() if value is not None}
+    headers = {"HTTP_IDEMPOTENCY_KEY": idempotency_key} if idempotency_key else {}
+    return client.post("/api/checkout/", payload, format="json", **headers)
