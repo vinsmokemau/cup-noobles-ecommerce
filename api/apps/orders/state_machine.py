@@ -5,14 +5,15 @@ assigns `order.state`: it takes the row lock, looks the event up, runs the guard
 effects, and writes exactly one `order_event`. Anything not in `TRANSITIONS` is illegal.
 
 Side effects that need code from a later task are named in the row's comment and added there:
-T1's reservation, number and provider checkout (T8.2, T8.3), and the CFDI flag of T17
-and T18 (T9.14).
+the CFDI flag of T17 and T18 (T9.14).
 """
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
@@ -20,6 +21,7 @@ from apps.core.providers import payment_provider
 from apps.inventory import services as inventory
 from apps.notifications.outbox import enqueue_email
 from apps.orders.models import Order, OrderEvent, Shipment
+from apps.orders.pricing import compute_totals
 from apps.payments.models import Payment
 
 
@@ -77,6 +79,25 @@ def _guard_target_complete(order: Order, **kwargs: Any) -> None:
         complete = bool(order.shipping_address)
     if not complete:
         raise _fail("checkout_submitted", "the fulfillment target is incomplete")
+
+
+def _guard_checkout_ready(order: Order, **kwargs: Any) -> None:
+    """T1: the target is complete, every line is available, and the totals add up."""
+    _guard_target_complete(order)
+    lines = list(order.lines.select_related("variant").order_by("id"))
+    wanted = [(line.variant, line.quantity) for line in lines if line.variant]
+    if not lines or len(wanted) != len(lines):
+        raise _fail("checkout_submitted", "the order has no purchasable lines")
+    inventory.lock_variants(variant.pk for variant, _ in wanted)
+    if inventory.shortfalls(wanted):
+        raise _fail("checkout_submitted", "a line is not available")
+    totals = compute_totals(lines, order.shipping_cents, order.discount_cents)
+    if (totals.subtotal_cents, totals.total_cents, totals.tax_included_cents) != (
+        order.subtotal_cents,
+        order.total_cents,
+        order.tax_included_cents,
+    ):
+        raise _fail("checkout_submitted", "the totals are not the recomputed totals")
 
 
 def _guard_payment_matches(order: Order, **kwargs: Any) -> None:
@@ -143,7 +164,24 @@ def _guard_partial_refund(order: Order, **kwargs: Any) -> None:
 
 
 def _effects_checkout_submitted(order: Order, **kwargs: Any) -> None:
-    order.placed_at = timezone.now()
+    """T1. Prices were frozen and the number assigned when the draft was created (T8.2)."""
+    now = timezone.now()
+    ttl = timedelta(minutes=settings.RESERVATION_TTL_CARD_MINUTES)
+    order.placed_at = now
+    order.payment_deadline_at = now + ttl
+    lines = order.lines.select_related("variant").order_by("id")
+    wanted = [(line.variant, line.quantity) for line in lines if line.variant]
+    inventory.reserve(order, wanted, ttl=ttl)
+    session = payment_provider().create_checkout(order)
+    # The attempt is kept so `checkout_url` can be handed back and the payment found later.
+    Payment.objects.create(
+        order=order,
+        provider=payment_provider().code,
+        provider_preference_id=session.preference_id,
+        status="initiated",
+        amount_cents=order.total_cents,
+        raw={"checkout_url": session.url},
+    )
 
 
 def _effects_payment_approved(order: Order, **kwargs: Any) -> None:
@@ -241,12 +279,12 @@ def _row(
 # land in any of them; the terminal states and `partially_refunded` are G26 and G27.
 POST_PAID = ("paid", "preparing", "shipped", "delivered")
 
-# T1 (the rest of its side effects arrive with T8.2 and T8.3)
+# T1 (the number and the frozen prices are set when the draft is created, T8.2)
 _row(
     ("draft",),
     "checkout_submitted",
     "pending_payment",
-    _guard_target_complete,
+    _guard_checkout_ready,
     _effects_checkout_submitted,
 )
 # T2

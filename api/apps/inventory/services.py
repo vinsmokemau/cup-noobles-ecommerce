@@ -164,6 +164,49 @@ def _reserve(order, lines, ttl) -> list[InventoryReservation]:
     return reservations
 
 
+def lock_variants(variant_ids: Iterable[int]) -> None:
+    """Lock the stock rows that can fill these variants, sorted by `variant_id` (CR-07).
+
+    Checkout calls this first, so two carts that hold the same variants in a different order
+    take their locks in the same order and cannot deadlock (P8-V11). Call it inside a
+    transaction; the locks last until it ends.
+    """
+    list(
+        StockItem.objects.select_for_update()
+        .filter(
+            variant_id__in=set(variant_ids),
+            location__is_active=True,
+            location__is_fulfillment_source=True,
+        )
+        .order_by("variant_id", "pk")
+        .values_list("pk", flat=True)
+    )
+
+
+def shortfalls(lines: list[tuple[Variant, int]]) -> list[tuple[Variant, int, int]]:
+    """The lines `reserve()` would refuse, as (variant, requested, available), without
+    changing anything. Quantities of one variant are added together, and one location must
+    cover the whole quantity, exactly as in `reserve()`. Lock the rows first with
+    `lock_variants` so the answer still holds when `reserve()` runs."""
+    wanted: dict[int, tuple[Variant, int]] = {}
+    for variant, quantity in lines:
+        _, total = wanted.get(variant.pk, (variant, 0))
+        wanted[variant.pk] = (variant, total + quantity)
+    items = StockItem.objects.filter(
+        variant_id__in=wanted,
+        location__is_active=True,
+        location__is_fulfillment_source=True,
+    )
+    best: dict[int, int] = {}
+    for item in items:
+        best[item.variant_id] = max(best.get(item.variant_id, 0), _available(item))
+    return [
+        (variant, quantity, best.get(variant.pk, 0))
+        for variant, quantity in wanted.values()
+        if best.get(variant.pk, 0) < quantity
+    ]
+
+
 def _lock_held(order) -> tuple[dict[int, StockItem], list[InventoryReservation]]:
     """Lock the stock items of the order's held reservations, then the reservations.
 
