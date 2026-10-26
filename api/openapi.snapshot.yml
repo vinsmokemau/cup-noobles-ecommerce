@@ -920,10 +920,12 @@ components:
       enum:
       - unavailable
       - insufficient_stock
+      - purchase_limit_exceeded
       type: string
       description: |-
         * `unavailable` - unavailable
         * `insufficient_stock` - insufficient_stock
+        * `purchase_limit_exceeded` - purchase_limit_exceeded
     DetailImage:
       type: object
       description: A product image as its derivatives; the original is never given

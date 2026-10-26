@@ -388,9 +388,10 @@ export interface components {
         /**
          * @description * `unavailable` - unavailable
          *     * `insufficient_stock` - insufficient_stock
+         *     * `purchase_limit_exceeded` - purchase_limit_exceeded
          * @enum {string}
          */
-        CodeEnum: "unavailable" | "insufficient_stock";
+        CodeEnum: "unavailable" | "insufficient_stock" | "purchase_limit_exceeded";
         /** @description A product image as its derivatives; the original is never given out (T3.5). */
         DetailImage: {
             alt?: string;

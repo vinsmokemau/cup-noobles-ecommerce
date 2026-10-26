@@ -36,6 +36,10 @@ PAYMENT_INSTALLMENT_OPTIONS = env.list(
     "PAYMENT_INSTALLMENT_OPTIONS", cast=int, default=[3, 6]
 )
 
+# Days the purchase-limit guard looks back (G31, D15). The owner has not given the length, so there
+# is no default: checkout refuses to run while a variant carries a limit and this is unset.
+PURCHASE_LIMIT_WINDOW_DAYS = env.int("PURCHASE_LIMIT_WINDOW_DAYS", default=None)
+
 # Where the owner's alerts and daily summaries go (G38). A `.test` address here; prod.py has no
 # default, so production fails to start until the owner's monitored inbox is set.
 OWNER_ALERT_EMAIL = env.str("OWNER_ALERT_EMAIL", default="owner@cupnoobles.test")

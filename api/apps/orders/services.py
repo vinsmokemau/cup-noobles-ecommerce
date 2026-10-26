@@ -19,11 +19,13 @@ from apps.invoicing.models import InvoiceRequest
 from apps.orders.models import Order, OrderLine
 from apps.orders.numbering import next_order_number
 from apps.orders.pricing import Totals, compute_totals
+from apps.orders.purchase_limits import units_already_bought
 from apps.orders.state_machine import apply_event
 from apps.shipping.services import QuoteError, quote
 
 UNAVAILABLE = "unavailable"
 INSUFFICIENT_STOCK = "insufficient_stock"
+PURCHASE_LIMIT_EXCEEDED = "purchase_limit_exceeded"
 
 
 @dataclass(frozen=True)
@@ -114,6 +116,17 @@ def create_order_from_cart(
     inventory.lock_variants(line.variant_id for line in cart_lines)
 
     errors = _line_errors(cart_lines)
+    # Stock failures are listed first; a line already refused is not checked against its limit.
+    errors += _purchase_limit_errors(
+        [
+            line
+            for line in cart_lines
+            if line.variant.sku not in {error.sku for error in errors}
+        ],
+        email=email,
+        phone=phone,
+        shipping_address=address_or_location,
+    )
     if errors:
         raise LinesUnavailable(errors)
 
@@ -177,6 +190,35 @@ def create_order_from_cart(
 class _Priced:
     unit_price_cents: int
     quantity: int
+
+
+def _purchase_limit_errors(
+    cart_lines, *, email: str, phone: str, shipping_address: dict[str, Any]
+) -> list[LineError]:
+    """Lines that would take the customer past `variant.purchase_limit` (G31, REQ-061). The
+    customer is whoever shares the email, phone or address with an order in the window; exactly
+    the limit is allowed. `available` is how many more units they may still buy."""
+    limited = [line for line in cart_lines if line.variant.purchase_limit is not None]
+    bought = units_already_bought(
+        [line.variant_id for line in limited],
+        email=email,
+        phone=phone,
+        shipping_address=shipping_address,
+    )
+    errors = []
+    for line in limited:
+        remaining = max(line.variant.purchase_limit - bought.get(line.variant_id, 0), 0)
+        if line.quantity > remaining:
+            errors.append(
+                LineError(
+                    str(line.variant.public_id),
+                    line.variant.sku,
+                    PURCHASE_LIMIT_EXCEEDED,
+                    line.quantity,
+                    remaining,
+                )
+            )
+    return errors
 
 
 def _line_errors(cart_lines) -> list[LineError]:

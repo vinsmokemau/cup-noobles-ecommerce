@@ -158,8 +158,11 @@ class CheckoutResponseSerializer(serializers.Serializer):
 class CheckoutLineErrorSerializer(serializers.Serializer):
     variant_public_id = serializers.UUIDField()
     sku = serializers.CharField()
-    code = serializers.ChoiceField(choices=["unavailable", "insufficient_stock"])
+    code = serializers.ChoiceField(
+        choices=["unavailable", "insufficient_stock", "purchase_limit_exceeded"]
+    )
     requested = serializers.IntegerField()
+    # Units still buyable: the stock left, or the purchase limit left for this customer.
     available = serializers.IntegerField(allow_null=True)
 
 
