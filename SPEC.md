@@ -3162,7 +3162,7 @@ Dev tooling. Every command refuses to run unless `DEV_TOOLS_ENABLED`.
 | `mock_payments deliver [--once\|--loop]` | Drain the notification queue (9.11) |
 | `mock_payments list [--order N]` / `reset` | Inspect or clear the mock store |
 
-- [ ] **T9.12b — Webhook replay commands**
+- [x] **T9.12b — Webhook replay commands** (2026-10-26, eb40d17)
   - Release: R1 · Gate: task
   - REQs: REQ-030, REQ-040
   - Verifies: P9-V03, P9-V05
