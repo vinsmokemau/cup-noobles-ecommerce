@@ -1,5 +1,6 @@
 """Root URL configuration. Each task adds its own routes."""
 
+from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView
@@ -19,3 +20,9 @@ urlpatterns = [
     path("api/postal-codes/", include("apps.shipping.urls")),
     path("admin/", admin.site.urls),
 ]
+
+# Dev tools exist only where DEV_TOOLS_ENABLED; elsewhere the routes are not registered (404).
+if settings.DEV_TOOLS_ENABLED:
+    urlpatterns += [
+        path("dev/payments/", include("apps.payments.devtools.urls")),
+    ]

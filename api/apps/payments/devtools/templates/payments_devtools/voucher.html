@@ -1,0 +1,24 @@
+{% extends "payments_devtools/base.html" %}
+{% block title %}{% if method == "oxxo" %}Ficha de pago OXXO{% else %}Pago por SPEI{% endif %}{% endblock %}
+{% block content %}
+  <h1>{% if method == "oxxo" %}Ficha de pago OXXO{% else %}Instrucciones de pago por SPEI{% endif %}</h1>
+  <dl>
+    <dt>Pedido</dt><dd>{{ order_number }}</dd>
+    <dt>Monto</dt><dd>{{ total }}</dd>
+    {% if method == "oxxo" %}
+      <dt>Referencia (de prueba)</dt><dd>{{ reference }}</dd>
+    {% else %}
+      <dt>CLABE (de prueba)</dt><dd>{{ clabe }}</dd>
+    {% endif %}
+    {% if expires_at %}<dt>Vence</dt><dd>{{ expires_at|date:"c" }}</dd>{% endif %}
+    <dt>Estado</dt><dd>{{ status }}</dd>
+  </dl>
+  {% if pending %}
+    <form method="post" action="{% url 'dev-payments-voucher-action' payment_id 'received' %}">{% csrf_token %}
+      <button type="submit">Simular pago recibido</button>
+    </form>
+    <form method="post" action="{% url 'dev-payments-voucher-action' payment_id 'expired' %}">{% csrf_token %}
+      <button type="submit">Simular vencimiento</button>
+    </form>
+  {% endif %}
+{% endblock %}

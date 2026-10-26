@@ -1,0 +1,41 @@
+{% extends "payments_devtools/base.html" %}
+{% block title %}Pago del pedido {{ order_number }}{% endblock %}
+{% block content %}
+  <h1>Pedido {{ order_number }}</h1>
+  <table>
+    <thead>
+      <tr><th scope="col">Producto</th><th scope="col">Cantidad</th><th scope="col">Precio</th></tr>
+    </thead>
+    <tbody>
+      {% for line in lines %}
+        <tr><td>{{ line.name }}</td><td>{{ line.quantity }}</td><td>{{ line.unit_price }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p>Total: <strong>{{ total }}</strong></p>
+
+  <form method="post" action="{% url 'dev-payments-pay' preference_id 'card' %}">{% csrf_token %}
+    <button type="submit">Aprobar con tarjeta</button>
+  </form>
+  {% if installment_options %}
+    <form method="post" action="{% url 'dev-payments-pay' preference_id 'installments' %}">{% csrf_token %}
+      <label for="installments">Plazo</label>
+      <select id="installments" name="installments">
+        {% for months in installment_options %}<option value="{{ months }}">{{ months }} meses</option>{% endfor %}
+      </select>
+      <button type="submit">Aprobar a meses sin intereses</button>
+    </form>
+  {% endif %}
+  <form method="post" action="{% url 'dev-payments-pay' preference_id 'oxxo' %}">{% csrf_token %}
+    <button type="submit">Pagar en OXXO</button>
+  </form>
+  <form method="post" action="{% url 'dev-payments-pay' preference_id 'spei' %}">{% csrf_token %}
+    <button type="submit">Pagar por SPEI</button>
+  </form>
+  <form method="post" action="{% url 'dev-payments-pay' preference_id 'reject' %}">{% csrf_token %}
+    <button type="submit">Rechazar</button>
+  </form>
+  <form method="post" action="{% url 'dev-payments-pay' preference_id 'expire' %}">{% csrf_token %}
+    <button type="submit">Dejar expirar</button>
+  </form>
+{% endblock %}

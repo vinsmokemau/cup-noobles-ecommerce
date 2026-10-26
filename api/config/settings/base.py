@@ -122,7 +122,8 @@ MIDDLEWARE = [
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        # The simulator templates (9.10); the pages are routed only when DEV_TOOLS_ENABLED.
+        "DIRS": [BASE_DIR / "apps" / "payments" / "devtools" / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

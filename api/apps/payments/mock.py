@@ -51,6 +51,8 @@ class MockPaymentProvider:
             {
                 "id": preference_id,
                 "external_reference": str(order.public_id),
+                "order_number": order.number,
+                "back_urls": self._back_urls(order),
                 "total_cents": order.total_cents,
                 "total": str(cents_to_pesos(order.total_cents)),
                 "lines": [
@@ -70,6 +72,20 @@ class MockPaymentProvider:
             preference_id=preference_id,
             url=f"{site_url}/dev/payments/checkout/{preference_id}/",
         )
+
+    def get_preference(self, preference_id: str) -> dict[str, Any] | None:
+        """The stored preference, or `None`. For the simulator pages."""
+        return self._read(preference_id, _PREFERENCE_ID)
+
+    @staticmethod
+    def _back_urls(order: Order) -> dict[str, str]:
+        """Where the provider sends the browser after paying (SPEC.md 16.2: `/pedido/{id}/…`)."""
+        base = f"{str(settings.SITE_URL).rstrip('/')}/pedido/{order.public_id}"
+        return {
+            "success": f"{base}/gracias",
+            "pending": f"{base}/pendiente",
+            "failure": f"{base}/error",
+        }
 
     def fetch_payment(self, provider_payment_id: str) -> ProviderPayment:
         stored = self._read(provider_payment_id, _PAYMENT_ID)
