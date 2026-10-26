@@ -318,3 +318,15 @@ def test_an_idempotency_key_that_is_too_long_is_refused(checkout_client):
     assert response.status_code == 400
     assert "idempotency_key" in response.json()
     assert not Order.objects.exists()
+
+
+def test_checkout_with_a_cart_token_that_names_no_cart_is_an_empty_cart(
+    checkout_client,
+):
+    checkout_client.cookies["cart_token"] = "00000000-0000-4000-8000-000000000000"
+
+    response = checkout(checkout_client)
+
+    assert response.status_code == 400
+    assert "cart" in response.json()
+    assert not Order.objects.exists()

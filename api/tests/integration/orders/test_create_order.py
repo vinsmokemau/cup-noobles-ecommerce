@@ -8,6 +8,7 @@ import pytest
 from django.conf import settings
 from django.utils import timezone
 
+from apps.carts.models import Cart
 from apps.inventory.models import InventoryReservation, StockItem
 from apps.orders.models import Order, OrderEvent, OrderLine
 from apps.orders.services import (
@@ -144,3 +145,14 @@ def test_same_variant_in_two_lines_is_checked_together(dev_defaults):
     stocked = stocked_variant(2)
     order = place_order(cart_with((stocked, 2)))
     assert order.lines.get().quantity == 2
+
+
+def test_a_cart_converted_meanwhile_is_refused_even_for_a_stale_caller(dev_defaults):
+    cart = cart_with((stocked_variant(5), 1))
+    earlier = place_order(cart_with((stocked_variant(5), 1)))
+    Cart.objects.filter(pk=cart.pk).update(converted_order=earlier)
+
+    with pytest.raises(EmptyCart):
+        place_order(cart)
+
+    assert Order.objects.count() == 1
