@@ -3097,7 +3097,7 @@ Refunds — an admin action on `OrderAdmin`, always initiated by a human:
 
 Add to the side effects of T17 and T18 (8.A): when the order's `invoice_request` is `issued`, set `needs_review = true` and write a `review_note` naming the refund amount, in the same transaction. The admin CFDI queue (T10.14) lists it. The fiscal treatment is the accountant's (D16); the store decides nothing about it. A refund of an order with no issued CFDI changes no request.
 
-- [ ] **T9.16 — Cart converted at checkout**
+- [x] **T9.16 — Cart converted at checkout** (2026-10-26, aab3206)
   - Release: R1 · Gate: task
   - REQs: REQ-021
   - Verifies: P9-V23
