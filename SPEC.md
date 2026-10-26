@@ -2741,7 +2741,7 @@ Per G33's resolution (ADR-0030): `create_order_from_cart` snapshots `variant.cos
 
 Admin `OrderAdmin`: read-only lines and totals; a state-transition action bar that calls `apply_event` (buttons rendered only for currently legal events); the `order_event` timeline inline; internal notes. Make `state` non-editable in the form.
 
-- [ ] **T8.6a — Order deadlines and auto-completion**
+- [x] **T8.6a — Order deadlines and auto-completion** (2026-10-26, d1f9361)
   - Release: R1 · Gate: phase-close
   - REQs: REQ-010, REQ-022
   - Verifies: P8-V04, P8-V13, P8-V14
