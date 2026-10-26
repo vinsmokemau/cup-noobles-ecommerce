@@ -114,11 +114,111 @@ def test_p8_v09_price_change_between_cart_and_checkout(checkout_client):
 
     response = checkout(checkout_client, cart, expected_total_cents=shown)
 
-    # Proposed in G4: a mismatch returns 409 with the fresh totals and reserves nothing.
+    # G4, ADR-0042: a mismatch returns 409 with the fresh totals and reserves nothing.
     assert response.status_code == 409
-    assert response.json()["code"] == "total_changed"
+    body = response.json()
+    assert body["code"] == "total_changed"
+    assert body["totals"]["subtotal_cents"] == 12000
+    assert body["totals"]["total_cents"] == (
+        body["totals"]["subtotal_cents"] + body["totals"]["shipping_cents"]
+    )
+    assert set(body["totals"]) == {
+        "subtotal_cents",
+        "shipping_cents",
+        "discount_cents",
+        "total_cents",
+        "tax_included_cents",
+    }
     assert not Order.objects.exists()
     assert not InventoryReservation.objects.exists()
+
+
+def test_p8_v09_a_second_press_with_the_fresh_total_pays_it(checkout_client):
+    variant = stocked_variant(5, price_cents=10000)
+    cart = cart_with((variant, 1))
+    variant.price_cents = 12000
+    variant.save()
+    refused = checkout(checkout_client, cart, expected_total_cents=10000)
+    fresh = refused.json()["totals"]["total_cents"]
+
+    response = checkout(checkout_client, cart, expected_total_cents=fresh)
+
+    assert refused.status_code == 409 and response.status_code == 201
+    assert Order.objects.get().total_cents == fresh
+
+
+def test_p8_v09_a_price_drop_is_refused_too(checkout_client):
+    variant = stocked_variant(5, price_cents=10000)
+    cart = cart_with((variant, 1))
+    variant.price_cents = 8000
+    variant.save()
+
+    response = checkout(checkout_client, cart, expected_total_cents=10000)
+
+    assert response.status_code == 409
+    assert response.json()["totals"]["subtotal_cents"] == 8000
+    assert not Order.objects.exists()
+    assert not InventoryReservation.objects.exists()
+
+
+def test_p8_v09_without_the_field_nothing_is_compared(checkout_client):
+    cart = cart_with((stocked_variant(5, price_cents=10000), 1))
+
+    assert checkout(checkout_client, cart).status_code == 201
+
+
+def test_p8_v09_a_negative_expected_total_is_a_field_error(checkout_client):
+    cart = cart_with((stocked_variant(5), 1))
+
+    response = checkout(checkout_client, cart, expected_total_cents=-1)
+
+    assert response.status_code == 400
+    assert "expected_total_cents" in response.json()
+    assert not Order.objects.exists()
+
+
+def test_p8_v09_stock_failures_are_checked_before_the_total(checkout_client):
+    short = stocked_variant(1, price_cents=10000)
+    cart = cart_with((short, 3))
+
+    response = checkout(checkout_client, cart, expected_total_cents=1)
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "lines_unavailable"
+
+
+def test_p8_v09_a_replay_returns_the_order_before_the_comparison(checkout_client):
+    variant = stocked_variant(5, price_cents=10000)
+    cart = cart_with((variant, 1))
+    first = checkout(
+        checkout_client, cart, idempotency_key="key-1", expected_total_cents=None
+    )
+    variant.price_cents = 12000
+    variant.save()
+
+    replay = checkout(checkout_client, cart, idempotency_key="key-1")
+
+    assert first.status_code == 201 and replay.status_code == 200
+    assert replay.json() == first.json()
+    assert Order.objects.count() == 1
+
+
+def test_p8_v09_the_expected_total_is_part_of_the_fingerprint(checkout_client):
+    variant = stocked_variant(5, price_cents=10000)
+    cart = cart_with((variant, 1))
+    refused = checkout(checkout_client, cart, expected_total_cents=1)
+    fresh = refused.json()["totals"]["total_cents"]
+    first = checkout(
+        checkout_client, cart, idempotency_key="key-1", expected_total_cents=fresh
+    )
+
+    other = checkout(
+        checkout_client, cart, idempotency_key="key-1", expected_total_cents=fresh + 1
+    )
+
+    assert first.status_code == 201
+    assert other.status_code == 422
+    assert other.json()["code"] == "idempotency_key_reused"
 
 
 def test_p8_v09_the_order_keeps_the_checkout_time_price(checkout_client):

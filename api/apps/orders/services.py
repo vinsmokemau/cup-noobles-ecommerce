@@ -17,7 +17,7 @@ from apps.catalog.models import ProductImage
 from apps.inventory import services as inventory
 from apps.orders.models import Order, OrderLine
 from apps.orders.numbering import next_order_number
-from apps.orders.pricing import compute_totals
+from apps.orders.pricing import Totals, compute_totals
 from apps.orders.state_machine import apply_event
 from apps.shipping.services import QuoteError, quote
 
@@ -52,6 +52,15 @@ class LinesUnavailable(CheckoutError):
         super().__init__(f"{len(line_errors)} cart line(s) cannot be bought")
 
 
+class TotalChanged(CheckoutError):
+    """The total differs from the one the customer last saw (G4, ADR-0042); `totals` are the
+    fresh ones, the body of the 409 `total_changed` of T8.12."""
+
+    def __init__(self, totals: Totals) -> None:
+        self.totals = totals
+        super().__init__("El total cambió.")
+
+
 class ShippingUnavailable(CheckoutError):
     """No shipping price exists for the address; the message is shown to the customer."""
 
@@ -81,13 +90,15 @@ def create_order_from_cart(
     customer_note: str = "",
     idempotency_key: str | None = None,
     idempotency_fingerprint: str | None = None,
+    expected_total_cents: int | None = None,
 ) -> Order:
     """Create the order for `cart` and move it to `pending_payment`.
 
     Release 1: `fulfillment_method` is `delivery` and `address_or_location` is the address
     given in the request, with its `postal_code`. A saved address and a pickup location are
     Release 2. Raises `EmptyCart`, `LinesUnavailable` (every failing line at once),
-    `ShippingUnavailable` or `UnsupportedFulfillment`; each leaves the database as it was.
+    `ShippingUnavailable`, `TotalChanged` (the fresh total differs from `expected_total_cents`,
+    when given) or `UnsupportedFulfillment`; each leaves the database as it was.
     """
     if fulfillment_method != Order.FulfillmentMethod.DELIVERY:
         raise UnsupportedFulfillment("Solo ofrecemos envío a domicilio.")
@@ -116,6 +127,8 @@ def create_order_from_cart(
         shipping.price_cents,
         0,
     )
+    if expected_total_cents is not None and totals.total_cents != expected_total_cents:
+        raise TotalChanged(totals)
 
     order = Order.objects.create(
         number=next_order_number(),

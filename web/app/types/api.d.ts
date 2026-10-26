@@ -317,6 +317,7 @@ export interface components {
             /** @default  */
             delivery_notes: string;
         };
+        CheckoutConflict: components["schemas"]["CheckoutLinesUnavailable"] | components["schemas"]["CheckoutTotalChanged"];
         CheckoutLineError: {
             /** Format: uuid */
             variant_public_id: string;
@@ -326,7 +327,11 @@ export interface components {
             available: number | null;
         };
         CheckoutLinesUnavailable: {
-            code: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            code: "CheckoutLinesUnavailable";
             line_errors: components["schemas"]["CheckoutLineError"][];
         };
         /**
@@ -343,12 +348,29 @@ export interface components {
             address_payload: components["schemas"]["CheckoutAddress"];
             /** @default  */
             customer_note: string;
+            /** @description The total the customer last saw. A different fresh total returns 409 `total_changed`; without it nothing is compared. */
+            expected_total_cents?: number;
         };
         CheckoutResponse: {
             order_number: string;
             /** Format: uuid */
             order_public_id: string;
             checkout_url: string;
+        };
+        CheckoutTotalChanged: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            code: "None";
+            totals: components["schemas"]["CheckoutTotals"];
+        };
+        CheckoutTotals: {
+            subtotal_cents: number;
+            shipping_cents: number;
+            discount_cents: number;
+            total_cents: number;
+            tax_included_cents: number;
         };
         /**
          * @description * `unavailable` - unavailable
@@ -1029,13 +1051,13 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description A line is unavailable or short of stock; nothing was reserved. */
+            /** @description `lines_unavailable`: a line is unavailable or short of stock. `total_changed`: the fresh total differs from `expected_total_cents`, and `totals` holds the fresh ones. Either way nothing was reserved. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CheckoutLinesUnavailable"];
+                    "application/json": components["schemas"]["CheckoutConflict"];
                 };
             };
             /** @description `idempotency_key_reused`: the key was used with a different body. */

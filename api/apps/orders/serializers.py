@@ -96,6 +96,12 @@ class CheckoutRequestSerializer(serializers.Serializer):
     )
     address_payload = CheckoutAddressSerializer()
     customer_note = serializers.CharField(max_length=1000, allow_blank=True, default="")
+    expected_total_cents = serializers.IntegerField(
+        min_value=0,
+        required=False,
+        help_text="The total the customer last saw. A different fresh total returns 409 "
+        "`total_changed`; without it nothing is compared.",
+    )
 
     def validate_fulfillment_method(self, value: str) -> str:
         if value != "delivery":
@@ -120,3 +126,16 @@ class CheckoutLineErrorSerializer(serializers.Serializer):
 class CheckoutLinesUnavailableSerializer(serializers.Serializer):
     code = serializers.CharField()
     line_errors = CheckoutLineErrorSerializer(many=True)
+
+
+class CheckoutTotalsSerializer(serializers.Serializer):
+    subtotal_cents = serializers.IntegerField()
+    shipping_cents = serializers.IntegerField()
+    discount_cents = serializers.IntegerField()
+    total_cents = serializers.IntegerField()
+    tax_included_cents = serializers.IntegerField()
+
+
+class CheckoutTotalChangedSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    totals = CheckoutTotalsSerializer()

@@ -8,7 +8,12 @@ from typing import Any
 from django.db import transaction
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiResponse,
+    PolymorphicProxySerializer,
+    extend_schema,
+)
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
@@ -24,6 +29,7 @@ from apps.orders.serializers import (
     CheckoutLinesUnavailableSerializer,
     CheckoutRequestSerializer,
     CheckoutResponseSerializer,
+    CheckoutTotalChangedSerializer,
     OrderLookupRequestSerializer,
     OrderStatusSerializer,
 )
@@ -31,6 +37,7 @@ from apps.orders.services import (
     EmptyCart,
     LinesUnavailable,
     ShippingUnavailable,
+    TotalChanged,
     create_order_from_cart,
 )
 
@@ -148,8 +155,17 @@ class CheckoutView(APIView):
             ),
             403: OpenApiResponse(description="The CSRF token is missing or wrong."),
             409: OpenApiResponse(
-                CheckoutLinesUnavailableSerializer,
-                description="A line is unavailable or short of stock; nothing was reserved.",
+                PolymorphicProxySerializer(
+                    component_name="CheckoutConflict",
+                    serializers=[
+                        CheckoutLinesUnavailableSerializer,
+                        CheckoutTotalChangedSerializer,
+                    ],
+                    resource_type_field_name="code",
+                ),
+                description="`lines_unavailable`: a line is unavailable or short of stock. "
+                "`total_changed`: the fresh total differs from `expected_total_cents`, and "
+                "`totals` holds the fresh ones. Either way nothing was reserved.",
             ),
             422: OpenApiResponse(
                 description="`idempotency_key_reused`: the key was used with a different body."
@@ -193,6 +209,7 @@ class CheckoutView(APIView):
                     customer_note=body["customer_note"],
                     idempotency_key=key,
                     idempotency_fingerprint=fingerprint if key else None,
+                    expected_total_cents=body.get("expected_total_cents"),
                 )
         except EmptyCart as error:
             return Response({"cart": [str(error)]}, status=status.HTTP_400_BAD_REQUEST)
@@ -207,6 +224,11 @@ class CheckoutView(APIView):
                     "code": "lines_unavailable",
                     "line_errors": [asdict(item) for item in error.line_errors],
                 },
+                status=status.HTTP_409_CONFLICT,
+            )
+        except TotalChanged as error:
+            return Response(
+                {"code": "total_changed", "totals": asdict(error.totals)},
                 status=status.HTTP_409_CONFLICT,
             )
         return _checkout_reply(order, status.HTTP_201_CREATED)

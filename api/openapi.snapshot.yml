@@ -488,8 +488,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CheckoutLinesUnavailable'
-          description: A line is unavailable or short of stock; nothing was reserved.
+                $ref: '#/components/schemas/CheckoutConflict'
+          description: '`lines_unavailable`: a line is unavailable or short of stock.
+            `total_changed`: the fresh total differs from `expected_total_cents`,
+            and `totals` holds the fresh ones. Either way nothing was reserved.'
         '422':
           description: '`idempotency_key_reused`: the key was used with a different
             body.'
@@ -764,6 +766,14 @@ components:
       - recipient_name
       - state_code
       - street
+    CheckoutConflict:
+      oneOf:
+      - $ref: '#/components/schemas/CheckoutLinesUnavailable'
+      - $ref: '#/components/schemas/CheckoutTotalChanged'
+      discriminator:
+        propertyName: code
+        mapping:
+          None: '#/components/schemas/CheckoutTotalChanged'
     CheckoutLineError:
       type: object
       properties:
@@ -821,6 +831,11 @@ components:
           type: string
           default: ''
           maxLength: 1000
+        expected_total_cents:
+          type: integer
+          minimum: 0
+          description: The total the customer last saw. A different fresh total returns
+            409 `total_changed`; without it nothing is compared.
       required:
       - address_payload
       - email
@@ -839,6 +854,35 @@ components:
       - checkout_url
       - order_number
       - order_public_id
+    CheckoutTotalChanged:
+      type: object
+      properties:
+        code:
+          type: string
+        totals:
+          $ref: '#/components/schemas/CheckoutTotals'
+      required:
+      - code
+      - totals
+    CheckoutTotals:
+      type: object
+      properties:
+        subtotal_cents:
+          type: integer
+        shipping_cents:
+          type: integer
+        discount_cents:
+          type: integer
+        total_cents:
+          type: integer
+        tax_included_cents:
+          type: integer
+      required:
+      - discount_cents
+      - shipping_cents
+      - subtotal_cents
+      - tax_included_cents
+      - total_cents
     CodeEnum:
       enum:
       - unavailable
