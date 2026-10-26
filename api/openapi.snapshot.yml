@@ -1080,6 +1080,17 @@ components:
           - string
           - 'null'
           format: date-time
+        voucher_url:
+          type:
+          - string
+          - 'null'
+          readOnly: true
+        voucher_expires_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          readOnly: true
         placed_at:
           type:
           - string
@@ -1124,6 +1135,8 @@ components:
       - state
       - subtotal_cents
       - total_cents
+      - voucher_expires_at
+      - voucher_url
     OrderStatusLine:
       type: object
       properties:

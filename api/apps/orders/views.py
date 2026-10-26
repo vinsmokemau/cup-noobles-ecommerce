@@ -90,7 +90,7 @@ class OrderLookupView(APIView):
                 number=data.validated_data["number"],
                 email=data.validated_data["email"],
             )
-            .prefetch_related("lines", "shipments")
+            .prefetch_related("lines", "shipments", "payments")
             .first()
         )
         if order is None:

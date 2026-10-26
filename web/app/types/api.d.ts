@@ -453,6 +453,9 @@ export interface components {
             currency?: string;
             /** Format: date-time */
             payment_deadline_at?: string | null;
+            readonly voucher_url: string | null;
+            /** Format: date-time */
+            readonly voucher_expires_at: string | null;
             /** Format: date-time */
             placed_at?: string | null;
             /** Format: date-time */

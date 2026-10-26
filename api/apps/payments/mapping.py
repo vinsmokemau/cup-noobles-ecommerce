@@ -16,6 +16,7 @@ from django.utils import timezone
 
 from apps.core.providers import payment_provider
 from apps.inventory.models import InventoryReservation
+from apps.notifications.outbox import enqueue_email
 from apps.orders.models import Order, OrderEvent
 from apps.orders.state_machine import GuardFailed, apply_event
 from apps.payments.base import NormalizedStatus, ProviderPayment
@@ -170,6 +171,21 @@ def _extend_for_method(
         return
     if order.state != "pending_payment":
         return
+    if payment.voucher_url:
+        # The ficha by email too: a customer who loses it will not pay (T9.6). One per payment.
+        enqueue_email(
+            order.email,
+            "oxxo_voucher",
+            {
+                "order_number": order.number,
+                "voucher_url": payment.voucher_url,
+                "voucher_expires_at": payment.voucher_expires_at.isoformat()
+                if payment.voucher_expires_at
+                else None,
+            },
+            order=order,
+            dedupe_key=f"oxxo_voucher:{payment.pk}",
+        )
     if order.payment_deadline_at is None or order.payment_deadline_at < deadline:
         order.payment_deadline_at = deadline
         order.save(update_fields=["payment_deadline_at", "updated_at"])

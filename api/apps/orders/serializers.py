@@ -1,10 +1,13 @@
 """Customer-facing order status (SPEC.md T6.7b) and the checkout body (T8.4). Nothing here
 exposes costs or internal notes."""
 
+from datetime import datetime
+
 from rest_framework import serializers
 
 from apps.invoicing import catalogs
 from apps.orders.models import Order, OrderLine, Shipment
+from apps.payments.models import Payment
 
 
 class OrderLookupRequestSerializer(serializers.Serializer):
@@ -43,6 +46,8 @@ class OrderStatusShipmentSerializer(serializers.ModelSerializer):
 class OrderStatusSerializer(serializers.ModelSerializer):
     lines = OrderStatusLineSerializer(many=True, read_only=True)
     shipments = OrderStatusShipmentSerializer(many=True, read_only=True)
+    voucher_url = serializers.SerializerMethodField()
+    voucher_expires_at = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -59,6 +64,8 @@ class OrderStatusSerializer(serializers.ModelSerializer):
             "tax_included_cents",
             "currency",
             "payment_deadline_at",
+            "voucher_url",
+            "voucher_expires_at",
             "placed_at",
             "paid_at",
             "shipped_at",
@@ -67,6 +74,24 @@ class OrderStatusSerializer(serializers.ModelSerializer):
             "lines",
             "shipments",
         ]
+
+    def _voucher(self, order: Order) -> Payment | None:
+        """The payment still waiting on a voucher (9.5): a customer who lost the ficha reads it
+        here. A cancelled, paid or voucher-less payment shows nothing."""
+        payments = [
+            payment
+            for payment in order.payments.all()
+            if payment.status == "pending" and payment.voucher_url
+        ]
+        return max(payments, key=lambda payment: payment.pk, default=None)
+
+    def get_voucher_url(self, order: Order) -> str | None:
+        payment = self._voucher(order)
+        return payment.voucher_url if payment else None
+
+    def get_voucher_expires_at(self, order: Order) -> datetime | None:
+        payment = self._voucher(order)
+        return payment.voucher_expires_at if payment else None
 
 
 class CheckoutAddressSerializer(serializers.Serializer):

@@ -30,6 +30,7 @@ def mock_payment_for(
     status="approved",
     method="credit_card",
     amount_cents=None,
+    voucher_url=None,
     voucher_expires_at=None,
 ):
     """Record a payment for `order` on the mock provider's side; returns its `mock_pay_…` id.
@@ -46,6 +47,7 @@ def mock_payment_for(
         status=NormalizedStatus(status),
         method=method,
         amount_cents=amount_cents,
+        voucher_url=voucher_url,
         voucher_expires_at=voucher_expires_at,
     )
 
