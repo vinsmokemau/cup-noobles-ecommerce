@@ -2708,7 +2708,7 @@ Checkout accepts an optional `invoice` object: `{rfc, legal_name, fiscal_postal_
 
 `create_order_from_cart` creates the `invoice_request` with status `requested` in the order's transaction. Invalid data returns 400 with field errors and creates no order. Without the object, no request is created. Issuing is manual and happens in the admin (T10.14).
 
-- [ ] **T8.8 — Purchase limits per customer**
+- [x] **T8.8 — Purchase limits per customer** (2026-10-25, 7606cfd)
   - Release: R1 · Gate: task
   - REQs: REQ-061
   - Verifies: P8-V20
