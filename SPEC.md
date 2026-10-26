@@ -2963,7 +2963,7 @@ Shared helpers, used by every adapter and unit-tested once:
 - **`refund`** appends to the stored payment's refunds, updates its status, queues a notification, and raises `RefundNotSupported` for `oxxo`.
 - **Ids** are prefixed `mock_pref_…`, `mock_pay_…`, `mock_ntf_…`, so a mock id can never be mistaken for a real one in logs or data.
 
-- [ ] **T9.3 — Webhook endpoint and processing**
+- [x] **T9.3 — Webhook endpoint and processing** (2026-10-26, 0e5a3a6)
   - Release: R1 · Gate: task
   - REQs: REQ-030, REQ-031
   - Verifies: P9-V10, P9-V11, P9-V12, P9-V13, P9-V17
