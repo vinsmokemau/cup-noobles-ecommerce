@@ -3,6 +3,7 @@ exposes costs or internal notes."""
 
 from rest_framework import serializers
 
+from apps.invoicing import catalogs
 from apps.orders.models import Order, OrderLine, Shipment
 
 
@@ -83,6 +84,41 @@ class CheckoutAddressSerializer(serializers.Serializer):
     delivery_notes = serializers.CharField(max_length=500, allow_blank=True, default="")
 
 
+class CheckoutInvoiceSerializer(serializers.Serializer):
+    """The customer's fiscal data for a manual CFDI (T8.7, A8). The RFC format is checked here,
+    not in the schema; the codes must be in `api/fixtures/cfdi_catalogs.json`."""
+
+    rfc = serializers.RegexField(
+        r"^[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}$",
+        max_length=13,
+        error_messages={"invalid": "El RFC no tiene un formato válido."},
+    )
+    legal_name = serializers.CharField(max_length=300)
+    fiscal_postal_code = serializers.RegexField(
+        r"^[0-9]{5}$",
+        max_length=5,
+        error_messages={"invalid": "El código postal fiscal debe tener 5 dígitos."},
+    )
+    tax_regime = serializers.CharField(max_length=10)
+    cfdi_use = serializers.CharField(max_length=10)
+
+    def to_internal_value(self, data):
+        # RFCs are uppercase; accept what the customer typed in any case.
+        if isinstance(data, dict) and isinstance(data.get("rfc"), str):
+            data = {**data, "rfc": data["rfc"].strip().upper()}
+        return super().to_internal_value(data)
+
+    def validate_tax_regime(self, value: str) -> str:
+        if value not in catalogs.tax_regime_codes():
+            raise serializers.ValidationError("Elige un régimen fiscal de la lista.")
+        return value
+
+    def validate_cfdi_use(self, value: str) -> str:
+        if value not in catalogs.cfdi_use_codes():
+            raise serializers.ValidationError("Elige un uso de CFDI de la lista.")
+        return value
+
+
 class CheckoutRequestSerializer(serializers.Serializer):
     """`POST /api/checkout/` in Release 1: delivery only. A saved `address_id` and a
     `pickup_location_id` are Release 2 (T8.11)."""
@@ -96,6 +132,10 @@ class CheckoutRequestSerializer(serializers.Serializer):
     )
     address_payload = CheckoutAddressSerializer()
     customer_note = serializers.CharField(max_length=1000, allow_blank=True, default="")
+    invoice = CheckoutInvoiceSerializer(
+        required=False,
+        help_text="Fiscal data to request a CFDI. Without it no request is created.",
+    )
     expected_total_cents = serializers.IntegerField(
         min_value=0,
         required=False,

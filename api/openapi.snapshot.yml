@@ -774,6 +774,35 @@ components:
         propertyName: code
         mapping:
           None: '#/components/schemas/CheckoutTotalChanged'
+    CheckoutInvoice:
+      type: object
+      description: |-
+        The customer's fiscal data for a manual CFDI (T8.7, A8). The RFC format is checked here,
+        not in the schema; the codes must be in `api/fixtures/cfdi_catalogs.json`.
+      properties:
+        rfc:
+          type: string
+          maxLength: 13
+          pattern: ^[A-Z\u00d1&]{3,4}[0-9]{6}[A-Z0-9]{3}$
+        legal_name:
+          type: string
+          maxLength: 300
+        fiscal_postal_code:
+          type: string
+          maxLength: 5
+          pattern: ^[0-9]{5}$
+        tax_regime:
+          type: string
+          maxLength: 10
+        cfdi_use:
+          type: string
+          maxLength: 10
+      required:
+      - cfdi_use
+      - fiscal_postal_code
+      - legal_name
+      - rfc
+      - tax_regime
     CheckoutLineError:
       type: object
       properties:
@@ -831,6 +860,10 @@ components:
           type: string
           default: ''
           maxLength: 1000
+        invoice:
+          allOf:
+          - $ref: '#/components/schemas/CheckoutInvoice'
+          description: Fiscal data to request a CFDI. Without it no request is created.
         expected_total_cents:
           type: integer
           minimum: 0

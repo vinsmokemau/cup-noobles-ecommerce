@@ -210,6 +210,7 @@ class CheckoutView(APIView):
                     idempotency_key=key,
                     idempotency_fingerprint=fingerprint if key else None,
                     expected_total_cents=body.get("expected_total_cents"),
+                    invoice=body.get("invoice"),
                 )
         except EmptyCart as error:
             return Response({"cart": [str(error)]}, status=status.HTTP_400_BAD_REQUEST)

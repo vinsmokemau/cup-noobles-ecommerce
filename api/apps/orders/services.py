@@ -15,6 +15,7 @@ from apps.carts.models import Cart
 from apps.carts.serializers import is_sellable
 from apps.catalog.models import ProductImage
 from apps.inventory import services as inventory
+from apps.invoicing.models import InvoiceRequest
 from apps.orders.models import Order, OrderLine
 from apps.orders.numbering import next_order_number
 from apps.orders.pricing import Totals, compute_totals
@@ -91,6 +92,7 @@ def create_order_from_cart(
     idempotency_key: str | None = None,
     idempotency_fingerprint: str | None = None,
     expected_total_cents: int | None = None,
+    invoice: dict[str, Any] | None = None,
 ) -> Order:
     """Create the order for `cart` and move it to `pending_payment`.
 
@@ -165,6 +167,9 @@ def create_order_from_cart(
         )
         for line in cart_lines
     )
+    if invoice:
+        # Issued by hand later, in the admin (T10.14); only the request is kept here (A8).
+        InvoiceRequest.objects.create(order=order, **invoice)
     return apply_event(order.pk, "checkout_submitted", actor="customer")
 
 

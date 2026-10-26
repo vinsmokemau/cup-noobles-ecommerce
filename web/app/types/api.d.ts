@@ -318,6 +318,17 @@ export interface components {
             delivery_notes: string;
         };
         CheckoutConflict: components["schemas"]["CheckoutLinesUnavailable"] | components["schemas"]["CheckoutTotalChanged"];
+        /**
+         * @description The customer's fiscal data for a manual CFDI (T8.7, A8). The RFC format is checked here,
+         *     not in the schema; the codes must be in `api/fixtures/cfdi_catalogs.json`.
+         */
+        CheckoutInvoice: {
+            rfc: string;
+            legal_name: string;
+            fiscal_postal_code: string;
+            tax_regime: string;
+            cfdi_use: string;
+        };
         CheckoutLineError: {
             /** Format: uuid */
             variant_public_id: string;
@@ -348,6 +359,8 @@ export interface components {
             address_payload: components["schemas"]["CheckoutAddress"];
             /** @default  */
             customer_note: string;
+            /** @description Fiscal data to request a CFDI. Without it no request is created. */
+            invoice?: components["schemas"]["CheckoutInvoice"];
             /** @description The total the customer last saw. A different fresh total returns 409 `total_changed`; without it nothing is compared. */
             expected_total_cents?: number;
         };
