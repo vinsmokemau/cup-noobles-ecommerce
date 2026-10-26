@@ -21,7 +21,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.carts.identity import get_cart
+from apps.carts.identity import get_cart_token
 from apps.carts.models import Cart
 from apps.carts.views import CartCsrfAuthentication
 from apps.orders.models import Order
@@ -180,18 +180,24 @@ class CheckoutView(APIView):
             raise ValidationError(
                 {"idempotency_key": ["La clave de idempotencia es demasiado larga."]}
             )
-        cart = get_cart(request)
-        if cart is None:
+        token = get_cart_token(request)
+        if token is None:
             return Response({"cart": [EMPTY_CART]}, status=status.HTTP_400_BAD_REQUEST)
         fingerprint = _fingerprint(request.data)
         body = data.validated_data
 
         try:
             with transaction.atomic():
-                Cart.objects.select_for_update().get(pk=cart.pk)
+                # The cart row is locked when it exists, converted or not, so a replay waits for
+                # the first request to commit and then finds its order (ADR-0049).
+                cart = Cart.objects.select_for_update().filter(token=token).first()
+                if cart is None:
+                    return Response(
+                        {"cart": [EMPTY_CART]}, status=status.HTTP_400_BAD_REQUEST
+                    )
                 if key is not None:
                     existing = Order.objects.filter(
-                        cart_token=cart.token, idempotency_key=key
+                        cart_token=token, idempotency_key=key
                     ).first()
                     if existing is not None:
                         if existing.idempotency_fingerprint != fingerprint:
@@ -200,6 +206,10 @@ class CheckoutView(APIView):
                                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             )
                         return _checkout_reply(existing, status.HTTP_200_OK)
+                if cart.converted_order_id is not None:
+                    return Response(
+                        {"cart": [EMPTY_CART]}, status=status.HTTP_400_BAD_REQUEST
+                    )
                 order = create_order_from_cart(
                     cart,
                     email=body["email"],

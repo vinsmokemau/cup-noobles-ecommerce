@@ -17,18 +17,25 @@ CART_COOKIE_NAME = "cart_token"
 CART_COOKIE_MAX_AGE = 60 * 60 * 24 * 30
 
 
-def get_cart(request: Request) -> Cart | None:
-    """The open cart the request's token names, or None.
-
-    A malformed token, an unknown token and the token of a converted cart (one that
-    already became an order) are all treated as no token.
-    """
+def get_cart_token(request: Request) -> uuid.UUID | None:
+    """The token in the `cart_token` cookie, or None when it is missing or malformed."""
     raw = request.COOKIES.get(CART_COOKIE_NAME)
     if not raw:
         return None
     try:
-        token = uuid.UUID(raw)
+        return uuid.UUID(raw)
     except ValueError:
+        return None
+
+
+def get_cart(request: Request) -> Cart | None:
+    """The open cart the request's token names, or None.
+
+    A malformed token, an unknown token and the token of a converted cart (one that
+    already became an order, ADR-0049) are all treated as no token.
+    """
+    token = get_cart_token(request)
+    if token is None:
         return None
     return Cart.objects.filter(token=token, converted_order__isnull=True).first()
 

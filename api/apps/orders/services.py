@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from django.db import transaction
+from django.utils import timezone
 
 from apps.carts.models import Cart
 from apps.carts.serializers import is_sellable
@@ -184,6 +185,14 @@ def create_order_from_cart(
     if invoice:
         # Issued by hand later, in the admin (T10.14); only the request is kept here (A8).
         InvoiceRequest.objects.create(order=order, **invoice)
+    # The cart converts with its order (ADR-0049). The filter makes a second checkout from a
+    # converted cart refuse, even for a caller that did not lock the cart row first.
+    converted = Cart.objects.filter(pk=cart.pk, converted_order__isnull=True).update(
+        converted_order=order, updated_at=timezone.now()
+    )
+    if not converted:
+        raise EmptyCart("El carrito está vacío.")
+    cart.converted_order = order
     return apply_event(order.pk, "checkout_submitted", actor="customer")
 
 
