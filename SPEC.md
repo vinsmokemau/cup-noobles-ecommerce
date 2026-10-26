@@ -2718,7 +2718,7 @@ Checkout accepts an optional `invoice` object: `{rfc, legal_name, fiscal_postal_
 
 Per G31's resolution (ADR-0030): a variant may carry a per-customer limit (`variant.purchase_limit`), with its time window in days as the setting `PURCHASE_LIMIT_WINDOW_DAYS` (§4.7). Before reserving, `create_order_from_cart` counts that variant's units in `pending_payment` and paid-or-later orders whose email, phone or normalised shipping address matches the new order's within the window. If the new order would exceed the limit, checkout returns 409 with a per-line error and reserves nothing. The limit values and the window length are D15; tests use factory values.
 
-- [ ] **T8.9 — Unit-cost snapshot**
+- [x] **T8.9 — Unit-cost snapshot** (2026-10-25, e9c1a7d)
   - Release: R1 · Gate: task
   - REQs: REQ-063
   - Verifies: P8-V21
