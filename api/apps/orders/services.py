@@ -176,6 +176,7 @@ def create_order_from_cart(
             image_key=_image_key(line),
             quantity=line.quantity,
             unit_price_cents=line.variant.price_cents,
+            unit_cost_cents=line.variant.cost_cents,
             line_total_cents=line.variant.price_cents * line.quantity,
         )
         for line in cart_lines
