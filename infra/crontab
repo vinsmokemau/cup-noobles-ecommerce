@@ -15,3 +15,6 @@
 
 # Retry unprocessed payment webhook rows, every minute (SPEC.md §4.8, T9.3)
 * * * * * python manage.py process_webhooks
+
+# Catch dropped payment notifications, every 10 minutes (SPEC.md §4.8, T9.7)
+*/10 * * * * python manage.py reconcile_payments

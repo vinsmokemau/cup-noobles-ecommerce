@@ -23,6 +23,7 @@ from django.utils import timezone
 
 from apps.core.providers import payment_provider
 from apps.orders.models import Order
+from apps.payments.base import ProviderPayment
 from apps.payments.mapping import PAYMENT_STATUS, apply_payment_status
 from apps.payments.models import Payment, WebhookEvent
 
@@ -141,6 +142,15 @@ def _process(event: WebhookEvent, *, started: float, budget_ms: int | None) -> s
     if budget_ms is not None and (time.monotonic() - started) * 1000 > budget_ms:
         raise InlineBudgetExceeded(f"The provider took more than {budget_ms} ms")
 
+    return process_provider_payment(event.provider, provider_payment)
+
+
+def process_provider_payment(
+    provider_code: str, provider_payment: ProviderPayment
+) -> str:
+    """Upsert the payment row, then apply the 9.4 mapping. Shared by webhooks and reconciliation
+    (9.7). Returns an error text ('' when clean): a payment for an unknown order is alerted, not
+    raised."""
     order = _order_for(provider_payment.external_reference)
     if order is None:
         message = (
@@ -151,7 +161,7 @@ def _process(event: WebhookEvent, *, started: float, budget_ms: int | None) -> s
         return message
 
     payment, _ = Payment.objects.update_or_create(
-        provider=event.provider,
+        provider=provider_code,
         provider_payment_id=provider_payment.provider_payment_id,
         defaults={
             "order": order,
