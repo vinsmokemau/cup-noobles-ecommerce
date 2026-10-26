@@ -2671,7 +2671,7 @@ Phase 9 completes the mock (`fetch_payment`, `find_payments`, `verify_webhook`, 
 
 In Release 1 the target is always a delivery address given in the request; a saved address (`customer`) and a pickup location are Release 2. T8.7, T8.8 and T8.9 add their steps to this function.
 
-- [ ] **T8.4 — Checkout endpoint**
+- [x] **T8.4 — Checkout endpoint** (2026-10-25, 24aa544)
   - Release: R1 · Gate: task
   - REQs: REQ-002, REQ-010, REQ-021
   - Verifies: P8-V03, P8-V08, P8-V09, P8-V10, P8-V18
