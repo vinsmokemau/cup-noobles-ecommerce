@@ -3142,7 +3142,7 @@ Simulator pages — Django templates in `apps/payments/devtools/`, routed under 
 
 Mock notification delivery. The simulator never calls the webhook inline. It appends a notification containing only ids — `{"id": "mock_ntf_…", "type": "payment", "data": {"id": "mock_pay_…"}}` — to the queue in the mock store. `manage.py mock_payments deliver --loop` signs each notification at send time and POSTs it over HTTP through Caddy to `/api/webhooks/payments/mock/`, the same network path production traffic takes, after `MOCK_WEBHOOK_DELAY_SECONDS` (default 2). Add it to `docker-compose.yml` as a `mock-webhooks` service. Tests use `deliver --once` or an in-process transport through the Django test client.
 
-- [ ] **T9.12a — Mock payment commands**
+- [x] **T9.12a — Mock payment commands** (2026-10-26, 737e788)
   - Release: R1 · Gate: task
   - REQs: REQ-031
   - Verifies: P9-V04
