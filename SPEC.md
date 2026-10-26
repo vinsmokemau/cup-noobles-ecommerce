@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.28 |
+| Spec version | 1.29 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -530,6 +530,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-47 | 2026-10-25 | Phase 8 task order: the tasks are listed in a valid order, but their numbers do not follow it (T8.2 needs T8.3 and T8.10; T8.5 runs near the end) and the phase has no execution-order note. Add one? | Option A: add the note. Execution order: T8.1, T8.3, T8.10, T8.2, T8.4, T8.7, T8.8, T8.9, T8.5, T8.6a (phase-close); then, in R2, T8.11 and T8.6b. IDs keep their numbers. No ADR: cheap to reverse, spec text only. |
 | OA-48 | 2026-10-25 | G25: Phase 8 needs a payment provider (`create_checkout`, `refund`) before the mock exists. Resolve it now, or keep it open with an `xfail`? | Option A: the proposed resolution. The two `MockPaymentProvider` methods are built in Phase 8 (T8.10), and the rest of the mock in Phase 9 (T9.9). The tests of T8.10 and T8.2 are plain tests, with no `xfail`. ADR-0041. |
 | OA-53 | 2026-10-26 | G7 and G8: how many times is a failing webhook row retried, and how are future timestamps and clock skew treated? | Option A for both: the proposed resolutions. G7: 10 attempts with exponential backoff, then the row is marked failed and an alert is raised. G8: a timestamp is accepted when `abs(now − ts) ≤ WEBHOOK_MAX_AGE_SECONDS`, so a future timestamp beyond that is rejected too. The tests of P9-V10, P9-V13 and P9-V17 are plain tests, with no `xfail`. ADR-0044. |
+| OA-54 | 2026-10-26 | `WEBHOOK_INLINE_BUDGET_MS`: T9.3 shipped 2000 ms; should that be the value recorded in §4.7? | Yes: 2000 ms in Part A and Part B, and the §4.7 row says so. ADR-0045. |
 | OA-49 | 2026-10-25 | G4: what happens when a price changes between the last cart view and "Pagar"? | Option A: the proposed resolution. Checkout takes an optional `expected_total_cents`; a mismatch returns 409 `total_changed` with the fresh totals, creates no order and reserves nothing. Built by the new task T8.12. ADR-0042. |
 | OA-50 | 2026-10-25 | G26: after a partial refund (T18), what happens to the order? | Option A: the proposed resolution. A partial refund is recorded on the payment and the order keeps its state, so it stays fulfillable. ADR-0043. |
 | OA-51 | 2026-10-25 | G27: can a refund be recorded after the order is `completed`, `expired` or `cancelled`? | Option A: the proposed resolution. The refund events are accepted from those three states as recorded payment events: an `order_event` row and the payment's `refunded_cents`, with the order state unchanged. ADR-0043. |
@@ -1172,7 +1173,7 @@ Coverage never decreases (CR-44). `coverage-baseline.json` records each scope's 
 | `RESERVATION_TTL_OXXO_HOURS` | api | `72` | D6 | |
 | `PAYMENT_INSTALLMENT_OPTIONS` | api | `3,6` | D7 | |
 | `WEBHOOK_MAX_AGE_SECONDS` | api | `300` | `300` | Signature timestamp tolerance, applied on both sides of now (9.A, G8, ADR-0044) |
-| `WEBHOOK_INLINE_BUDGET_MS` | api | Set in 9.3 | Same | Inline processing budget before `process_webhooks` takes over |
+| `WEBHOOK_INLINE_BUDGET_MS` | api | `2000` | `2000` | Inline processing budget before `process_webhooks` takes over (9.A, OA-54, ADR-0045) |
 | `PICKUP_HOLD_DAYS` | api | `7` | D4 | `[R2]`, with pickup |
 | `PURCHASE_LIMIT_WINDOW_DAYS` | api | No default; tests set it (D15) | D15 | Days the purchase-limit guard looks back (G31, ADR-0030). Required while any variant carries a limit. |
 
@@ -5408,6 +5409,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.26 | 2026-10-25 | G26 and G27 resolved as proposed: a partial refund keeps the order state (T18), and the refund events are accepted from `completed`, `expired` and `cancelled` as recorded payment events (T17, T18). 8.A rows T17 and T18 and a note after the terminal states are amended; P8-V01 and P8-V07 text follows. New task T8.13 changes `TRANSITIONS` and its tests, and T8.6a now also depends on it. G45 registered at the owner's request (refund inside the order transaction, Phase 16); T16.5 gains it as an open item. No Verify ID, schema or REQ change. | OA-50, OA-51; ADR-0043 |
 | 1.27 | 2026-10-26 | Phase 9 task order: an execution-order note added (T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.7, T9.8, T9.14, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b), stating that forward mentions between tasks are not dependencies. No dependency, Verify ID, schema or task-ID change. | OA-52 |
 | 1.28 | 2026-10-26 | G7 and G8 resolved as proposed: a failing webhook row is retried 10 times with exponential backoff, then marked failed and alerted; a notification timestamp is accepted when `abs(now − ts) ≤ WEBHOOK_MAX_AGE_SECONDS`, future side included. T9.3 and T16.4 lose their open items; the ⚠️ marks of P9-V10, P9-V13, P9-V17, P16-V06, REQ-030 and REQ-031 (G7, G8) are removed; §4.7, R-20 and §7.2 follow. No Verify ID, task or schema change. | OA-53; ADR-0044 |
+| 1.29 | 2026-10-26 | `WEBHOOK_INLINE_BUDGET_MS` recorded as 2000 ms in the §4.7 row (it read "Set in 9.3"). No task, Verify ID, schema or code change. | OA-54; ADR-0045 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5501,6 +5503,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0042 | A checkout whose expected total no longer matches is refused with the fresh totals | `docs/decisions/0042-checkout-expected-total.md` | G4; OA-49 |
 | ADR-0043 | Refunds are payment records: a partial refund keeps the order state, and a refund can be recorded after a terminal state | `docs/decisions/0043-refunds-are-payment-records.md` | G26, G27; OA-50, OA-51 |
 | ADR-0044 | A failing webhook row is retried 10 times, and a notification timestamp is fresh within the tolerance on both sides | `docs/decisions/0044-webhook-retry-cap-and-clock-skew.md` | G7, G8; OA-53 |
+| ADR-0045 | The inline webhook budget is 2000 ms | `docs/decisions/0045-webhook-inline-budget.md` | OA-54 |
 
 ## Appendix C — Dated market facts
 
