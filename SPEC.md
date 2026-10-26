@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.27 |
+| Spec version | 1.28 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -402,8 +402,8 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G4 | 8 | P8-V09, P13-V19 | A price change between the last view and "Pagar" applies silently | Checkout takes `expected_total_cents`; a mismatch returns 409 with fresh totals and reserves nothing | R1 | Resolved (ADR-0042) |
 | G5 | 8 | P8-V12 | The timezone of the order-number year is unspecified, and so is the per-year sequence. Widened: DS:formatting.md requires an explicit `timeZone` for every displayed date (CR-31). | `America/Mexico_City` as the store timezone for numbering and display; one Postgres sequence per year, created on first use | R1 | Resolved (ADR-0030) |
 | G6 | 8 | P8-V17 | Cancelling an order whose pre-order reservations are committed is undefined | `cancel_preorder_allocation(order)`, called from T16 and T19 | R2 | Deferred (R2) |
-| G7 | 9 | P9-V13, P9-V17 | Webhook processing failures have no retry cap | 10 attempts with exponential backoff, then mark failed and alert | R1 | Open |
-| G8 | 9 | P9-V10 | Future timestamps and clock skew are unspecified | Accept `abs(now − ts) ≤ WEBHOOK_MAX_AGE_SECONDS` | R1 | Open |
+| G7 | 9 | P9-V13, P9-V17 | Webhook processing failures have no retry cap | 10 attempts with exponential backoff, then mark failed and alert | R1 | Resolved (ADR-0044) |
+| G8 | 9 | P9-V10 | Future timestamps and clock skew are unspecified | Accept `abs(now − ts) ≤ WEBHOOK_MAX_AGE_SECONDS` | R1 | Resolved (ADR-0044) |
 | G9 | 10 | P10-V17 | FIFO pre-order allocation has no tie-break for equal `paid_at` | Break ties by `order.id` ascending | R2 | Deferred (R2) |
 | G10 | 10 | P10-V13 | The pickup reminder has no defined window | Send at ≤ 24 h remaining, with a dedupe key | R2 | Deferred (R2) |
 | G11 | 9 | P9-V21 | T1 reserves stock for the card TTL before the payment method is known; an OXXO voucher can arrive for an expired order | A separate checkout-session TTL; a `pending` notification for an expired order alerts and, where possible, cancels the voucher | R1 | Open |
@@ -529,6 +529,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-46 | 2026-10-25 | G44: should the cart store the postal code, or does the quote keep reading it from the request? | Keep the `postal_code` query parameter on `GET /api/cart/` for now, and check it in Phase 13. Registered as G44; no ADR, because the choice is cheap to reverse until then. |
 | OA-47 | 2026-10-25 | Phase 8 task order: the tasks are listed in a valid order, but their numbers do not follow it (T8.2 needs T8.3 and T8.10; T8.5 runs near the end) and the phase has no execution-order note. Add one? | Option A: add the note. Execution order: T8.1, T8.3, T8.10, T8.2, T8.4, T8.7, T8.8, T8.9, T8.5, T8.6a (phase-close); then, in R2, T8.11 and T8.6b. IDs keep their numbers. No ADR: cheap to reverse, spec text only. |
 | OA-48 | 2026-10-25 | G25: Phase 8 needs a payment provider (`create_checkout`, `refund`) before the mock exists. Resolve it now, or keep it open with an `xfail`? | Option A: the proposed resolution. The two `MockPaymentProvider` methods are built in Phase 8 (T8.10), and the rest of the mock in Phase 9 (T9.9). The tests of T8.10 and T8.2 are plain tests, with no `xfail`. ADR-0041. |
+| OA-53 | 2026-10-26 | G7 and G8: how many times is a failing webhook row retried, and how are future timestamps and clock skew treated? | Option A for both: the proposed resolutions. G7: 10 attempts with exponential backoff, then the row is marked failed and an alert is raised. G8: a timestamp is accepted when `abs(now − ts) ≤ WEBHOOK_MAX_AGE_SECONDS`, so a future timestamp beyond that is rejected too. The tests of P9-V10, P9-V13 and P9-V17 are plain tests, with no `xfail`. ADR-0044. |
 | OA-49 | 2026-10-25 | G4: what happens when a price changes between the last cart view and "Pagar"? | Option A: the proposed resolution. Checkout takes an optional `expected_total_cents`; a mismatch returns 409 `total_changed` with the fresh totals, creates no order and reserves nothing. Built by the new task T8.12. ADR-0042. |
 | OA-50 | 2026-10-25 | G26: after a partial refund (T18), what happens to the order? | Option A: the proposed resolution. A partial refund is recorded on the payment and the order keeps its state, so it stays fulfillable. ADR-0043. |
 | OA-51 | 2026-10-25 | G27: can a refund be recorded after the order is `completed`, `expired` or `cancelled`? | Option A: the proposed resolution. The refund events are accepted from those three states as recorded payment events: an `order_event` row and the payment's `refunded_cents`, with the order state unchanged. ADR-0043. |
@@ -570,8 +571,8 @@ The acceptance criteria of a requirement are Verify IDs. The assertion text live
 
 | REQ | Requirement | Rules | Acceptance | Release |
 |---|---|---|---|---|
-| REQ-030 | An order changes on payment only through a verified notification, a status fetched from the provider, and a matching amount. | CR-11 to CR-17 | P2-V16 · P9-V01 (PAY-01 to PAY-19) · P9-V05 · P9-V07 · P9-V10 ⚠️G8 · P9-V11 · P9-V12 · P9-V20 | R1 |
-| REQ-031 | A lost notification is recovered by reconciliation, and a late one causes no second transition. | CR-15, CR-16 | P9-V04 · P9-V13 ⚠️G7 · P9-V14 ⚠️G14 · P9-V17 ⚠️G7 | R1 |
+| REQ-030 | An order changes on payment only through a verified notification, a status fetched from the provider, and a matching amount. | CR-11 to CR-17 | P2-V16 · P9-V01 (PAY-01 to PAY-19) · P9-V05 · P9-V07 · P9-V10 · P9-V11 · P9-V12 · P9-V20 | R1 |
+| REQ-031 | A lost notification is recovered by reconciliation, and a late one causes no second transition. | CR-15, CR-16 | P9-V04 · P9-V13 · P9-V14 ⚠️G14 · P9-V17 | R1 |
 | REQ-032 | Refunds never exceed what was paid. A cash refund is recorded by hand, with a note. | — | P2-V13 · P8-V06 · P9-V15 · P9-V16 | R1 |
 
 ### 3.5 Integration boundaries
@@ -1170,7 +1171,7 @@ Coverage never decreases (CR-44). `coverage-baseline.json` records each scope's 
 | `RESERVATION_TTL_SPEI_HOURS` | api | `4` | D6 | |
 | `RESERVATION_TTL_OXXO_HOURS` | api | `72` | D6 | |
 | `PAYMENT_INSTALLMENT_OPTIONS` | api | `3,6` | D7 | |
-| `WEBHOOK_MAX_AGE_SECONDS` | api | `300` | `300` | Signature timestamp tolerance (9.A); see G8 |
+| `WEBHOOK_MAX_AGE_SECONDS` | api | `300` | `300` | Signature timestamp tolerance, applied on both sides of now (9.A, G8, ADR-0044) |
 | `WEBHOOK_INLINE_BUDGET_MS` | api | Set in 9.3 | Same | Inline processing budget before `process_webhooks` takes over |
 | `PICKUP_HOLD_DAYS` | api | `7` | D4 | `[R2]`, with pickup |
 | `PURCHASE_LIMIT_WINDOW_DAYS` | api | No default; tests set it (D15) | D15 | Days the purchase-limit guard looks back (G31, ADR-0030). Required while any variant carries a limit. |
@@ -2968,7 +2969,6 @@ Shared helpers, used by every adapter and unit-tested once:
   - Verifies: P9-V10, P9-V11, P9-V12, P9-V13, P9-V17
   - Depends on: T9.9
   - Context: 9.A, 9.B; §4.8
-  - Open items: G7, G8 (tests xfail until decided)
 
 Webhook endpoint `POST /api/webhooks/payments/<provider>/` — CSRF-exempt, unauthenticated, rate-limited, and **excluded from the CDN**. `<provider>` must equal `payment_provider().code`; any other value is 404. Part A receives at `/api/webhooks/payments/mock/`, Phase 16 at `/api/webhooks/payments/mercadopago/`.
 
@@ -2991,7 +2991,7 @@ process_webhook_event(id):
   set processed_at
 ```
 
-Also build `manage.py process_webhooks`, which retries unprocessed rows and increments `attempts`; the retry cap follows G7's proposed resolution. Add its line to `infra/crontab` (every minute, §4.8). Future timestamps and clock skew follow G8's proposed resolution.
+Also build `manage.py process_webhooks`, which retries unprocessed rows and increments `attempts`; a row is retried up to 10 attempts with exponential backoff, then marked failed and alerted (G7, ADR-0044). Add its line to `infra/crontab` (every minute, §4.8). A timestamp is accepted when `abs(now − ts) ≤ WEBHOOK_MAX_AGE_SECONDS`, so a future timestamp beyond that is rejected as well (G8, ADR-0044).
 
 - [ ] **T9.4 — Status mapping**
   - Release: R1 · Gate: task
@@ -3226,14 +3226,14 @@ Write PAY-09 to PAY-19 from the table in T9.13a against the same `PaymentDriver`
 | P9-V07 | integration | `api/tests/integration/payments/test_mapping.py::test_p9_v07_amount_off_by_one_centavo[+1,-1]` | `amount_cents = total ± 1`: the payment is recorded `approved`, the order stays `pending_payment`, and an alert is captured. |
 | P9-V08 | unit | `api/tests/unit/payments/test_money.py::test_p9_v08_conversion_edges` | `"1160.00" → 116000`; `"1160.009"` and negative amounts are rejected; the round-trip property from §4.6 holds. |
 | P9-V09 | integration | `api/tests/integration/payments/test_deadlines.py::test_p9_v09_ttl_boundaries[card,spei,oxxo]` | Card: not expired at checkout + 30 min, expired at + 30 min + 1µs. SPEI extends to 4 h from `pending`; OXXO to voucher expiry + 2 h. Extension creates no new reservations. |
-| P9-V10 | integration | `api/tests/integration/payments/test_webhook.py::test_p9_v10_timestamp_age_boundary` | A signature aged exactly `WEBHOOK_MAX_AGE_SECONDS` is accepted; one second older returns 401. Future timestamps follow G8. ⚠️ G8 |
+| P9-V10 | integration | `api/tests/integration/payments/test_webhook.py::test_p9_v10_timestamp_age_boundary` | A signature aged exactly `WEBHOOK_MAX_AGE_SECONDS` is accepted; one second older returns 401. A timestamp in the future by more than `WEBHOOK_MAX_AGE_SECONDS` returns 401 too (G8, ADR-0044). |
 | P9-V11 | API | `api/tests/api/payments/test_webhook.py::test_p9_v11_provider_path_mismatch` | With `PAYMENT_PROVIDER=mock`, `POST /api/webhooks/payments/mercadopago/` returns 404 and stores nothing. |
 | P9-V12 | API | `api/tests/api/payments/test_webhook.py::test_p9_v12_missing_or_malformed_signature` | A missing signature header returns 401 with `signature_ok = false`; a body altered after signing returns 401. |
-| P9-V13 | integration | `api/tests/integration/payments/test_webhook.py::test_p9_v13_unknown_order_and_unknown_payment` | An unknown `external_reference` is marked processed with an error and alerted (PAY-19). A resource id the provider doesn't know (`PaymentNotFound`) is handled per G7. ⚠️ G7 |
+| P9-V13 | integration | `api/tests/integration/payments/test_webhook.py::test_p9_v13_unknown_order_and_unknown_payment` | An unknown `external_reference` is marked processed with an error and alerted (PAY-19). A resource id the provider doesn't know (`PaymentNotFound`) is retried like any failure: 10 attempts with exponential backoff, then marked failed and alerted (G7, ADR-0044). |
 | P9-V14 | concurrency | `api/tests/concurrency/test_webhooks.py::test_p9_v14_webhook_vs_reconcile_race` | Webhook processing and `reconcile_payments` for the same approved payment: one transition, and no exception surfaces. ⚠️ G14 |
 | P9-V15 | integration | `api/tests/integration/payments/test_refunds.py::test_p9_v15_refund_boundaries` | Refunding exactly the remaining balance succeeds; remaining + 1 centavo is rejected before calling the provider; two partials summing to the total end `refunded`. |
 | P9-V16 | integration | `api/tests/integration/payments/test_refunds.py::test_p9_v16_oxxo_manual_refund_requires_note` | A manual OXXO refund without a note is rejected; with a note it applies the event with `actor="staff:<id>"`. |
-| P9-V17 | integration | `api/tests/integration/payments/test_webhook.py::test_p9_v17_inline_failure_deferred` | A transient `fetch_payment` failure still returns 200 and leaves the row unprocessed; `process_webhooks` completes it later and increments `attempts`. ⚠️ G7 |
+| P9-V17 | integration | `api/tests/integration/payments/test_webhook.py::test_p9_v17_inline_failure_deferred` | A transient `fetch_payment` failure still returns 200 and leaves the row unprocessed; `process_webhooks` completes it later and increments `attempts`. A row that has failed 10 attempts is marked failed, is not retried again, and is alerted (G7, ADR-0044). |
 | P9-V18 | concurrency | `api/tests/concurrency/test_mock_store.py::test_p9_v18_mock_store_atomic_writes` | Concurrent writes to one mock payment never leave invalid JSON on disk. |
 | P9-V19 | API | `api/tests/api/orders/test_status.py::test_p9_v19_voucher_surfaced` | `voucher_url` and `voucher_expires_at` appear on the payment row and in the order status API. |
 | P9-V20 | unit | `api/tests/unit/payments/test_signing.py::test_p9_v20_sign_verify` | `sign`/`verify` round-trip; a one-byte change fails; comparison uses `hmac.compare_digest`. |
@@ -4629,7 +4629,6 @@ Confirm the field names for the voucher, the expiry and refunded amounts against
   - Verifies: P16-V06
   - Depends on: T16.3
   - Context: 9.A, 9.2, 9.3
-  - Open items: G8 (tests xfail until decided)
 
 `verify_webhook` with Mercado Pago's `x-signature` / `x-request-id` scheme through `signing.verify` (9.2). Confirm two things against current Mercado Pago documentation: the exact signed manifest, and which notification field is a stable delivery id for `webhook_event.external_id` (9.A rule 4). If no stable delivery id exists, use `x-request-id`. Add captured sandbox notifications as unit-test fixtures.
 
@@ -4691,7 +4690,7 @@ In this phase, P16-V01 passes in `make test-sandbox`, and the IDs whose layer sa
 |---|---|---|---|
 | P16-V04 | unit (`integrations`) | `api/tests/unit/payments/test_mercadopago_adapter.py::test_p16_v04_preference_payload` | With a fake SDK client, `create_checkout` sends `items` with `unit_price` in pesos via `cents_to_pesos`, `external_reference = public_id`, the `notification_url`, the three `back_urls`, installments from `PAYMENT_INSTALLMENT_OPTIONS`, and `expiration_date_to = payment_deadline_at`; it returns the preference's checkout URL. |
 | P16-V05 | unit (`integrations`) | `api/tests/unit/payments/test_mercadopago_adapter.py::test_p16_v05_status_mapping[fixture]` | Each captured sandbox payment response maps to the `NormalizedStatus` in the 16.3 table, amounts convert through `pesos_to_cents`, and a pending OXXO payment yields its voucher URL and expiry. A response with a refunded amount below the transaction amount maps to `partially_refunded`. |
-| P16-V06 | unit (`integrations`) | `api/tests/unit/payments/test_mercadopago_adapter.py::test_p16_v06_verify_captured_notifications` | Captured sandbox notifications verify with `MP_WEBHOOK_SECRET` and return a `WebhookRef` whose `notification_id` is the stable delivery id chosen in 16.4; an altered body, a wrong secret and a stale timestamp return `None`. ⚠️ G8 |
+| P16-V06 | unit (`integrations`) | `api/tests/unit/payments/test_mercadopago_adapter.py::test_p16_v06_verify_captured_notifications` | Captured sandbox notifications verify with `MP_WEBHOOK_SECRET` and return a `WebhookRef` whose `notification_id` is the stable delivery id chosen in 16.4; an altered body, a wrong secret and a stale timestamp return `None`. |
 | P16-V07 | unit (`integrations`) | `api/tests/unit/payments/test_mercadopago_adapter.py::test_p16_v07_refunds` | With a fake SDK client, a card refund calls the refunds API with the amount in pesos and returns a `RefundResult`; a cash (OXXO) payment raises `RefundNotSupported` without calling the API. |
 
 **Fixtures and factories introduced:**
@@ -5342,7 +5341,7 @@ Each mitigation names the requirement, test or open item that carries it, so the
 | R-17 | A CFDI request is missed or copied wrong, because issuing is manual | A request waiting more than a few days; a customer correction | REQ-060; the admin queue (P10-V23); the daily digest lists waiting requests |
 | R-18 | A customer bypasses a purchase limit by varying email, phone and address | Several orders of a limited item to near-identical data | G31 matches any of the three; residual risk accepted (GE:R10) |
 | R-19 | The hidden catalog leaks through the CDN cache before launch | A catalog page visible to an anonymous request | ~~G32~~ (ADR-0038); P5-V15 forbids public caching in pre-launch mode |
-| R-20 | A failing webhook row is retried forever | `attempts` growing on one row | G7, decided before Phase 9 closes |
+| R-20 | A failing webhook row is retried forever | `attempts` growing on one row | ~~G7~~ (ADR-0044) |
 | R-21 | Server and browser render a date in different time zones (hydration mismatch) | A hydration warning; a date off by one | CR-31; G5; the `ui-review` step (§0.5) |
 
 ### 7.2 Decisions due by phase
@@ -5359,7 +5358,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 5 | ~~G13~~ with ~~D10~~, ~~G32~~ |
 | Phase 6 | ~~G30~~, ~~G35~~ |
 | Phase 8 | ~~G3~~, ~~G4~~, ~~G5~~, ~~G25~~, ~~G26~~, ~~G27~~, ~~G31~~, ~~G33~~ |
-| Phase 9 | G7, G8, G11, G14 |
+| Phase 9 | ~~G7~~, ~~G8~~, G11, G14 |
 | Phase 11 | G17; DSR-04, DSR-05 released |
 | Phase 12 | G18, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03, DSR-06, DSR-07 released; DSR-09 or its fallback |
 | Phase 13 | G21, G22 |
@@ -5408,6 +5407,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.25 | 2026-10-25 | G4 resolved as proposed: checkout takes an optional `expected_total_cents`, and a mismatch returns 409 `total_changed` with the fresh totals and reserves nothing. New task T8.12 builds it (P8-V09 moves from T8.4 to T8.12; T8.6a also depends on T8.12). The ⚠️ G4 mark is removed from P8-V09, P13-V19 and REQ-002; T8.4 and T13.6 lose their G4 open item. No other Verify ID or schema change. | OA-49; ADR-0042 |
 | 1.26 | 2026-10-25 | G26 and G27 resolved as proposed: a partial refund keeps the order state (T18), and the refund events are accepted from `completed`, `expired` and `cancelled` as recorded payment events (T17, T18). 8.A rows T17 and T18 and a note after the terminal states are amended; P8-V01 and P8-V07 text follows. New task T8.13 changes `TRANSITIONS` and its tests, and T8.6a now also depends on it. G45 registered at the owner's request (refund inside the order transaction, Phase 16); T16.5 gains it as an open item. No Verify ID, schema or REQ change. | OA-50, OA-51; ADR-0043 |
 | 1.27 | 2026-10-26 | Phase 9 task order: an execution-order note added (T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.7, T9.8, T9.14, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b), stating that forward mentions between tasks are not dependencies. No dependency, Verify ID, schema or task-ID change. | OA-52 |
+| 1.28 | 2026-10-26 | G7 and G8 resolved as proposed: a failing webhook row is retried 10 times with exponential backoff, then marked failed and alerted; a notification timestamp is accepted when `abs(now − ts) ≤ WEBHOOK_MAX_AGE_SECONDS`, future side included. T9.3 and T16.4 lose their open items; the ⚠️ marks of P9-V10, P9-V13, P9-V17, P16-V06, REQ-030 and REQ-031 (G7, G8) are removed; §4.7, R-20 and §7.2 follow. No Verify ID, task or schema change. | OA-53; ADR-0044 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5500,6 +5500,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0041 | The mock payment provider's checkout and refund are built in Phase 8 | `docs/decisions/0041-mock-provider-checkout-refund-phase-8.md` | G25; OA-48 |
 | ADR-0042 | A checkout whose expected total no longer matches is refused with the fresh totals | `docs/decisions/0042-checkout-expected-total.md` | G4; OA-49 |
 | ADR-0043 | Refunds are payment records: a partial refund keeps the order state, and a refund can be recorded after a terminal state | `docs/decisions/0043-refunds-are-payment-records.md` | G26, G27; OA-50, OA-51 |
+| ADR-0044 | A failing webhook row is retried 10 times, and a notification timestamp is fresh within the tolerance on both sides | `docs/decisions/0044-webhook-retry-cap-and-clock-skew.md` | G7, G8; OA-53 |
 
 ## Appendix C — Dated market facts
 
@@ -5967,7 +5968,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | P16-V02 | New: `prod.py` starts with `mercadopago` (refusing `mock` is P1-V14) | Plan checklist item 4 |
 | P16-V04 | New: preference payload | 16.2 |
 | P16-V05 | New: status mapping on captured responses | 16.3 |
-| P16-V06 | New: signature verification on captured notifications ⚠️ G8 | 16.4 |
+| P16-V06 | New: signature verification on captured notifications | 16.4 |
 | P16-V07 | New: refunds, cash raises `RefundNotSupported` | 16.5 |
 | P16-V03 | New `[manual]`: browser purchase through Checkout Pro | Plan checklist item 3 |
 

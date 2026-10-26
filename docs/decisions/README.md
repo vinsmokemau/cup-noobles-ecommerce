@@ -48,3 +48,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0041](0041-mock-provider-checkout-refund-phase-8.md) | The mock payment provider's checkout and refund are built in Phase 8 | accepted | G25; OA-48 |
 | [ADR-0042](0042-checkout-expected-total.md) | A checkout whose expected total no longer matches is refused with the fresh totals | accepted | G4; OA-49 |
 | [ADR-0043](0043-refunds-are-payment-records.md) | Refunds are payment records: a partial refund keeps the order state, and a refund can be recorded after a terminal state | accepted | G26, G27; OA-50, OA-51 |
+| [ADR-0044](0044-webhook-retry-cap-and-clock-skew.md) | A failing webhook row is retried 10 times, and a notification timestamp is fresh within the tolerance on both sides | accepted | G7, G8; OA-53 |
