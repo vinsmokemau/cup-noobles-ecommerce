@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.30 |
+| Spec version | 1.31 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -409,7 +409,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G11 | 9 | P9-V21 | T1 reserves stock for the card TTL before the payment method is known; an OXXO voucher can arrive for an expired order | A `pending` notification for an expired or cancelled order alerts and cancels the voucher; the order stays as it is (built in T9.15). The separate checkout-session TTL was not adopted. | R1 | Resolved (ADR-0046) |
 | G12 | 3 | P3-V09 | `import_catalog` doesn't say what happens to valid rows when some rows are invalid | All or nothing per file, reporting every invalid row | R1 | Resolved (ADR-0033) |
 | G13 | 5 | P5-V07 | D10 suggests a badge "under 5"; 5.3 defines `low_stock` as 1 ≤ available ≤ 5 | Decide together with D10 | R1 | Resolved (ADR-0037) |
-| G14 | 9 | P9-V14 | A webhook and `reconcile_payments` processing one approval concurrently: the second `apply_event` raises `IllegalTransition` under the lock | Treat it as `webhook_no_op` when the order already reflects the status | R1 | Open |
+| G14 | 9 | P9-V14 | A webhook and `reconcile_payments` processing one approval concurrently: the second `apply_event` raises `IllegalTransition` under the lock | Treat it as `webhook_no_op` when the order already reflects the status | R1 | Resolved (ADR-0047) |
 | G15 | 4 | P4-V16 | `commit_reservations` is not specified as idempotent | A second commit of committed reservations is a no-op | R1 | Resolved (ADR-0036) |
 | G16 | 10 | P10-V21 | T9 into `ready_for_pickup` doesn't set `pickup_deadline_at` | T9 sets it | R2 | Deferred (R2) |
 | G17 | 11 | P11-V10 | `send_outbox` doesn't claim rows; an overlapping run can send an email twice | Claim rows with `SELECT … FOR UPDATE SKIP LOCKED` | R1 | Open |
@@ -532,6 +532,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-53 | 2026-10-26 | G7 and G8: how many times is a failing webhook row retried, and how are future timestamps and clock skew treated? | Option A for both: the proposed resolutions. G7: 10 attempts with exponential backoff, then the row is marked failed and an alert is raised. G8: a timestamp is accepted when `abs(now − ts) ≤ WEBHOOK_MAX_AGE_SECONDS`, so a future timestamp beyond that is rejected too. The tests of P9-V10, P9-V13 and P9-V17 are plain tests, with no `xfail`. ADR-0044. |
 | OA-54 | 2026-10-26 | `WEBHOOK_INLINE_BUDGET_MS`: T9.3 shipped 2000 ms; should that be the value recorded in §4.7? | Yes: 2000 ms in Part A and Part B, and the §4.7 row says so. ADR-0045. |
 | OA-55 | 2026-10-26 | G11: an OXXO or SPEI voucher can be generated after the card hold has lapsed and the order is `expired`. Alert only, cancel the voucher, or hold stock longer? | Option A, as the proposal reads minus its first half: the notification alerts a person and the voucher is cancelled at the provider; the order stays `expired`. No separate checkout-session TTL: T1 keeps the 30-minute card hold. The work is a new task, T9.15 (`cancel_payment`), run after T9.6. |
+| OA-56 | 2026-10-26 | G14: a webhook and `reconcile_payments` process one approval at the same time; should the second be an error, or a no-op? | Accept the proposal: the second is treated as `webhook_no_op` when the order already reflects the status. T9.4's mapping already behaves this way, so no code changes. |
 | OA-49 | 2026-10-25 | G4: what happens when a price changes between the last cart view and "Pagar"? | Option A: the proposed resolution. Checkout takes an optional `expected_total_cents`; a mismatch returns 409 `total_changed` with the fresh totals, creates no order and reserves nothing. Built by the new task T8.12. ADR-0042. |
 | OA-50 | 2026-10-25 | G26: after a partial refund (T18), what happens to the order? | Option A: the proposed resolution. A partial refund is recorded on the payment and the order keeps its state, so it stays fulfillable. ADR-0043. |
 | OA-51 | 2026-10-25 | G27: can a refund be recorded after the order is `completed`, `expired` or `cancelled`? | Option A: the proposed resolution. The refund events are accepted from those three states as recorded payment events: an `order_event` row and the payment's `refunded_cents`, with the order state unchanged. ADR-0043. |
@@ -567,14 +568,14 @@ The acceptance criteria of a requirement are Verify IDs. The assertion text live
 |---|---|---|---|---|
 | REQ-020 | Every order state change goes through `apply_event` under a row lock and writes exactly one `order_event`. Anything outside the 8.A table is rejected. | CR-09, CR-10 | P1-V05 · P8-V01 · P8-V02 · P8-V05 · P8-V07 · P8-V15 | R1 |
 | REQ-021 | Checkout is atomic and safe to repeat: one request, or many identical ones, creates at most one order and one set of reservations. | — | P8-V03 · P8-V08 · P8-V10 · P8-V18 · P13-V02 · P13-V21 · P15-V08 | R1 |
-| REQ-022 | Every scheduled job is idempotent and safe to run concurrently with itself and with webhook processing. | §4.8 | P4-V05 · P8-V14 · P9-V14 ⚠️G14 · P10-V19 · P11-V10 ⚠️G17 | R1 |
+| REQ-022 | Every scheduled job is idempotent and safe to run concurrently with itself and with webhook processing. | §4.8 | P4-V05 · P8-V14 · P9-V14 · P10-V19 · P11-V10 ⚠️G17 | R1 |
 
 ### 3.4 Payments
 
 | REQ | Requirement | Rules | Acceptance | Release |
 |---|---|---|---|---|
 | REQ-030 | An order changes on payment only through a verified notification, a status fetched from the provider, and a matching amount. | CR-11 to CR-17 | P2-V16 · P9-V01 (PAY-01 to PAY-19) · P9-V05 · P9-V07 · P9-V10 · P9-V11 · P9-V12 · P9-V20 | R1 |
-| REQ-031 | A lost notification is recovered by reconciliation, and a late one causes no second transition. | CR-15, CR-16 | P9-V04 · P9-V13 · P9-V14 ⚠️G14 · P9-V17 | R1 |
+| REQ-031 | A lost notification is recovered by reconciliation, and a late one causes no second transition. | CR-15, CR-16 | P9-V04 · P9-V13 · P9-V14 · P9-V17 | R1 |
 | REQ-032 | Refunds never exceed what was paid. A cash refund is recorded by hand, with a note. | — | P2-V13 · P8-V06 · P9-V15 · P9-V16 | R1 |
 
 ### 3.5 Integration boundaries
@@ -3069,9 +3070,8 @@ Add `cancel_payment(provider_payment_id)` to `PaymentProvider` and to the mock: 
   - Verifies: P9-V14
   - Depends on: T9.4
   - Context: 9.A; §4.8
-  - Open items: G14 (tests xfail until decided)
 
-`manage.py reconcile_payments` — for every order in `pending_payment` older than 15 minutes, call `find_payments(order.public_id)` and pass each result through the same processing path as a webhook (upsert the payment row, then apply the 9.4 mapping). This is the safety net for dropped webhooks. Run it every 10 minutes: add its line to `infra/crontab` (§4.8). **Do not skip it.** Webhooks are lost in production; this is what makes the system self-healing. A webhook and reconciliation processing the same approval concurrently follow G14's proposed resolution.
+`manage.py reconcile_payments` — for every order in `pending_payment` older than 15 minutes, call `find_payments(order.public_id)` and pass each result through the same processing path as a webhook (upsert the payment row, then apply the 9.4 mapping). This is the safety net for dropped webhooks. Run it every 10 minutes: add its line to `infra/crontab` (§4.8). **Do not skip it.** Webhooks are lost in production; this is what makes the system self-healing. A webhook and reconciliation processing the same approval concurrently treat the second as `webhook_no_op` when the order already reflects the status (G14, ADR-0047).
 
 - [ ] **T9.8 — Refunds**
   - Release: R1 · Gate: task
@@ -3242,7 +3242,7 @@ Write PAY-09 to PAY-19 from the table in T9.13a against the same `PaymentDriver`
 | P9-V11 | API | `api/tests/api/payments/test_webhook.py::test_p9_v11_provider_path_mismatch` | With `PAYMENT_PROVIDER=mock`, `POST /api/webhooks/payments/mercadopago/` returns 404 and stores nothing. |
 | P9-V12 | API | `api/tests/api/payments/test_webhook.py::test_p9_v12_missing_or_malformed_signature` | A missing signature header returns 401 with `signature_ok = false`; a body altered after signing returns 401. |
 | P9-V13 | integration | `api/tests/integration/payments/test_webhook.py::test_p9_v13_unknown_order_and_unknown_payment` | An unknown `external_reference` is marked processed with an error and alerted (PAY-19). A resource id the provider doesn't know (`PaymentNotFound`) is retried like any failure: 10 attempts with exponential backoff, then marked failed and alerted (G7, ADR-0044). |
-| P9-V14 | concurrency | `api/tests/concurrency/test_webhooks.py::test_p9_v14_webhook_vs_reconcile_race` | Webhook processing and `reconcile_payments` for the same approved payment: one transition, and no exception surfaces. ⚠️ G14 |
+| P9-V14 | concurrency | `api/tests/concurrency/test_webhooks.py::test_p9_v14_webhook_vs_reconcile_race` | Webhook processing and `reconcile_payments` for the same approved payment: one transition, and no exception surfaces (G14, ADR-0047). |
 | P9-V15 | integration | `api/tests/integration/payments/test_refunds.py::test_p9_v15_refund_boundaries` | Refunding exactly the remaining balance succeeds; remaining + 1 centavo is rejected before calling the provider; two partials summing to the total end `refunded`. |
 | P9-V16 | integration | `api/tests/integration/payments/test_refunds.py::test_p9_v16_oxxo_manual_refund_requires_note` | A manual OXXO refund without a note is rejected; with a note it applies the event with `actor="staff:<id>"`. |
 | P9-V17 | integration | `api/tests/integration/payments/test_webhook.py::test_p9_v17_inline_failure_deferred` | A transient `fetch_payment` failure still returns 200 and leaves the row unprocessed; `process_webhooks` completes it later and increments `attempts`. A row that has failed 10 attempts is marked failed, is not retried again, and is alerted (G7, ADR-0044). |
@@ -5370,7 +5370,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 5 | ~~G13~~ with ~~D10~~, ~~G32~~ |
 | Phase 6 | ~~G30~~, ~~G35~~ |
 | Phase 8 | ~~G3~~, ~~G4~~, ~~G5~~, ~~G25~~, ~~G26~~, ~~G27~~, ~~G31~~, ~~G33~~ |
-| Phase 9 | ~~G7~~, ~~G8~~, ~~G11~~, G14 |
+| Phase 9 | ~~G7~~, ~~G8~~, ~~G11~~, ~~G14~~ |
 | Phase 11 | G17; DSR-04, DSR-05 released |
 | Phase 12 | G18, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03, DSR-06, DSR-07 released; DSR-09 or its fallback |
 | Phase 13 | G21, G22 |
@@ -5422,6 +5422,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.28 | 2026-10-26 | G7 and G8 resolved as proposed: a failing webhook row is retried 10 times with exponential backoff, then marked failed and alerted; a notification timestamp is accepted when `abs(now − ts) ≤ WEBHOOK_MAX_AGE_SECONDS`, future side included. T9.3 and T16.4 lose their open items; the ⚠️ marks of P9-V10, P9-V13, P9-V17, P16-V06, REQ-030 and REQ-031 (G7, G8) are removed; §4.7, R-20 and §7.2 follow. No Verify ID, task or schema change. | OA-53; ADR-0044 |
 | 1.29 | 2026-10-26 | `WEBHOOK_INLINE_BUDGET_MS` recorded as 2000 ms in the §4.7 row (it read "Set in 9.3"). No task, Verify ID, schema or code change. | OA-54; ADR-0045 |
 | 1.30 | 2026-10-26 | G11 resolved: a `pending` voucher for an expired or cancelled order alerts and is cancelled at the provider, and the order stays as it is. No separate checkout-session TTL. New task T9.15 (`cancel_payment` on `PaymentProvider` and the mock) runs after T9.6; P9-V21 moves from T9.5 to it and loses its `xfail`; T16.3 gains the real adapter method. | OA-55; ADR-0046 |
+| 1.31 | 2026-10-26 | G14 resolved as proposed: when a webhook and `reconcile_payments` process one approval at the same time, the second is a `webhook_no_op`. T9.7 loses its open item; the ⚠️ marks of P9-V14, REQ-022 and REQ-031 (G14) are removed. No Verify ID, task, schema or code change. | OA-56; ADR-0047 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5517,6 +5518,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0044 | A failing webhook row is retried 10 times, and a notification timestamp is fresh within the tolerance on both sides | `docs/decisions/0044-webhook-retry-cap-and-clock-skew.md` | G7, G8; OA-53 |
 | ADR-0045 | The inline webhook budget is 2000 ms | `docs/decisions/0045-webhook-inline-budget.md` | OA-54 |
 | ADR-0046 | A voucher for an expired order is cancelled at the provider, and the order stays expired | `docs/decisions/0046-late-voucher-is-cancelled.md` | G11; OA-55 |
+| ADR-0047 | A webhook and a reconciliation run on one approval move the order once, and the second is a no-op | `docs/decisions/0047-webhook-vs-reconcile-is-a-no-op.md` | G14; OA-56 |
 
 ## Appendix C — Dated market facts
 

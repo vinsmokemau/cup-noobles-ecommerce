@@ -1,4 +1,4 @@
-"""A webhook against reconciliation (SPEC.md 9.7, G14)."""
+"""A webhook against reconciliation (SPEC.md 9.7, G14, ADR-0047)."""
 
 from datetime import UTC, datetime
 
@@ -14,8 +14,6 @@ from tests.factories.payments import WebhookEventFactory, mock_payment_for
 pytestmark = [pytest.mark.concurrency, pytest.mark.django_db(transaction=True)]
 
 
-# G14 is still open (SPEC.md 2.4). The test follows its proposed resolution, and T9.4's mapping
-# already behaves that way, so it passes today: a strict xfail would fail the run (XPASS).
 def test_p9_v14_webhook_vs_reconcile_race(clock):
     clock.travel(datetime(2026, 10, 26, 12, 0, tzinfo=UTC))
     order = order_in_state(
