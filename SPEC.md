@@ -3045,7 +3045,7 @@ When a `pending` OXXO or SPEI payment arrives, **extend** the existing reservati
 
 G48: a reservation must never expire before its order's `payment_deadline_at`; extend both together, in one transaction. `expire_reservations` logs a `GuardFailed` from T5 as a one-line warning, not an exception. Add a test with a method whose deadline is longer than the card window.
 
-- [ ] **T9.6 — Voucher on the order**
+- [x] **T9.6 — Voucher on the order** (2026-10-26, 68ac58c)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P9-V19
