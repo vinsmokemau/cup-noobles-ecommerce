@@ -23,7 +23,7 @@ The rules of plan 9.A, as CR-11 to CR-17:
 ## Consequences
 
 - A reconciliation job covers lost webhooks.
-- Retry limits (G7), clock skew (G8) and concurrent webhook and reconcile (G14) are open and tracked in §2.4.
+- Retry limits (G7) and clock skew (G8) were resolved in ADR-0044, and a concurrent webhook and reconcile (G14) in ADR-0047.
 - Order state changes still go through `apply_event` (CR-09).
 
 ## Source
