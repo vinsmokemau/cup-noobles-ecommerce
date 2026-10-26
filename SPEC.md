@@ -3180,7 +3180,7 @@ Dev tooling. Every command refuses to run unless `DEV_TOOLS_ENABLED`.
 
 The `webhooks …` commands are provider-agnostic. They rebuild the request from the stored `webhook_event` row and re-sign it with the active provider's secret, so Phase 16 uses them unchanged on captured Mercado Pago notifications.
 
-- [ ] **T9.13a — Payment contract suite: driver and core scenarios**
+- [x] **T9.13a — Payment contract suite: driver and core scenarios** (2026-10-26, ff09bfa)
   - Release: R1 · Gate: task
   - REQs: REQ-030, REQ-041
   - Verifies: [no-test: writes PAY-01 to PAY-08, which run under P9-V01; T9.13b owns that ID]
