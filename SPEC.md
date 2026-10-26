@@ -3133,7 +3133,7 @@ Simulator pages — Django templates in `apps/payments/devtools/`, routed under 
 
 `/dev/payments/voucher/<payment_id>/` renders the fake OXXO ficha or SPEI instructions, with **"Simular pago recibido"** (→ `approved`) and **"Simular vencimiento"** (→ `cancelled`); both queue a notification.
 
-- [ ] **T9.11 — Mock notification delivery**
+- [x] **T9.11 — Mock notification delivery** (2026-10-26, 1598aac)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P9-V02
