@@ -3037,6 +3037,8 @@ Deadlines by method, set when the payment is first observed:
 
 When a `pending` OXXO or SPEI payment arrives, **extend** the existing reservations' `expires_at` and the order's `payment_deadline_at` rather than creating new reservations. In Part A the mock issues vouchers expiring `RESERVATION_TTL_OXXO_HOURS` (SPEI: `RESERVATION_TTL_SPEI_HOURS`) after creation, mirroring the preference expiry the real adapter requests in 16.2. A customer who generates a voucher after the checkout TTL has lapsed follows G11's proposed resolution.
 
+G48: a reservation must never expire before its order's `payment_deadline_at`; extend both together, in one transaction. `expire_reservations` logs a `GuardFailed` from T5 as a one-line warning, not an exception. Add a test with a method whose deadline is longer than the card window.
+
 - [ ] **T9.6 — Voucher on the order**
   - Release: R1 · Gate: task
   - REQs: —
