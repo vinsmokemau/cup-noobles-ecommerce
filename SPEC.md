@@ -2683,7 +2683,7 @@ Checkout endpoint `POST /api/checkout/` — R1 body: `{email, phone, fulfillment
 
 Idempotency: accept an `Idempotency-Key` header and return the existing order on replay. A double-clicked "Pagar" button must not create two orders holding two sets of stock. The key is stored on the order with a fingerprint of the request body, unique per cart token (G3, ADR-0030); the same key with a different body returns 422 `idempotency_key_reused`. A price change since the customer's last view is handled by T8.12 (G4, ADR-0042).
 
-- [ ] **T8.12 — Checkout expected total**
+- [x] **T8.12 — Checkout expected total** (2026-10-25, 9e56f19)
   - Release: R1 · Gate: task
   - REQs: REQ-002
   - Verifies: P8-V09
