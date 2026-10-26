@@ -9,3 +9,6 @@
 
 # Delete unconverted carts untouched for 60 days, weekly (SPEC.md §4.8, T7.8)
 45 3 * * 0 python manage.py purge_stale_carts
+
+# Auto-complete delivered orders after 7 days, every 5 minutes (SPEC.md §4.8, T8.6a)
+*/5 * * * * python manage.py advance_orders

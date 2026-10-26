@@ -84,6 +84,8 @@ class OrderMachine(RuleBasedStateMachine):
         assert self.order.events.count() == self.expected_events
 
 
+# The `ci` profile runs 1000 examples of 25 steps, longer than the default 60 s limit.
+@pytest.mark.timeout(900)
 def test_p8_v05_one_event_row_per_transition():
     run_state_machine_as_test(
         OrderMachine, settings=settings(deadline=None, stateful_step_count=25)

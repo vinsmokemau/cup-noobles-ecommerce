@@ -12,7 +12,7 @@ from tests.factories.inventory import (
     holding_order,
     stocked_variant,
 )
-from tests.factories.orders import DraftOrderFactory
+from tests.factories.orders import STAND_IN_ADDRESS, DraftOrderFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -151,8 +151,13 @@ def expired_hold(clock, on_hand=5, qty=2):
 
 
 def test_p4_v03_expired_hold_leaves_no_ledger(clock):
-    # G37: in Phase 4 the job only releases holds. T8.6a adds the order-state assertion.
+    # G37: the job releases the holds and, for a `pending_payment` order, fires T5 (T8.6a).
     variant, order = expired_hold(clock)
+    Order.objects.filter(pk=order.pk).update(
+        state="pending_payment",
+        shipping_address=STAND_IN_ADDRESS,
+        payment_deadline_at=InventoryReservation.objects.get(order=order).expires_at,
+    )
     ledger_rows = StockLedger.objects.count()
     clock.travel("2026-03-01T13:00:01Z")
 
@@ -165,7 +170,24 @@ def test_p4_v03_expired_hold_leaves_no_ledger(clock):
     reservation = InventoryReservation.objects.get(order=order)
     assert reservation.state == "released"
     assert reservation.settled_at is not None
+    assert Order.objects.get(pk=order.pk).state == "expired"
+    assert order.events.get().event == "deadline_passed"
     assert_stock_integrity(variant)
+
+
+def test_one_order_that_cannot_expire_does_not_stop_the_others(clock):
+    variant, odd = expired_hold(clock)
+    # Pending payment but with no deadline: T5's guard refuses it.
+    Order.objects.filter(pk=odd.pk).update(
+        state="pending_payment", shipping_address=STAND_IN_ADDRESS
+    )
+    other = holding_order(variant, 1, ttl=timedelta(hours=1))
+    clock.travel("2026-03-01T13:00:01Z")
+
+    call_command("expire_reservations")
+
+    assert InventoryReservation.objects.get(order=odd).state == "held"
+    assert InventoryReservation.objects.get(order=other).state == "released"
 
 
 def test_p4_v08_ttl_boundary(clock):

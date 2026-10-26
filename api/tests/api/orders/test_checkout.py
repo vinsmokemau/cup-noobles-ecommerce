@@ -308,3 +308,13 @@ def test_p8_v18_a_postal_code_without_a_shipping_price(checkout_client):
     assert response.status_code == 400
     assert "postal_code" in response.json()["address_payload"]
     assert not Order.objects.exists()
+
+
+def test_an_idempotency_key_that_is_too_long_is_refused(checkout_client):
+    cart = cart_with((stocked_variant(5), 1))
+
+    response = checkout(checkout_client, cart, idempotency_key="k" * 256)
+
+    assert response.status_code == 400
+    assert "idempotency_key" in response.json()
+    assert not Order.objects.exists()

@@ -6,8 +6,9 @@ webhook approving the same order either wins the lock first (its hold is committ
 is left to release) or finds the hold already released. Running the command twice, or two copies
 at once, releases each hold once. Releasing writes no ledger row: `on_hand` did not move.
 
-G37 (ADR-0036): until `apply_event` exists (Phase 8) the command only releases holds.
-From Phase 8 it also fires T5 (`pending_payment -> expired`) for the order.
+G37 (ADR-0036): this command owns payment-deadline expiry. A `pending_payment` order is moved
+by T5 (`deadline_passed`), whose side effects release its holds; a draft only has its holds
+released. `advance_orders` does not fire T5.
 """
 
 import logging
@@ -20,6 +21,7 @@ from django.utils import timezone
 from apps.inventory import services
 from apps.inventory.models import InventoryReservation
 from apps.orders.models import Order
+from apps.orders.state_machine import GuardFailed, IllegalTransition, apply_event
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +50,10 @@ def expire_order(order_id: int) -> bool:
                 order.state,
             )
             return False
-        services.release_reservations(order, reason="expired")
+        if order.state == "pending_payment":
+            apply_event(order.pk, "deadline_passed")
+        else:
+            services.release_reservations(order, reason="expired")
         return True
 
 
@@ -59,5 +64,11 @@ class Command(BaseCommand):
         order_ids = sorted(
             _lapsed_holds().values_list("order_id", flat=True).distinct()
         )
-        released = sum(expire_order(order_id) for order_id in order_ids)
+        released = 0
+        for order_id in order_ids:
+            try:
+                released += expire_order(order_id)
+            except (GuardFailed, IllegalTransition):
+                # One order in an odd shape must not stop the others from expiring.
+                logger.exception("Order %s could not be expired; left alone", order_id)
         self.stdout.write(f"expire_reservations: {released} order(s) released")
