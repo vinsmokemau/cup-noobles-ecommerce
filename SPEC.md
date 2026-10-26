@@ -2934,7 +2934,7 @@ class PaymentProvider(Protocol):
 
 `apps/payments/mock.py` implements it for Part A (`PAYMENT_PROVIDER=mock`); `apps/payments/mercadopago.py` implements it in Phase 16. Callers obtain it only via `providers.payment_provider()`. **Nothing outside `mercadopago.py` imports the Mercado Pago SDK** — enforced by `tests/architecture/test_vendor_imports.py` (§4.3).
 
-- [ ] **T9.2 — Money conversion and signing helpers**
+- [x] **T9.2 — Money conversion and signing helpers** (2026-10-26, 8ed458e)
   - Release: R1 · Gate: task
   - REQs: REQ-001, REQ-030
   - Verifies: P9-V08, P9-V20
