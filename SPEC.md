@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.33 |
+| Spec version | 1.34 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -2882,7 +2882,7 @@ Everything on the application side of the adapter is shared. In Part A, the prov
 
 #### Tasks
 
-Execution order: T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.15, T9.7, T9.8, T9.14, T9.16, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b (phase-close, last). IDs keep their numbers (OA-52). T9.9 comes before T9.3 because the endpoint verifies and fetches through the mock. T9.15 follows T9.6 and adds the provider method that a late voucher needs (OA-55). T9.14 follows T9.8 because it extends the refund side effects. T9.16 changes checkout (T8.4) and depends only on it; it runs before the simulator so the payment flow is exercised with the final cart behaviour (OA-58). T9.10 to T9.12b are dev tooling and need T9.9, T9.3 and T9.7. Mentions of a later task inside an earlier one (T9.3 "the mapping in 9.4", T9.4 "extend deadline (9.5)" and the refund events T17/T18) are not dependencies: T9.3 leaves the mapping step as a stub that T9.4 fills, and the T9.8/T9.14 side effects are added when those tasks run.
+Execution order: T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.15, T9.7, T9.8, T9.14, T9.16, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.17, T9.13b (phase-close, last). IDs keep their numbers (OA-52). T9.9 comes before T9.3 because the endpoint verifies and fetches through the mock. T9.15 follows T9.6 and adds the provider method that a late voucher needs (OA-55). T9.14 follows T9.8 because it extends the refund side effects. T9.16 changes checkout (T8.4) and depends only on it; it runs before the simulator so the payment flow is exercised with the final cart behaviour (OA-58). T9.10 to T9.12b are dev tooling and need T9.9, T9.3 and T9.7. Mentions of a later task inside an earlier one (T9.3 "the mapping in 9.4", T9.4 "extend deadline (9.5)" and the refund events T17/T18) are not dependencies: T9.3 leaves the mapping step as a stub that T9.4 fills, and the T9.8/T9.14 side effects are added when those tasks run.
 
 - [x] **T9.1 — Payment interface and value types** (2026-10-26, 8e38eb7)
   - Release: R1 · Gate: task
@@ -3222,11 +3222,20 @@ class PaymentDriver(Protocol):
 | PAY-18 | Chargeback | Alert; no transition |
 | PAY-19 | Notification for an unknown order | Stored; marked processed with an error; alert; no crash |
 
+- [ ] **T9.17 — Close Phase 9 coverage gaps**
+  - Release: R1 · Gate: task
+  - REQs: REQ-030, REQ-041
+  - Verifies: [no-test: adds tests for uncovered branches in apps/payments and apps/inventory; no new Verify ID]
+  - Depends on: T9.12b
+  - Context: §0.3 (coverage ratchet); 9.A
+
+Add tests for the uncovered branches in `webhooks.py`, `mapping.py`, `mock.py`, `devtools/delivery.py`, `devtools/replay.py`, `devtools/views.py`, `mock_payments.py`, the `webhooks` command and `expire_reservations.py`, until `make test-all` passes the coverage ratchet without lowering the baseline. Change no production code.
+
 - [ ] **T9.13b — Payment contract suite: idempotency, security and recovery**
   - Release: R1 · Gate: phase-close
   - REQs: REQ-030, REQ-041
   - Verifies: P9-V01, PAY-09 to PAY-19
-  - Depends on: T9.13a, T9.7, T9.8, T9.14
+  - Depends on: T9.13a, T9.7, T9.8, T9.14, T9.17
   - Context: the 9.13 scenario table in T9.13a; 9.A
 
 Write PAY-09 to PAY-19 from the table in T9.13a against the same `PaymentDriver`, and the completeness check P9-V01.
@@ -5441,6 +5450,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.31 | 2026-10-26 | G14 resolved as proposed: when a webhook and `reconcile_payments` process one approval at the same time, the second is a `webhook_no_op`. T9.7 loses its open item; the ⚠️ marks of P9-V14, REQ-022 and REQ-031 (G14) are removed. No Verify ID, task, schema or code change. | OA-56; ADR-0047 |
 | 1.32 | 2026-10-26 | G46 resolved as proposed: a refund sets the payment's `refunded_cents` to the running total, and the T17 and T18 guards compare that total with `amount_cents`. The 8.A effects of T17 and T18 say so. T9.8 built it as written, so no code, Verify ID, task or schema change. | OA-57; ADR-0048 |
 | 1.33 | 2026-10-26 | The cart is converted at T1 (the cart half of G22 and the Phase 9 question of T8.4). New task T9.16 (after T9.14) sets `cart.converted_order` in the checkout transaction and keeps the same-key replay working; new Verify ID P9-V23, added to REQ-021. G22's row narrows to the pay-retry endpoint, still open for Phase 13; T13.10 cites the decision. No schema change. | OA-58; ADR-0049 |
+| 1.34 | 2026-10-26 | Phase 9 closes only when the coverage ratchet passes. New task T9.17 (after T9.13a, before T9.13b) adds tests for the branches that lowered critical coverage from 100% to 97.15% and backend from 96.58% to 95.94%; T9.13b also depends on it. The baseline is not lowered. No Verify ID, schema or code change. | Owner answer in chat, 2026-10-26 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5832,7 +5842,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 |---|---|---|
 | Phase 9 | Release 1 scope line added: all tasks plus T9.14 | §5 |
 | 9.A | Rule 5 cites §4.8 instead of Appendix B; closing line maps the rules to CR-11–CR-16 | Spec references |
-| Phase 9 | Tasks listed in execution order: T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.15, T9.7, T9.8, T9.14, T9.16, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b | Dependencies (the mock precedes the endpoint that uses it) |
+| Phase 9 | Tasks listed in execution order: T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.15, T9.7, T9.8, T9.14, T9.16, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.17, T9.13b | Dependencies (the mock precedes the endpoint that uses it) |
 | T9.1 | §5.D → §4.3; interface sentence trimmed ("new relative to the original four methods" dropped) | Spec references |
 | T9.3 | Adds `manage.py process_webhooks` and its crontab line; G7 and G8 notes | 9.A rule 5 named the command but no task built it; §4.8 |
 | T9.4 | Note that `approved` always fires T2 in R1; T3 is R2 | Pre-orders are R2 |
@@ -5844,6 +5854,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T9.13 | Split into T9.13a (driver, `MockDriver`, PAY-01–PAY-08; holds the full scenario table) and T9.13b (PAY-09–PAY-19 and P9-V01, phase-close) | One session each |
 | T9.14 | New: CFDI review flag on refunds, added to T17/T18 side effects (P9-V22) | A12; REQ-060 |
 | T9.16 | New: the cart is converted at checkout (P9-V23) | G22; OA-58; REQ-021 |
+| T9.17 | New: tests for the uncovered branches that stopped the Phase 9 coverage ratchet; T9.13b also depends on it | Coverage ratchet; owner answer in chat, 2026-10-26 |
 | P9-V04 | Owned by T9.12a (it uses the `drop` command) | Ownership |
 | P9-V08 | "from §6.A" → "from §4.6" | Spec references |
 | P9-V22 | New (pre-allocated) | REQ-060 |
