@@ -2946,7 +2946,7 @@ Shared helpers, used by every adapter and unit-tested once:
 - `apps/payments/money.py` — `cents_to_pesos(int) -> Decimal` and `pesos_to_cents(Decimal | str) -> int`. This is the only conversion point between the database's centavos and a provider's pesos. It rejects sub-centavo values instead of rounding them.
 - `apps/payments/signing.py` — `sign(secret, *, resource_id, request_id, ts) -> str` and `verify(secret, headers, resource_id, *, max_age) -> bool`: HMAC-SHA256 with a constant-time comparison. Header shape is `x-signature: ts=<unix>,v1=<hex>` plus `x-request-id`, modelled on Mercado Pago's documented scheme. Phase 16 confirms the exact signed manifest against current Mercado Pago documentation.
 
-- [ ] **T9.9 — The mock payment provider**
+- [x] **T9.9 — The mock payment provider** (2026-10-26, 0cd898e)
   - Release: R1 · Gate: task
   - REQs: REQ-040
   - Verifies: P9-V06, P9-V18
