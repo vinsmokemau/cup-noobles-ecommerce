@@ -13,17 +13,8 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.core import providers
 from apps.payments.base import NormalizedStatus, PaymentNotFound
+from apps.payments.devtools import outcomes
 from apps.payments.money import cents_to_pesos
-
-# outcome -> (status, method, back_urls key). A `None` status records no payment.
-_OUTCOMES: dict[str, tuple[NormalizedStatus | None, str, str]] = {
-    "card": (NormalizedStatus.APPROVED, "credit_card", "success"),
-    "installments": (NormalizedStatus.APPROVED, "credit_card", "success"),
-    "oxxo": (NormalizedStatus.PENDING, "oxxo", "pending"),
-    "spei": (NormalizedStatus.PENDING, "spei", "pending"),
-    "reject": (NormalizedStatus.REJECTED, "credit_card", "failure"),
-    "expire": (None, "", "failure"),
-}
 
 
 def _mock() -> Any:
@@ -36,11 +27,6 @@ def _mock() -> Any:
 
 def _money(cents: int) -> str:
     return f"${cents_to_pesos(cents):,.2f} MXN"
-
-
-def _fake_digits(payment_id: str, length: int) -> str:
-    """Digits derived from the mock payment id, so a voucher is stable across page loads."""
-    return str(int(payment_id.removeprefix("mock_pay_"), 16) % 10**length).zfill(length)
 
 
 @require_GET
@@ -73,9 +59,8 @@ def checkout(request: HttpRequest, preference_id: str) -> HttpResponse:
 def pay(request: HttpRequest, preference_id: str, outcome: str) -> HttpResponse:
     provider = _mock()
     preference = provider.get_preference(preference_id)
-    if preference is None or outcome not in _OUTCOMES:
+    if preference is None or outcome not in outcomes.OUTCOMES:
         raise Http404
-    status, method, back_url = _OUTCOMES[outcome]
     installments = None
     if outcome == "installments":
         try:
@@ -84,27 +69,8 @@ def pay(request: HttpRequest, preference_id: str, outcome: str) -> HttpResponse:
             return HttpResponseBadRequest("Plazo no disponible")
         if installments not in settings.PAYMENT_INSTALLMENT_OPTIONS:
             return HttpResponseBadRequest("Plazo no disponible")
-    if status is not None:
-        payment_id = provider.record_payment(
-            preference_id,
-            status=status,
-            method=method,
-            installments=installments,
-            status_detail="accredited" if status == NormalizedStatus.APPROVED else "",
-        )
-        if status == NormalizedStatus.PENDING:
-            site_url = str(settings.SITE_URL).rstrip("/")
-            fields: dict[str, Any] = {
-                "voucher_url": f"{site_url}/dev/payments/voucher/{payment_id}/",
-                "voucher_expires_at": preference["expires_at"],
-            }
-            if method == "oxxo":
-                fields["reference"] = _fake_digits(payment_id, 14)
-            else:
-                fields["clabe"] = _fake_digits(payment_id, 18)
-            provider.update_payment(payment_id, **fields)
-        provider.queue_notification(payment_id)
-    return redirect(preference["back_urls"][back_url])
+    outcomes.record_outcome(provider, preference, outcome, installments=installments)
+    return redirect(preference["back_urls"][outcomes.OUTCOMES[outcome][2]])
 
 
 @require_GET
@@ -145,14 +111,5 @@ def voucher_action(request: HttpRequest, payment_id: str, action: str) -> HttpRe
         raise Http404 from None
     if payment.method not in ("oxxo", "spei"):
         raise Http404
-    if payment.status == NormalizedStatus.PENDING:
-        if action == "received":
-            provider.update_payment(
-                payment_id,
-                status=NormalizedStatus.APPROVED.value,
-                status_detail="accredited",
-            )
-        else:
-            provider.cancel_payment(payment_id)
-        provider.queue_notification(payment_id)
+    outcomes.settle_voucher(provider, payment_id, action)
     return redirect("dev-payments-voucher", payment_id=payment_id)

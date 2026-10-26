@@ -131,3 +131,41 @@ def test_one_failing_order_does_not_stop_the_rest(db, monkeypatch, caplog):
 
     assert Order.objects.get(pk=healthy.pk).state == "paid"
     assert any(broken.number in r.getMessage() for r in caplog.records)
+
+
+def test_p9_v04_dropped_reconciled_then_late_delivery(db, api_client, monkeypatch):
+    from apps.core import providers
+    from apps.payments.devtools import delivery
+
+    def in_process(base_url):
+        def send(body, headers):
+            return api_client.post(
+                delivery.WEBHOOK_PATH,
+                data=body,
+                content_type="application/json",
+                headers=headers,
+            ).status_code
+
+        return send
+
+    monkeypatch.setattr(delivery, "http_transport", in_process)
+    order = aged(20)
+    provider = providers.payment_provider()
+    provider.create_checkout(order)
+
+    call_command("mock_payments", "drop", order.number, "--outcome", "approve")
+    assert provider.queued_notifications() == []  # nothing for the webhook to see
+
+    run_reconcile()
+    order.refresh_from_db()
+    assert order.state == "paid"
+    payment = Payment.objects.get()
+
+    # The notification that was lost turns up late.
+    provider.queue_notification(payment.provider_payment_id)
+    call_command("mock_payments", "deliver", "--once", stdout=StringIO())
+
+    names = list(order.events.order_by("pk").values_list("event", flat=True))
+    assert names == ["payment_approved", "webhook_no_op"]
+    assert Order.objects.get(pk=order.pk).state == "paid"
+    assert provider.queued_notifications() == []

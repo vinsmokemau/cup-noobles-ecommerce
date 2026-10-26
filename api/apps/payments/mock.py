@@ -66,6 +66,7 @@ class MockPaymentProvider:
                     for line in order.lines.order_by("id")
                 ],
                 "expires_at": deadline.isoformat() if deadline else None,
+                "created_at": timezone.now().isoformat(),
             },
         )
         site_url = str(settings.SITE_URL).rstrip("/")
@@ -77,6 +78,57 @@ class MockPaymentProvider:
     def get_preference(self, preference_id: str) -> dict[str, Any] | None:
         """The stored preference, or `None`. For the simulator pages."""
         return self._read(preference_id, _PREFERENCE_ID)
+
+    def find_preferences(self, external_reference: str) -> list[dict[str, Any]]:
+        """The stored preferences of an order, oldest first. For the dev commands."""
+        return [
+            stored
+            for stored in self._all("mock_pref_*.json")
+            if stored["external_reference"] == external_reference
+        ]
+
+    def list_records(self, external_reference: str | None = None) -> dict[str, Any]:
+        """Preferences, payments and queued notifications in the store, for `mock_payments list`.
+
+        With `external_reference`, only the order's preferences and payments are returned.
+        """
+        preferences = self._all("mock_pref_*.json")
+        payments = self._all("mock_pay_*.json")
+        if external_reference is not None:
+            preferences = [
+                p for p in preferences if p["external_reference"] == external_reference
+            ]
+            payments = [
+                p for p in payments if p["external_reference"] == external_reference
+            ]
+        return {
+            "preferences": preferences,
+            "payments": payments,
+            "notifications": self.queued_notifications(),
+        }
+
+    def reset(self) -> int:
+        """Delete every record in the store; returns how many. For `mock_payments reset`."""
+        removed = 0
+        folder = self._folder()
+        with self._locked():
+            for path in folder.glob("mock_*.json") if folder.exists() else []:
+                path.unlink(missing_ok=True)
+                removed += 1
+        return removed
+
+    def _all(self, pattern: str) -> list[dict[str, Any]]:
+        records = []
+        folder = self._folder()
+        for path in folder.glob(pattern) if folder.exists() else []:
+            try:
+                records.append(json.loads(path.read_text(encoding="utf-8")))
+            except FileNotFoundError:
+                continue
+        records.sort(
+            key=lambda r: (r.get("created_at") or r.get("queued_at") or "", r["id"])
+        )
+        return records
 
     @staticmethod
     def _back_urls(order: Order) -> dict[str, str]:
