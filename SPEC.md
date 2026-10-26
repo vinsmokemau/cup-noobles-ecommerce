@@ -2994,7 +2994,7 @@ process_webhook_event(id):
 
 Also build `manage.py process_webhooks`, which retries unprocessed rows and increments `attempts`; a row is retried up to 10 attempts with exponential backoff, then marked failed and alerted (G7, ADR-0044). Add its line to `infra/crontab` (every minute, §4.8). A timestamp is accepted when `abs(now − ts) ≤ WEBHOOK_MAX_AGE_SECONDS`, so a future timestamp beyond that is rejected as well (G8, ADR-0044).
 
-- [ ] **T9.4 — Status mapping**
+- [x] **T9.4 — Status mapping** (2026-10-26, 0947204)
   - Release: R1 · Gate: task
   - REQs: REQ-030
   - Verifies: P9-V07
