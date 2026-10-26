@@ -3023,7 +3023,7 @@ Rules applied in this order before any `apply_event`:
 3. **Late payment.** If the payment is `approved` but the order is `expired` or `cancelled`, record the payment, leave the order in place, and alert. Its stock has already been released, so a human chooses between refunding (9.8) and fulfilling manually. The state machine gains no new transition.
 4. Otherwise `apply_event(order, event, actor="webhook")`.
 
-- [ ] **T9.5 — Deadlines by payment method**
+- [x] **T9.5 — Deadlines by payment method** (2026-10-26, d91162d)
   - Release: R1 · Gate: task
   - REQs: REQ-012
   - Verifies: P9-V09, P9-V21
