@@ -3088,7 +3088,7 @@ Refunds — an admin action on `OrderAdmin`, always initiated by a human:
 - Call `provider.refund(payment, amount_cents)`, update `payment.refunded_cents`, and apply `refund_issued` or `partial_refund_issued`.
 - If the provider raises `RefundNotSupported` (OXXO cash), show: *"Los pagos en efectivo (OXXO) no se pueden reembolsar a través del proveedor. Reembolsa por SPEI y registra el reembolso manual."* Then offer **"Registrar reembolso manual"**: it records the amount on the payment with a required note and applies the same event with `actor="staff:<id>"`, without calling the provider.
 
-- [ ] **T9.14 — CFDI review flag on refunds**
+- [x] **T9.14 — CFDI review flag on refunds** (2026-10-26, c81b264)
   - Release: R1 · Gate: task
   - REQs: REQ-060
   - Verifies: P9-V22
