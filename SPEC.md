@@ -3110,7 +3110,7 @@ Set `cart.converted_order` to the new order in the same transaction as T1, so a 
 - A repeat with the same key and body still returns the original order. The idempotency lookup finds the order by the cart token and the key, whether or not the cart is converted, so the double-click replay keeps working.
 - The cart endpoints treat a converted cart as gone: the next add creates a fresh cart, and `purge_stale_carts` still keeps a converted one.
 
-- [ ] **T9.10 — Payment simulator pages**
+- [x] **T9.10 — Payment simulator pages** (2026-10-26, 356033b)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: T9.11's simulator test drives every button once notification delivery exists]
