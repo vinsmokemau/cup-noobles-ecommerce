@@ -3063,7 +3063,7 @@ Store `voucher_url` and `voucher_expires_at` on the payment and surface them on 
 
 Add `cancel_payment(provider_payment_id)` to `PaymentProvider` and to the mock: it ends the stored payment as `cancelled`, and cancelling a payment that is already `cancelled` does nothing. In `mapping.py`, the branch for a `pending` OXXO or SPEI payment on an `expired` or `cancelled` order (T9.5) keeps its alert and the order as it is, and also calls `cancel_payment`. If the provider call fails, the failure is raised like any webhook failure, so the row is retried (G7). The real adapter implements the method in T16.3.
 
-- [ ] **T9.7 — Payment reconciliation**
+- [x] **T9.7 — Payment reconciliation** (2026-10-26, 93296f4)
   - Release: R1 · Gate: task
   - REQs: REQ-022, REQ-031
   - Verifies: P9-V14
