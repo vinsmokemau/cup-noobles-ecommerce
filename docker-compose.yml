@@ -88,6 +88,19 @@ services:
       db:
         condition: service_healthy
 
+  # Delivers the mock payment provider's queued notifications to the webhook, through Caddy like
+  # production traffic (9.11). A dev service, not a job: it shares the api's mock store (var/).
+  mock-webhooks:
+    build: ./api
+    image: cupnoobles-api
+    command: ["python", "manage.py", "mock_payments", "deliver", "--loop", "--base-url", "http://proxy:8080"]
+    environment: *api-env
+    volumes:
+      - ./api:/app
+      - ./var:/app/var
+    depends_on:
+      - proxy
+
 volumes:
   pgdata:
   web_node_modules:

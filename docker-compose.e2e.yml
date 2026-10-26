@@ -35,6 +35,10 @@ services:
       timeout: 5s
       retries: 40
 
+  mock-webhooks:
+    environment:
+      <<: *e2e-env
+
   web:
     healthcheck:
       test:

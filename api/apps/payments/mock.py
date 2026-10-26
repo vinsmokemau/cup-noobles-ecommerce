@@ -37,6 +37,7 @@ from apps.payments.money import cents_to_pesos, pesos_to_cents
 
 _PAYMENT_ID = re.compile(r"mock_pay_[0-9a-f]{32}")
 _PREFERENCE_ID = re.compile(r"mock_pref_[0-9a-f]{32}")
+_NOTIFICATION_ID = re.compile(r"mock_ntf_[0-9a-f]{32}")
 _OXXO_REFUND_MESSAGE = "OXXO payments are refunded by hand, not by the provider"
 
 
@@ -252,6 +253,22 @@ class MockPaymentProvider:
             },
         )
         return notification_id
+
+    def queued_notifications(self) -> list[dict[str, Any]]:
+        """The queued notifications, oldest first. For `mock_payments deliver` (9.11)."""
+        queued = []
+        for path in self._folder().glob("mock_ntf_*.json"):
+            try:
+                queued.append(json.loads(path.read_text(encoding="utf-8")))
+            except FileNotFoundError:
+                continue  # another deliverer took it between the listing and the read
+        queued.sort(key=lambda stored: (stored["queued_at"], stored["id"]))
+        return queued
+
+    def discard_notification(self, notification_id: str) -> None:
+        """Remove a delivered notification from the queue; one already gone is left alone."""
+        if _NOTIFICATION_ID.fullmatch(notification_id):
+            (self._folder() / f"{notification_id}.json").unlink(missing_ok=True)
 
     @staticmethod
     def _to_provider_payment(stored: dict[str, Any]) -> ProviderPayment:

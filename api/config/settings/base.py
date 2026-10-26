@@ -55,6 +55,9 @@ MOCK_PAYMENT_WEBHOOK_SECRET = env.str(
     "MOCK_PAYMENT_WEBHOOK_SECRET", default="dev-mock-payment-webhook-secret"
 )
 WEBHOOK_MAX_AGE_SECONDS = env.int("WEBHOOK_MAX_AGE_SECONDS", default=300)
+# Seconds `mock_payments deliver --loop` waits after a notification is queued before it sends it
+# (9.11); `docker-compose.e2e.yml` sets 0.
+MOCK_WEBHOOK_DELAY_SECONDS = env.int("MOCK_WEBHOOK_DELAY_SECONDS", default=2)
 # How long the endpoint may spend processing a notification inline before it leaves the row to
 # `process_webhooks` (9.A rule 5).
 WEBHOOK_INLINE_BUDGET_MS = env.int("WEBHOOK_INLINE_BUDGET_MS", default=2000)
