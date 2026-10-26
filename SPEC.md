@@ -2692,7 +2692,7 @@ Idempotency: accept an `Idempotency-Key` header and return the existing order on
 
 Per G4's resolution (ADR-0042), `POST /api/checkout/` takes an optional integer `expected_total_cents`: the total the customer last saw. After `create_order_from_cart` has re-validated the lines and computed the totals (T8.2 steps 2 to 4), and before it creates the order, a total that differs from `expected_total_cents` raises an error and the endpoint returns 409 `{"code": "total_changed", "totals": {subtotal_cents, shipping_cents, discount_cents, total_cents, tax_included_cents}}` with the fresh totals. No order and no reservation is created. Without the field, no comparison is made. An `Idempotency-Key` replay returns the existing order before the comparison. The field is part of the request-body fingerprint (G3). Stock failures keep their own 409 `lines_unavailable` and are checked first.
 
-- [ ] **T8.7 — Invoice data at checkout**
+- [x] **T8.7 — Invoice data at checkout** (2026-10-25, 9218f7c)
   - Release: R1 · Gate: task
   - REQs: REQ-060
   - Verifies: P8-V19
