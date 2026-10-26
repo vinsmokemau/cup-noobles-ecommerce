@@ -2750,7 +2750,7 @@ Admin `OrderAdmin`: read-only lines and totals; a state-transition action bar th
 
 `manage.py advance_orders` — runs T12 (auto-completion). T5 (payment deadline expiry) is fired by `expire_reservations`, which from this task calls `apply_event` for the order after releasing its holds (G37); add that order-state assertion to the P4-V03 test. Idempotent, safe to run every 5 minutes: add its line to `infra/crontab` (§4.8).
 
-- [ ] **T8.13 — Refunds are payment records**
+- [x] **T8.13 — Refunds are payment records** (2026-10-25, 7291fff)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: —
