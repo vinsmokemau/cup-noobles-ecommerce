@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.25 |
+| Spec version | 1.26 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -421,8 +421,8 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G23 | 20 | plan Appendix B | The production topology (20.A) has no process that runs the scheduled jobs | A fourth container from the `api` image running supercronic, or a process supervisor inside `api` | R1 | Open |
 | G24 | 4 | P4-V07 | `check_stock_integrity` is tested in Phase 4 but specified in 21.7 | Move the command into Phase 4; 21.7 keeps only its daily schedule | R1 | Resolved (ADR-0034) |
 | G25 | 8 | P8-V06, 8.4 | Phase 8 needs a payment provider (`create_checkout`, `refund`) before the mock exists (9.9); 1.11 creates only the interfaces | Build those two mock methods in Phase 8, and the rest of the mock in Phase 9 | R1 | Resolved (ADR-0041) |
-| G26 | 8 | T18, P8-V07 | A `partially_refunded` order "stays fulfillable", but no transition leaves that state | Either add the fulfillment transitions from it, or record partial refunds on the payment without changing the order state | R1 | Open |
-| G27 | 8 | T17, A12, 9.4 rule 3, GE:T36 | A refund after delivery (a return), or of a late payment on an expired or cancelled order, can't be applied: those states are terminal | Allow the refund events from `completed`, `expired` and `cancelled` as recorded payment events | R1 | Open |
+| G26 | 8 | T18, P8-V07 | A `partially_refunded` order "stays fulfillable", but no transition leaves that state | Either add the fulfillment transitions from it, or record partial refunds on the payment without changing the order state | R1 | Resolved (ADR-0043) |
+| G27 | 8 | T17, A12, 9.4 rule 3, GE:T36 | A refund after delivery (a return), or of a late payment on an expired or cancelled order, can't be applied: those states are terminal | Allow the refund events from `completed`, `expired` and `cancelled` as recorded payment events | R1 | Resolved (ADR-0043) |
 | G28 | 12 | 12.A, P12-V13, 5.1 | "Featured" and "related" products have no data model or rule | A featured flag with a position on the product; related products by shared franchise or category | R1 | Resolved (ADR-0030) |
 | G29 | 1 | P1-V03, 1.9, P15-V14 | CI and branch protection are verified only in Phase 20, though Part A relies on them | Verify them in Phase 1, now that the repository is public; branch protection as a `[manual]` item | R1 | Resolved (ADR-0029) |
 | G30 | 6 | 6.6, Phase 22 | 6.6 calls the SEPOMEX data optional, but the launch checklist requires it | The full dataset is a launch requirement; the sample stays for Part A | R1 | Resolved (ADR-0039) |
@@ -440,6 +440,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G42 | 20 | 4.5, 20.2 | The Node2Shell fix (CVE-2026-111497) needs Node 22.23.4 or later. Part A pins it in `web/Dockerfile` and CI, but 20.2 runs the production image on the floating tag `node:22-slim`, which is not pinned. | The production `web/Dockerfile` pins `node:22.23.4-slim` or later, and the pin is raised on each Node security release | R1 | Open |
 | G43 | 20 | T6.7b, 20.A | `django-ratelimit` counts in a cache, and the stack has no Redis or memcached (ADR-0006). The api uses the local-memory cache, whose counters are per process: exact for one api process, looser by the number of workers. The library's check `django_ratelimit.E003` is silenced for this reason. | The production topology (20.A) runs the api as a single process (threads allowed), or the owner picks a shared store | R1 | Open |
 | G44 | 7 | T7.6, Phase 13 | The `cart` table has no postal-code column (`spec/schema.sql`), so T7.6 quotes shipping from the postal code the request carries: the `POST /api/cart/fulfillment/` body, or the `postal_code` query parameter of `GET /api/cart/`. T7.1 says the cart response carries a quote once `fulfillment_method` is set, which a stored code would give without the parameter. | Keep the query parameter (OA-46). Phase 13 checks whether the storefront finds it awkward; if so, a nullable `cart.postal_code` is a schema change that goes through `/decide` and an ADR. | R1 | Open |
+| G45 | 16 | T8.1, T16.5 | `apply_event` runs T16's side effects inside the order's database transaction, and one of them calls `provider.refund`. If a later step of the same transaction fails (saving the payment or the order), the database rolls back but the provider's refund stays. A retry of the cancellation then refunds again, unless the real provider treats the call as idempotent. The mock hides this. | Before the refund goes live (T16.5), send the provider an idempotency key derived from the payment (for example `refund:<payment id>`), or record the refund attempt before calling the provider and skip a payment that already has one. Check which of the two Mercado Pago's refunds API supports. | R1 | Open |
 
 #### Design System requests (DSR)
 
@@ -526,6 +527,8 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-47 | 2026-10-25 | Phase 8 task order: the tasks are listed in a valid order, but their numbers do not follow it (T8.2 needs T8.3 and T8.10; T8.5 runs near the end) and the phase has no execution-order note. Add one? | Option A: add the note. Execution order: T8.1, T8.3, T8.10, T8.2, T8.4, T8.7, T8.8, T8.9, T8.5, T8.6a (phase-close); then, in R2, T8.11 and T8.6b. IDs keep their numbers. No ADR: cheap to reverse, spec text only. |
 | OA-48 | 2026-10-25 | G25: Phase 8 needs a payment provider (`create_checkout`, `refund`) before the mock exists. Resolve it now, or keep it open with an `xfail`? | Option A: the proposed resolution. The two `MockPaymentProvider` methods are built in Phase 8 (T8.10), and the rest of the mock in Phase 9 (T9.9). The tests of T8.10 and T8.2 are plain tests, with no `xfail`. ADR-0041. |
 | OA-49 | 2026-10-25 | G4: what happens when a price changes between the last cart view and "Pagar"? | Option A: the proposed resolution. Checkout takes an optional `expected_total_cents`; a mismatch returns 409 `total_changed` with the fresh totals, creates no order and reserves nothing. Built by the new task T8.12. ADR-0042. |
+| OA-50 | 2026-10-25 | G26: after a partial refund (T18), what happens to the order? | Option A: the proposed resolution. A partial refund is recorded on the payment and the order keeps its state, so it stays fulfillable. ADR-0043. |
+| OA-51 | 2026-10-25 | G27: can a refund be recorded after the order is `completed`, `expired` or `cancelled`? | Option A: the proposed resolution. The refund events are accepted from those three states as recorded payment events: an `order_event` row and the payment's `refunded_cents`, with the order state unchanged. ADR-0043. |
 
 ---
 
@@ -2589,11 +2592,13 @@ States are stored in `order.state`. **Every transition goes through one function
 | T14 | `picked_up` | `auto_after_1d` | `completed` | — | Set `completed_at` | R2 |
 | T15 | `ready_for_pickup` | `pickup_deadline_passed` | `cancelled` | `pickup_deadline_at < now()` (D4) | Return stock via `adjust_stock(reason='return')`; refund; queue email | R2 |
 | T16 | `paid` / `awaiting_stock` / `preparing` / `ready_for_pickup` | `cancelled_by_staff` | `cancelled` | Requires `cancel_reason` | Return stock if already committed; refund in full (see ADR-0041) | R1 from `paid` and `preparing`; R2 from `awaiting_stock` and `ready_for_pickup` |
-| T17 | any post-`paid` state | `refund_issued` | `refunded` | Refund confirmed by provider (see G27) | Set `refunded_cents` on payment; flag an issued CFDI for review (T9.14) | R1 |
-| T18 | any post-`paid` state | `partial_refund_issued` | `partially_refunded` | Refund confirmed (see G27) | Order stays fulfillable (see G26); flag an issued CFDI for review (T9.14) | R1 |
+| T17 | `paid` / `preparing` / `shipped` / `delivered` | `refund_issued` | `refunded` | Refund confirmed by provider; payment belongs to the order (G27, ADR-0043) | Set `refunded_cents` on payment; flag an issued CFDI for review (T9.14) | R1 |
+| T18 | `paid` / `preparing` / `shipped` / `delivered` | `partial_refund_issued` | (unchanged) | Refund confirmed; payment belongs to the order (G27, ADR-0043) | Order keeps its state and stays fulfillable (G26, ADR-0043); flag an issued CFDI for review (T9.14) | R1 |
 | T19 | `awaiting_stock` | `cancelled_by_customer` | `cancelled` | Only if D9 permits | Release pre-order allocation; full refund | R2 |
 
 **Terminal states:** `completed`, `cancelled`, `expired`, `refunded`.
+
+**Refunds are payment records (G26, G27, ADR-0043).** `partial_refund_issued` never changes the order state, so the `partially_refunded` state is not entered in Release 1 (it stays in the enum and the schema). From `completed`, `expired` and `cancelled`, both `refund_issued` and `partial_refund_issued` are accepted as recorded payment events: they add an `order_event` row and set the payment's `refunded_cents`, and leave the order in its state. Their guards are those of T17 and T18. From `refunded`, every event is still illegal.
 
 `TRANSITIONS` holds exactly the rows of the release in progress. Anything not in `TRANSITIONS` is illegal and must raise `IllegalTransition(from_state, event)`. In Release 1 an event of an R2 row is illegal like any other. P8-V07 derives its cases from `TRANSITIONS`, so the R2 rows join in Release 2 without editing it.
 
@@ -2740,10 +2745,25 @@ Admin `OrderAdmin`: read-only lines and totals; a state-transition action bar th
   - Release: R1 · Gate: phase-close
   - REQs: REQ-010, REQ-022
   - Verifies: P8-V04, P8-V13, P8-V14
-  - Depends on: T8.5, T8.7, T8.8, T8.9, T8.12
+  - Depends on: T8.5, T8.7, T8.8, T8.9, T8.12, T8.13
   - Context: 8.A; §4.8
 
 `manage.py advance_orders` — runs T12 (auto-completion). T5 (payment deadline expiry) is fired by `expire_reservations`, which from this task calls `apply_event` for the order after releasing its holds (G37); add that order-state assertion to the P4-V03 test. Idempotent, safe to run every 5 minutes: add its line to `infra/crontab` (§4.8).
+
+- [ ] **T8.13 — Refunds are payment records**
+  - Release: R1 · Gate: task
+  - REQs: —
+  - Verifies: —
+  - Depends on: T8.1
+  - Context: 8.A (T17, T18, "Refunds are payment records"); ADR-0043
+
+Per G26 and G27 (ADR-0043), change `TRANSITIONS` and its tests to the 8.A table as amended:
+
+- T18 keeps the order's state. `partially_refunded` is no longer a target.
+- T17 and T18 are added from `completed`, `expired` and `cancelled`, with the order state unchanged and the same guards and the same `refunded_cents` effect. The CFDI flag stays with T9.14.
+- `refunded` still rejects every event.
+
+Tests updated with the spec change (listed in the task report, CR-38): the 8.A table parser of `test_state_machine.py` (unit), P8-V01 `[row]` cases for T17 and T18, P8-V07 (terminal states), and the P8-V05 stateful machine. No new Verify ID, no schema change.
 
 - [ ] **T8.6b — Pickup deadlines and pickup auto-completion**
   - Release: R2 · Gate: —
@@ -2764,7 +2784,7 @@ Admin `OrderAdmin`: read-only lines and totals; a state-transition action bar th
 
 Add the R2 rows of 8.A to `TRANSITIONS`: T3, T8, T9, T13, T14, T15, T19, and T16 from `awaiting_stock` and `ready_for_pickup`. Checkout accepts `pickup_location_id` for pickup orders and `address_id` for a customer's saved address; `create_order_from_cart` takes the pickup branch (zero shipping, `pickup_location_id`) and sets `has_preorder_items` and `earliest_release_date`.
 
-Execution order: T8.1, T8.3, T8.10, T8.2, T8.4, T8.12, T8.7, T8.8, T8.9, T8.5, T8.6a (phase-close, last of Release 1); then, in R2, T8.11 and T8.6b. IDs keep their numbers (OA-47). T8.2 needs T8.3 and T8.10 first; T8.7, T8.8 and T8.9 add their steps to `create_order_from_cart` (T8.2); T8.11 needs Phase 8 closed, and T8.6b needs T8.11.
+Execution order: T8.1, T8.3, T8.10, T8.2, T8.4, T8.12, T8.7, T8.8, T8.9, T8.13, T8.5, T8.6a (phase-close, last of Release 1); then, in R2, T8.11 and T8.6b. IDs keep their numbers (OA-47). T8.13 needs only T8.1. T8.2 needs T8.3 and T8.10 first; T8.7, T8.8 and T8.9 add their steps to `create_order_from_cart` (T8.2); T8.11 needs Phase 8 closed, and T8.6b needs T8.11.
 
 #### Verify — test specification
 
@@ -2774,7 +2794,7 @@ Execution order: T8.1, T8.3, T8.10, T8.2, T8.4, T8.12, T8.7, T8.8, T8.9, T8.5, T
 
 | Test ID | Layer | File path · test | What it asserts |
 |---|---|---|---|
-| P8-V01 | integration | `api/tests/integration/orders/test_transitions.py::test_p8_v01_transition_table[row]` | One case per R1 row of 8.A (T1, T2, T4, T5, T6, T7, T10, T11, T12, T16 from `paid` and `preparing`, T17, T18). From the row's source state: a passing guard yields the target state and the listed side effects; a failing guard raises and leaves the order unchanged. The R2 rows are P8-V22. |
+| P8-V01 | integration | `api/tests/integration/orders/test_transitions.py::test_p8_v01_transition_table[row]` | One case per R1 row of 8.A (T1, T2, T4, T5, T6, T7, T10, T11, T12, T16 from `paid` and `preparing`, T17, T18). T17 and T18 also run from `completed`, `expired` and `cancelled`, where the order state stays the same and the payment's `refunded_cents` is set (G27); T18 leaves the state unchanged from every source (G26). From the row's source state: a passing guard yields the target state and the listed side effects; a failing guard raises and leaves the order unchanged. The R2 rows are P8-V22. |
 | P8-V02 | unit | `api/tests/unit/orders/test_state_machine.py::test_p8_v02_delivered_on_pending_payment_illegal` | `apply_event(order, "marked_delivered")` on `pending_payment` raises `IllegalTransition`. |
 | P8-V03 | API | `api/tests/api/orders/test_checkout.py::test_p8_v03_idempotent_checkout` | The same `Idempotency-Key` twice returns the same order number, with one order and one set of reservations. |
 | P8-V04 | concurrency | `api/tests/concurrency/test_order_races.py::test_p8_v04_approve_vs_deadline` | `payment_approved` racing `deadline_passed`: exactly one wins. `paid` → `on_hand` decremented and `reserved` 0; `expired` → `reserved` 0 and `on_hand` unchanged. |
@@ -2785,7 +2805,7 @@ Execution order: T8.1, T8.3, T8.10, T8.2, T8.4, T8.12, T8.7, T8.8, T8.9, T8.5, T
 
 | Test ID | Layer | File path · test | What it asserts |
 |---|---|---|---|
-| P8-V07 | integration | `api/tests/integration/orders/test_transitions.py::test_p8_v07_every_illegal_event_rejected[state-event]` | Every one of the 14 states × every event absent from `TRANSITIONS` for that state raises `IllegalTransition`; the order row, its reservations and `order_event` are untouched. Terminal states reject every event. |
+| P8-V07 | integration | `api/tests/integration/orders/test_transitions.py::test_p8_v07_every_illegal_event_rejected[state-event]` | Every one of the 14 states × every event absent from `TRANSITIONS` for that state raises `IllegalTransition`; the order row, its reservations and `order_event` are untouched. Terminal states reject every event, except the two refund events from `completed`, `expired` and `cancelled` (G27); `refunded` rejects every event. |
 | P8-V08 | API | `api/tests/api/orders/test_checkout.py::test_p8_v08_idempotency_key_reused_different_body` | The same key with a different body — proposed: 422 `idempotency_key_reused`, no new order, the original untouched. |
 | P8-V09 | API | `api/tests/api/orders/test_checkout.py::test_p8_v09_price_change_between_cart_and_checkout` | The price rises after the last cart GET: `order_line.unit_price_cents` is the checkout-time price, and later price changes do not alter the order. A checkout sent with the previously seen `expected_total_cents` returns 409 `total_changed` with the fresh totals, creates no order and reserves nothing (G4, ADR-0042). |
 | P8-V10 | API | `api/tests/api/orders/test_checkout.py::test_p8_v10_partial_stock_failure_atomic` | One short line returns 409 with per-line errors; no order and no reservations are created. |
@@ -4611,6 +4631,7 @@ Confirm the field names for the voucher, the expiry and refunded amounts against
   - Verifies: P16-V07
   - Depends on: T16.4
   - Context: 9.8
+  - Open items: G45 (blocking)
 
 `refund` through Mercado Pago's refunds API. Raise `RefundNotSupported` for payment methods Mercado Pago cannot refund (cash), so the 9.8 admin warning appears exactly as it does with the mock.
 
@@ -5318,7 +5339,7 @@ Each mitigation names the requirement, test or open item that carries it, so the
 
 ### 7.2 Decisions due by phase
 
-A view of §2.4, ordered by when each item is needed. An item listed under a phase must be answered before that phase closes, or before it starts where the phase depends on it. Design gaps can be answered in batches: the engineering ones (G1–G3, G6–G8, G14–G18, G20–G26, G29, G34, G35, G37–G39) don't need business input; the others are visible to customers or staff.
+A view of §2.4, ordered by when each item is needed. An item listed under a phase must be answered before that phase closes, or before it starts where the phase depends on it. Design gaps can be answered in batches: the engineering ones (G1–G3, G6–G8, G14–G18, G20–G26, G29, G34, G35, G37–G39, G45) don't need business input; the others are visible to customers or staff.
 
 | Needed by | Items |
 |---|---|
@@ -5329,12 +5350,12 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 4 | ~~G2~~, ~~G15~~, ~~G20~~, ~~G24~~, ~~G34~~, ~~G37~~, ~~G38~~ |
 | Phase 5 | ~~G13~~ with ~~D10~~, ~~G32~~ |
 | Phase 6 | ~~G30~~, ~~G35~~ |
-| Phase 8 | ~~G3~~, ~~G4~~, ~~G5~~, ~~G25~~, G26, G27, ~~G31~~, ~~G33~~ |
+| Phase 8 | ~~G3~~, ~~G4~~, ~~G5~~, ~~G25~~, ~~G26~~, ~~G27~~, ~~G31~~, ~~G33~~ |
 | Phase 9 | G7, G8, G11, G14 |
 | Phase 11 | G17; DSR-04, DSR-05 released |
 | Phase 12 | G18, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03, DSR-06, DSR-07 released; DSR-09 or its fallback |
 | Phase 13 | G21, G22 |
-| Phase 16 | S2, D6, D7, D13 |
+| Phase 16 | S2, D6, D7, D13, G45 |
 | Phase 17 | S3, S4 |
 | Phase 18 | S1 |
 | Phase 19 | S7 |
@@ -5377,6 +5398,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.23 | 2026-10-25 | Phase 8 task order: an execution-order note added (T8.1, T8.3, T8.10, T8.2, T8.4, T8.7, T8.8, T8.9, T8.5, T8.6a, then the R2 tasks T8.11, T8.6b). No dependency, Verify ID, schema or task-ID change. | OA-47 |
 | 1.24 | 2026-10-25 | G25 resolved as proposed: `MockPaymentProvider.create_checkout` and `refund` are built in Phase 8 (T8.10), and the rest of the mock in Phase 9 (T9.9). T8.10 and T8.2 lose their G25 open item; P8-V01 and P8-V06 lose their ⚠️ marker. No Verify ID, schema or task-ID change. | OA-48; ADR-0041 |
 | 1.25 | 2026-10-25 | G4 resolved as proposed: checkout takes an optional `expected_total_cents`, and a mismatch returns 409 `total_changed` with the fresh totals and reserves nothing. New task T8.12 builds it (P8-V09 moves from T8.4 to T8.12; T8.6a also depends on T8.12). The ⚠️ G4 mark is removed from P8-V09, P13-V19 and REQ-002; T8.4 and T13.6 lose their G4 open item. No other Verify ID or schema change. | OA-49; ADR-0042 |
+| 1.26 | 2026-10-25 | G26 and G27 resolved as proposed: a partial refund keeps the order state (T18), and the refund events are accepted from `completed`, `expired` and `cancelled` as recorded payment events (T17, T18). 8.A rows T17 and T18 and a note after the terminal states are amended; P8-V01 and P8-V07 text follows. New task T8.13 changes `TRANSITIONS` and its tests, and T8.6a now also depends on it. G45 registered at the owner's request (refund inside the order transaction, Phase 16); T16.5 gains it as an open item. No Verify ID, schema or REQ change. | OA-50, OA-51; ADR-0043 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5468,6 +5490,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0040 | The guest order lookup is a POST with a JSON body | `docs/decisions/0040-guest-lookup-post.md` | G35; OA-44 |
 | ADR-0041 | The mock payment provider's checkout and refund are built in Phase 8 | `docs/decisions/0041-mock-provider-checkout-refund-phase-8.md` | G25; OA-48 |
 | ADR-0042 | A checkout whose expected total no longer matches is refused with the fresh totals | `docs/decisions/0042-checkout-expected-total.md` | G4; OA-49 |
+| ADR-0043 | Refunds are payment records: a partial refund keeps the order state, and a refund can be recorded after a terminal state | `docs/decisions/0043-refunds-are-payment-records.md` | G26, G27; OA-50, OA-51 |
 
 ## Appendix C — Dated market facts
 
