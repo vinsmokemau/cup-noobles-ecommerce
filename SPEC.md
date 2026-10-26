@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.32 |
+| Spec version | 1.33 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -417,7 +417,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G19 | 12 | P12-V09 | `$1,234.00 MXN` (12.4) against the `Intl` output (12.6) | Decided by DS:formatting.md (C-08, CR-30) | R1 | Decided; ADR in T1.15 |
 | G20 | 10 | P15-V05, demo step 9 | Receiving goods has no admin page, but it is daily work (GE:T30, GE:T35, GE:§5.2) | A "Recibir mercancía" admin action (variant, location, quantity) calling `receive_stock` in R1, and `receive_preorder_stock` for pre-order variants in R2 | R1 | Resolved (ADR-0035) |
 | G21 | 13 | P13-V13, P13-V14 | Guest landing pages must poll the order, but the guest endpoint needs number and email and allows 5 calls an hour | A short-lived signed order-status token, carried in `back_urls`, for a read-only status endpoint | R1 | Open |
-| G22 | 13 | P13-V15 | No endpoint retries payment for a `pending_payment` order, and when the cart counts as converted is undefined | `POST /api/orders/{public_id}/pay/` returns a fresh `checkout_url`; the cart is converted at T1 | R1 | Open |
+| G22 | 13 | P13-V15 | No endpoint retries payment for a `pending_payment` order, and when the cart counts as converted was undefined (decided: at T1, ADR-0049, built in T9.16) | `POST /api/orders/{public_id}/pay/` returns a fresh `checkout_url`; the cart is converted at T1 (adopted, ADR-0049) | R1 | Open (the endpoint) |
 | G23 | 20 | plan Appendix B | The production topology (20.A) has no process that runs the scheduled jobs | A fourth container from the `api` image running supercronic, or a process supervisor inside `api` | R1 | Open |
 | G24 | 4 | P4-V07 | `check_stock_integrity` is tested in Phase 4 but specified in 21.7 | Move the command into Phase 4; 21.7 keeps only its daily schedule | R1 | Resolved (ADR-0034) |
 | G25 | 8 | P8-V06, 8.4 | Phase 8 needs a payment provider (`create_checkout`, `refund`) before the mock exists (9.9); 1.11 creates only the interfaces | Build those two mock methods in Phase 8, and the rest of the mock in Phase 9 | R1 | Resolved (ADR-0041) |
@@ -534,6 +534,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-55 | 2026-10-26 | G11: an OXXO or SPEI voucher can be generated after the card hold has lapsed and the order is `expired`. Alert only, cancel the voucher, or hold stock longer? | Option A, as the proposal reads minus its first half: the notification alerts a person and the voucher is cancelled at the provider; the order stays `expired`. No separate checkout-session TTL: T1 keeps the 30-minute card hold. The work is a new task, T9.15 (`cancel_payment`), run after T9.6. |
 | OA-56 | 2026-10-26 | G14: a webhook and `reconcile_payments` process one approval at the same time; should the second be an error, or a no-op? | Accept the proposal: the second is treated as `webhook_no_op` when the order already reflects the status. T9.4's mapping already behaves this way, so no code changes. |
 | OA-57 | 2026-10-26 | G46: is the `refunded_cents` a refund sets the payment's running total, or only the new refund? | Option A: the proposed resolution. The running total (the payment's current `refunded_cents` plus the new amount), and the guards compare that total with `amount_cents`. ADR-0048. |
+| OA-58 | 2026-10-26 | When does the cart count as converted (`cart.converted_order`), the Phase 9 question left open since T8.4? | Option A: at T1 (checkout), in the same transaction as the order, as G22 proposes. A second checkout from that cart is refused; a repeat with the same `Idempotency-Key` still returns the original order. New task T9.16. Recorded for the cart half of G22 only; its pay-retry endpoint stays open until Phase 13. ADR-0049. |
 | OA-49 | 2026-10-25 | G4: what happens when a price changes between the last cart view and "Pagar"? | Option A: the proposed resolution. Checkout takes an optional `expected_total_cents`; a mismatch returns 409 `total_changed` with the fresh totals, creates no order and reserves nothing. Built by the new task T8.12. ADR-0042. |
 | OA-50 | 2026-10-25 | G26: after a partial refund (T18), what happens to the order? | Option A: the proposed resolution. A partial refund is recorded on the payment and the order keeps its state, so it stays fulfillable. ADR-0043. |
 | OA-51 | 2026-10-25 | G27: can a refund be recorded after the order is `completed`, `expired` or `cancelled`? | Option A: the proposed resolution. The refund events are accepted from those three states as recorded payment events: an `order_event` row and the payment's `refunded_cents`, with the order state unchanged. ADR-0043. |
@@ -568,7 +569,7 @@ The acceptance criteria of a requirement are Verify IDs. The assertion text live
 | REQ | Requirement | Rules | Acceptance | Release |
 |---|---|---|---|---|
 | REQ-020 | Every order state change goes through `apply_event` under a row lock and writes exactly one `order_event`. Anything outside the 8.A table is rejected. | CR-09, CR-10 | P1-V05 · P8-V01 · P8-V02 · P8-V05 · P8-V07 · P8-V15 | R1 |
-| REQ-021 | Checkout is atomic and safe to repeat: one request, or many identical ones, creates at most one order and one set of reservations. | — | P8-V03 · P8-V08 · P8-V10 · P8-V18 · P13-V02 · P13-V21 · P15-V08 | R1 |
+| REQ-021 | Checkout is atomic and safe to repeat: one request, or many identical ones, creates at most one order and one set of reservations. | — | P8-V03 · P8-V08 · P8-V10 · P8-V18 · P9-V23 · P13-V02 · P13-V21 · P15-V08 | R1 |
 | REQ-022 | Every scheduled job is idempotent and safe to run concurrently with itself and with webhook processing. | §4.8 | P4-V05 · P8-V14 · P9-V14 · P10-V19 · P11-V10 ⚠️G17 | R1 |
 
 ### 3.4 Payments
@@ -2881,7 +2882,7 @@ Everything on the application side of the adapter is shared. In Part A, the prov
 
 #### Tasks
 
-Execution order: T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.15, T9.7, T9.8, T9.14, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b (phase-close, last). IDs keep their numbers (OA-52). T9.9 comes before T9.3 because the endpoint verifies and fetches through the mock. T9.15 follows T9.6 and adds the provider method that a late voucher needs (OA-55). T9.14 follows T9.8 because it extends the refund side effects. T9.10 to T9.12b are dev tooling and need T9.9, T9.3 and T9.7. Mentions of a later task inside an earlier one (T9.3 "the mapping in 9.4", T9.4 "extend deadline (9.5)" and the refund events T17/T18) are not dependencies: T9.3 leaves the mapping step as a stub that T9.4 fills, and the T9.8/T9.14 side effects are added when those tasks run.
+Execution order: T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.15, T9.7, T9.8, T9.14, T9.16, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b (phase-close, last). IDs keep their numbers (OA-52). T9.9 comes before T9.3 because the endpoint verifies and fetches through the mock. T9.15 follows T9.6 and adds the provider method that a late voucher needs (OA-55). T9.14 follows T9.8 because it extends the refund side effects. T9.16 changes checkout (T8.4) and depends only on it; it runs before the simulator so the payment flow is exercised with the final cart behaviour (OA-58). T9.10 to T9.12b are dev tooling and need T9.9, T9.3 and T9.7. Mentions of a later task inside an earlier one (T9.3 "the mapping in 9.4", T9.4 "extend deadline (9.5)" and the refund events T17/T18) are not dependencies: T9.3 leaves the mapping step as a stub that T9.4 fills, and the T9.8/T9.14 side effects are added when those tasks run.
 
 - [x] **T9.1 — Payment interface and value types** (2026-10-26, 8e38eb7)
   - Release: R1 · Gate: task
@@ -3096,6 +3097,19 @@ Refunds — an admin action on `OrderAdmin`, always initiated by a human:
 
 Add to the side effects of T17 and T18 (8.A): when the order's `invoice_request` is `issued`, set `needs_review = true` and write a `review_note` naming the refund amount, in the same transaction. The admin CFDI queue (T10.14) lists it. The fiscal treatment is the accountant's (D16); the store decides nothing about it. A refund of an order with no issued CFDI changes no request.
 
+- [ ] **T9.16 — Cart converted at checkout**
+  - Release: R1 · Gate: task
+  - REQs: REQ-021
+  - Verifies: P9-V23
+  - Depends on: T8.4
+  - Context: 8.A (T1); §4.4 (`cart`); ADR-0049
+
+Set `cart.converted_order` to the new order in the same transaction as T1, so a failed checkout leaves the cart open (OA-58, ADR-0049). The consequences, each tested:
+
+- A second checkout from that cart, with a new `Idempotency-Key`, creates no order and no reservation.
+- A repeat with the same key and body still returns the original order. The idempotency lookup finds the order by the cart token and the key, whether or not the cart is converted, so the double-click replay keeps working.
+- The cart endpoints treat a converted cart as gone: the next add creates a fresh cart, and `purge_stale_carts` still keeps a converted one.
+
 - [ ] **T9.10 — Payment simulator pages**
   - Release: R1 · Gate: task
   - REQs: —
@@ -3257,6 +3271,7 @@ Write PAY-09 to PAY-19 from the table in T9.13a against the same `PaymentDriver`
 | Test ID | Layer | File path · test | What it asserts |
 |---|---|---|---|
 | P9-V22 | integration | `api/tests/integration/payments/test_refunds.py::test_p9_v22_refund_flags_issued_cfdi` | A full or partial refund of an order whose CFDI is issued sets `needs_review` on its request and lists it in the admin CFDI queue. A refund of an order with no issued CFDI changes no request. |
+| P9-V23 | integration | `api/tests/integration/orders/test_cart_conversion.py::test_p9_v23_cart_converted_at_checkout` | A successful checkout sets `cart.converted_order` to the order; a failed one (an unavailable line) leaves it null. A second checkout from the cart with a new key creates no order and reserves nothing. The same key and body returns the original order. A fresh cart is created on the next add. (OA-58, ADR-0049) |
 
 **Fixtures and factories introduced** (reused by later phases)
 
@@ -4060,7 +4075,7 @@ Per G21's proposed resolution: at T1 the API issues a short-lived signed token f
   - Context: 8.A (T1, T4); 9.B
   - Open items: G22 (tests xfail until decided)
 
-Per G22's proposed resolution: `POST /api/orders/{public_id}/pay/`, authorised by the order-status token (T13.9), returns a fresh `checkout_url` from `payment_provider().create_checkout(order)` while the order is `pending_payment`, keeping its reservations and its deadline. Any other state returns 409. The cart is marked converted at T1, so retrying from the cart cannot create a second order holding a second set of stock.
+Per G22's proposed resolution: `POST /api/orders/{public_id}/pay/`, authorised by the order-status token (T13.9), returns a fresh `checkout_url` from `payment_provider().create_checkout(order)` while the order is `pending_payment`, keeping its reservations and its deadline. Any other state returns 409. The cart is marked converted at T1 (T9.16, ADR-0049), so retrying from the cart cannot create a second order holding a second set of stock.
 
 - [ ] **T13.3 — Checkout page**
   - Release: R1 · Gate: task
@@ -5425,6 +5440,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.30 | 2026-10-26 | G11 resolved: a `pending` voucher for an expired or cancelled order alerts and is cancelled at the provider, and the order stays as it is. No separate checkout-session TTL. New task T9.15 (`cancel_payment` on `PaymentProvider` and the mock) runs after T9.6; P9-V21 moves from T9.5 to it and loses its `xfail`; T16.3 gains the real adapter method. | OA-55; ADR-0046 |
 | 1.31 | 2026-10-26 | G14 resolved as proposed: when a webhook and `reconcile_payments` process one approval at the same time, the second is a `webhook_no_op`. T9.7 loses its open item; the ⚠️ marks of P9-V14, REQ-022 and REQ-031 (G14) are removed. No Verify ID, task, schema or code change. | OA-56; ADR-0047 |
 | 1.32 | 2026-10-26 | G46 resolved as proposed: a refund sets the payment's `refunded_cents` to the running total, and the T17 and T18 guards compare that total with `amount_cents`. The 8.A effects of T17 and T18 say so. T9.8 built it as written, so no code, Verify ID, task or schema change. | OA-57; ADR-0048 |
+| 1.33 | 2026-10-26 | The cart is converted at T1 (the cart half of G22 and the Phase 9 question of T8.4). New task T9.16 (after T9.14) sets `cart.converted_order` in the checkout transaction and keeps the same-key replay working; new Verify ID P9-V23, added to REQ-021. G22's row narrows to the pay-retry endpoint, still open for Phase 13; T13.10 cites the decision. No schema change. | OA-58; ADR-0049 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5441,7 +5457,7 @@ Generated from §3 and §6; from T1.14b on, `scripts/check_traceability.py` rege
 | REQ-012 | R1 | T4.3, T4.1, T9.5, T15.6a | P4-V03 · P4-V05 · P4-V08 · P9-V09 · P15-V04 |
 | REQ-013 | R2 | T2.1a, T10.5, T10.3 | P2-V08 · P10-V07 [R2] · P10-V14 [R2] · P10-V15 [R2] · P10-V22 [R2] |
 | REQ-020 | R1 | T1.12b, T8.2, T8.1, T8.5 | P1-V05 · P8-V01 · P8-V02 · P8-V05 · P8-V07 · P8-V15 |
-| REQ-021 | R1 | T8.4, T13.3, T15.6b | P8-V03 · P8-V08 · P8-V10 · P8-V18 · P13-V02 · P13-V21 · P15-V08 |
+| REQ-021 | R1 | T8.4, T9.16, T13.3, T15.6b | P8-V03 · P8-V08 · P8-V10 · P8-V18 · P9-V23 · P13-V02 · P13-V21 · P15-V08 |
 | REQ-022 | R1 | T4.1, T8.6a, T9.7, T10.11, T11.1 | P4-V05 · P8-V14 · P9-V14 · P10-V19 · P11-V10 |
 | REQ-030 | R1 | T2.1c, T9.13b, T9.12b, T9.4, T9.3, T9.2 | P2-V16 · P9-V01 · P9-V05 · P9-V07 · P9-V10 · P9-V11 · P9-V12 · P9-V20 |
 | REQ-031 | R1 | T9.12a, T9.3, T9.7 | P9-V04 · P9-V13 · P9-V14 · P9-V17 |
@@ -5466,7 +5482,7 @@ Generated from §3 and §6; from T1.14b on, `scripts/check_traceability.py` rege
 | REQ-072 | R1 | T1.12a, T2.1c | P1-V04 · P2-V01 · P2-V07 |
 | REQ-073 | R1 | T1.14a, T1.9, T15.5 | P1-V03 · P1-V23 · P15-V14 |
 
-361 Verify IDs in §6; 138 are acceptance criteria of a §3 requirement. The others are feature-level checks of their phase (OA-02).
+362 Verify IDs in §6; 139 are acceptance criteria of a §3 requirement. The others are feature-level checks of their phase (OA-02).
 
 ## Appendix B — ADR index
 
@@ -5522,6 +5538,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0046 | A voucher for an expired order is cancelled at the provider, and the order stays expired | `docs/decisions/0046-late-voucher-is-cancelled.md` | G11; OA-55 |
 | ADR-0047 | A webhook and a reconciliation run on one approval move the order once, and the second is a no-op | `docs/decisions/0047-webhook-vs-reconcile-is-a-no-op.md` | G14; OA-56 |
 | ADR-0048 | A refund sets the payment's `refunded_cents` to the running total | `docs/decisions/0048-refunded-cents-is-the-running-total.md` | G46; OA-57 |
+| ADR-0049 | A cart is converted at checkout (T1), in the order's transaction | `docs/decisions/0049-cart-converted-at-checkout.md` | G22; OA-58 |
 
 ## Appendix C — Dated market facts
 
@@ -5815,7 +5832,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 |---|---|---|
 | Phase 9 | Release 1 scope line added: all tasks plus T9.14 | §5 |
 | 9.A | Rule 5 cites §4.8 instead of Appendix B; closing line maps the rules to CR-11–CR-16 | Spec references |
-| Phase 9 | Tasks listed in execution order: T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.15, T9.7, T9.8, T9.14, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b | Dependencies (the mock precedes the endpoint that uses it) |
+| Phase 9 | Tasks listed in execution order: T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.15, T9.7, T9.8, T9.14, T9.16, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b | Dependencies (the mock precedes the endpoint that uses it) |
 | T9.1 | §5.D → §4.3; interface sentence trimmed ("new relative to the original four methods" dropped) | Spec references |
 | T9.3 | Adds `manage.py process_webhooks` and its crontab line; G7 and G8 notes | 9.A rule 5 named the command but no task built it; §4.8 |
 | T9.4 | Note that `approved` always fires T2 in R1; T3 is R2 | Pre-orders are R2 |
@@ -5826,9 +5843,11 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T9.12 | Split into T9.12a (`mock_payments …`) and T9.12b (`webhooks …`) | One session each |
 | T9.13 | Split into T9.13a (driver, `MockDriver`, PAY-01–PAY-08; holds the full scenario table) and T9.13b (PAY-09–PAY-19 and P9-V01, phase-close) | One session each |
 | T9.14 | New: CFDI review flag on refunds, added to T17/T18 side effects (P9-V22) | A12; REQ-060 |
+| T9.16 | New: the cart is converted at checkout (P9-V23) | G22; OA-58; REQ-021 |
 | P9-V04 | Owned by T9.12a (it uses the `drop` command) | Ownership |
 | P9-V08 | "from §6.A" → "from §4.6" | Spec references |
 | P9-V22 | New (pre-allocated) | REQ-060 |
+| P9-V23 | New: cart converted at checkout | G22; OA-58 |
 | Fixtures | Adds `issued_invoice_order` | P9-V22 |
 
 #### Phase 10
