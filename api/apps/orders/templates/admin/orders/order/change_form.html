@@ -15,6 +15,38 @@
       <button type="submit" name="event" value="{{ action.event }}">{{ action.label }}</button>
       {% endfor %}
     </div>
+    {% if has_refund_actions %}
+    <div class="form-row">
+      {% if refund_payments|length > 1 %}
+      <label for="refund_payment">Pago</label>
+      <select name="payment" id="refund_payment">
+        {% for payment in refund_payments %}
+        <option value="{{ payment.pk }}">{{ payment.label }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <label for="refund_amount">Monto del reembolso parcial (MXN)</label>
+      <input type="text" name="amount" id="refund_amount" inputmode="decimal">
+    </div>
+    {% endif %}
+  </fieldset>
+</form>
+{% endif %}
+{% if manual_refund %}
+<form method="post" action="{{ event_url }}" id="manual-refund">
+  {% csrf_token %}
+  <fieldset class="module aligned">
+    <h2>Reembolso manual</h2>
+    <div class="form-row">
+      <input type="hidden" name="payment" value="{{ manual_refund }}">
+      <input type="hidden" name="manual" value="1">
+      <input type="hidden" name="event" value="partial_refund_issued">
+      <label for="manual_amount">Monto reembolsado (MXN)</label>
+      <input type="text" name="amount" id="manual_amount" inputmode="decimal" value="{{ manual_amount }}" required>
+      <label for="manual_note">Nota</label>
+      <input type="text" name="note" id="manual_note" maxlength="500" required>
+      <button type="submit">Registrar reembolso manual</button>
+    </div>
   </fieldset>
 </form>
 {% endif %}

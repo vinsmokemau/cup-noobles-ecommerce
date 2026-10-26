@@ -19,6 +19,9 @@ from apps.orders.state_machine import (
     IllegalTransition,
     apply_event,
 )
+from apps.payments.base import RefundNotSupported
+from apps.payments.money import pesos_to_cents
+from apps.payments.refunds import RefundRejected, refund_payment, refundable_payments
 
 EVENT_LABELS = {
     "checkout_submitted": "Enviar a pago",
@@ -37,6 +40,13 @@ EVENT_LABELS = {
 
 # Events that take a typed value from the action bar.
 EVENT_NEEDS_REASON = "cancelled_by_staff"
+# Refunds go through `refund_payment`, which calls the provider first (T9.8).
+REFUND_EVENTS = ("refund_issued", "partial_refund_issued")
+
+OXXO_REFUND_MESSAGE = (
+    "Los pagos en efectivo (OXXO) no se pueden reembolsar a través del proveedor. "
+    "Reembolsa por SPEI y registra el reembolso manual."
+)
 
 
 def legal_events(order: Order) -> list[str]:
@@ -247,9 +257,26 @@ class OrderAdmin(admin.ModelAdmin):
                 }
                 for event in legal_events(order)
             ]
+        refund_actions = [a for a in actions if a["event"] in REFUND_EVENTS]
+        payments = (
+            refundable_payments(order) if order is not None and refund_actions else []
+        )
+        manual = request.GET.get("manual_refund", "")
         context = {
             **(extra_context or {}),
             "event_actions": actions,
+            "has_refund_actions": bool(refund_actions),
+            "refund_payments": [
+                {
+                    "pk": p.pk,
+                    "label": f"#{p.pk} · {format_money(p.amount_cents - p.refunded_cents)} por reembolsar",
+                }
+                for p in payments
+            ],
+            "manual_refund": next(
+                (p.pk for p in payments if str(p.pk) == manual), None
+            ),
+            "manual_amount": request.GET.get("amount", ""),
             "event_url": reverse(
                 f"admin:{self.opts.app_label}_{self.opts.model_name}_event",
                 args=[object_id],
@@ -270,6 +297,8 @@ class OrderAdmin(admin.ModelAdmin):
             )
         )
         event = request.POST.get("event", "")
+        if event in REFUND_EVENTS:
+            return self._refund(request, order, event, back)
         kwargs: dict[str, Any] = {}
         if event == EVENT_NEEDS_REASON:
             kwargs["cancel_reason"] = request.POST.get("cancel_reason", "")
@@ -293,6 +322,59 @@ class OrderAdmin(admin.ModelAdmin):
             self.message_user(
                 request,
                 f"«{EVENT_LABELS.get(event, event)}» aplicado: el pedido está en {moved.state}.",
+                messages.SUCCESS,
+            )
+        return back
+
+    def _refund(
+        self,
+        request: HttpRequest,
+        order: Order,
+        event: str,
+        back: HttpResponseRedirect,
+    ) -> HttpResponse:
+        """A refund from the action bar: the provider is called, then the event applied. The
+        manual form sends `manual` and a note and skips the provider (REQ-032)."""
+        label = EVENT_LABELS[event]
+        manual = bool(request.POST.get("manual"))
+        raw_amount = request.POST.get("amount", "").strip()
+        try:
+            payments = {str(p.pk): p for p in refundable_payments(order)}
+            payment = payments.get(request.POST.get("payment", "")) or (
+                next(iter(payments.values())) if len(payments) == 1 else None
+            )
+            if payment is None:
+                raise RefundRejected("El pedido no tiene un pago por reembolsar.")
+            if raw_amount and (manual or event == "partial_refund_issued"):
+                try:
+                    amount = pesos_to_cents(raw_amount)
+                except (ArithmeticError, ValueError):
+                    raise RefundRejected("El monto no es válido.") from None
+            elif manual or event == "partial_refund_issued":
+                raise RefundRejected("Indica el monto del reembolso.")
+            else:
+                amount = None
+            moved = refund_payment(
+                payment.pk,
+                actor=f"staff:{request.user.pk}",
+                amount_cents=amount,
+                manual_note=request.POST.get("note", "") if manual else None,
+            )
+        except RefundNotSupported:
+            self.message_user(request, OXXO_REFUND_MESSAGE, messages.WARNING)
+            query = f"?manual_refund={payment.pk}"  # type: ignore[union-attr]
+            if raw_amount:
+                query += f"&amount={raw_amount}"
+            return HttpResponseRedirect(back.url + query)
+        except (RefundRejected, GuardFailed, IllegalTransition) as error:
+            reason = getattr(error, "reason", None) or str(error)
+            self.message_user(
+                request, f"No se pudo aplicar «{label}»: {reason}", messages.ERROR
+            )
+        else:
+            self.message_user(
+                request,
+                f"«{label}» aplicado: el pedido está en {moved.state}.",
                 messages.SUCCESS,
             )
         return back
