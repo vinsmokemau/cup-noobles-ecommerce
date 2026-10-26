@@ -3054,7 +3054,7 @@ G48: a reservation must never expire before its order's `payment_deadline_at`; e
 
 Store `voucher_url` and `voucher_expires_at` on the payment and surface them on the order status (the serializer behind the guest lookup, T6.7b, and the landing pages, Phase 13) and in the confirmation email. A customer who loses the OXXO ficha and cannot find it will not pay. In Part A the voucher URL points at the mock voucher page (9.10).
 
-- [ ] **T9.15 — Cancel a late voucher**
+- [x] **T9.15 — Cancel a late voucher** (2026-10-26, 3a41873)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P9-V21
