@@ -275,9 +275,17 @@ def _row(
         TRANSITIONS[(source, event)] = Transition(to_state, guard, effects)
 
 
-# The states an order passes through after payment and before it is closed. A refund can
-# land in any of them; the terminal states and `partially_refunded` are G26 and G27.
+# The states an order passes through after payment and before it is closed. A full refund
+# moves it to `refunded` from any of them.
 POST_PAID = ("paid", "preparing", "shipped", "delivered")
+# A refund can also be recorded after a terminal state. It is a payment record there: the
+# order keeps its state (G27, ADR-0043).
+REFUND_AFTER_CLOSE = ("completed", "expired", "cancelled")
+
+
+def _unchanged(order: Order) -> str:
+    return order.state
+
 
 # T1 (the number and the frozen prices are set when the draft is created, T8.2)
 _row(
@@ -341,11 +349,14 @@ _row(
 )
 # T17 (the CFDI flag arrives with T9.14)
 _row(POST_PAID, "refund_issued", "refunded", _guard_full_refund, _effects_refund)
-# T18 (the CFDI flag arrives with T9.14)
 _row(
-    POST_PAID,
+    REFUND_AFTER_CLOSE, "refund_issued", _unchanged, _guard_full_refund, _effects_refund
+)
+# T18 never changes the order state (G26, ADR-0043; the CFDI flag arrives with T9.14)
+_row(
+    POST_PAID + REFUND_AFTER_CLOSE,
     "partial_refund_issued",
-    "partially_refunded",
+    _unchanged,
     _guard_partial_refund,
     _effects_refund,
 )

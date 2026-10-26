@@ -25,6 +25,8 @@ from tests.factories.payments import PaymentFactory
 pytestmark = pytest.mark.django_db
 
 EVENTS = sorted({event for _, event in TRANSITIONS})
+REFUND_EVENTS = {"refund_issued", "partial_refund_issued"}
+CLOSED = {"completed", "expired", "cancelled"}
 
 
 class OrderMachine(RuleBasedStateMachine):
@@ -74,6 +76,16 @@ class OrderMachine(RuleBasedStateMachine):
                 after.state,
                 event,
             )
+            # Refunds are payment records (G26, G27, ADR-0043): a partial refund, and any
+            # refund after a close, keep the order state; a full refund before it ends in
+            # `refunded`. The amount lands on the payment.
+            if event == "partial_refund_issued" or before.state in CLOSED:
+                assert after.state == before.state
+            elif event == "refund_issued":
+                assert after.state == "refunded"
+            if event in REFUND_EVENTS:
+                self.payment.refresh_from_db()
+                assert self.payment.refunded_cents == refunded
 
     @rule()
     def add_shipment(self):

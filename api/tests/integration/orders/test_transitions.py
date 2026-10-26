@@ -32,6 +32,7 @@ from tests.factories.orders import (
     order_in_state,
     order_through_checkout,
 )
+from tests.factories.payments import PaymentFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -43,6 +44,7 @@ ILLEGAL = [
     if (state, event) not in TRANSITIONS
 ]
 TERMINAL = ["completed", "cancelled", "expired", "refunded"]
+REFUND_EVENTS = {"refund_issued", "partial_refund_issued"}
 
 
 def snapshot(order):
@@ -68,7 +70,11 @@ def test_p8_v07_every_illegal_event_rejected(state, event):
 def test_p8_v07_terminal_states_reject_every_event():
     assert {state for state, _ in ILLEGAL} == set(ORDER_STATES)
     for state in TERMINAL:
-        assert {e for s, e in ILLEGAL if s == state} == set(EVENTS)
+        rejected = {e for s, e in ILLEGAL if s == state}
+        # A refund is a payment record, so it is accepted after a close (G27, ADR-0043);
+        # `refunded` rejects every event.
+        recorded = set() if state == "refunded" else REFUND_EVENTS
+        assert rejected == set(EVENTS) - recorded
 
 
 # --- P8-V01: one case per Release 1 row of 8.A ---------------------------------------------
@@ -222,6 +228,19 @@ def _check_t18(before, after):
     assert 0 < payment.refunded_cents < payment.amount_cents
 
 
+def _closed_order(state):
+    """An order stored in a terminal `state` with the payment a refund would be recorded on."""
+    order = order_in_state(state)
+    PaymentFactory(order=order, amount_cents=order.total_cents)
+    return order
+
+
+def _after_close(source, event, check, prepare):
+    return Row(
+        source, event, source, check, prepare, start=lambda: _closed_order(source)
+    )
+
+
 ROWS = {
     "T1": Row(
         "draft",
@@ -260,10 +279,16 @@ ROWS = {
         "preparing", "cancelled_by_staff", "cancelled", _check_t16, _prepare_t16
     ),
     "T17": Row("paid", "refund_issued", "refunded", _check_t17, _prepare_t17),
-    "T18": Row(
-        "paid", "partial_refund_issued", "partially_refunded", _check_t18, _prepare_t18
-    ),
+    "T18": Row("paid", "partial_refund_issued", "paid", _check_t18, _prepare_t18),
 }
+# G27: after a close both refund events are recorded and the order keeps its state.
+for _source in ("completed", "expired", "cancelled"):
+    ROWS[f"T17-{_source}"] = _after_close(
+        _source, "refund_issued", _check_t17, _prepare_t17
+    )
+    ROWS[f"T18-{_source}"] = _after_close(
+        _source, "partial_refund_issued", _check_t18, _prepare_t18
+    )
 
 
 def _start(row):
