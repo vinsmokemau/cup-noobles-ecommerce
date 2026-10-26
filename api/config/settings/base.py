@@ -28,7 +28,7 @@ INVOICE_PROVIDER = env.str("INVOICE_PROVIDER", default="manual")
 # Business settings (§4.7). The defaults are the D6 and D7 stand-ins of §2.5; `check_placeholders`
 # fails while a value still equals its default, so each needs the owner's decision before launch.
 # How long T1 holds stock and the payment window of a new order, before the method is known
-# (G11, §4.7). 30 minutes in Part A and Part B.
+# (ADR-0046, §4.7). 30 minutes in Part A and Part B.
 RESERVATION_TTL_CARD_MINUTES = env.int("RESERVATION_TTL_CARD_MINUTES", default=30)
 RESERVATION_TTL_SPEI_HOURS = env.int("RESERVATION_TTL_SPEI_HOURS", default=4)
 RESERVATION_TTL_OXXO_HOURS = env.int("RESERVATION_TTL_OXXO_HOURS", default=72)

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.29 |
+| Spec version | 1.30 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -406,7 +406,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G8 | 9 | P9-V10 | Future timestamps and clock skew are unspecified | Accept `abs(now − ts) ≤ WEBHOOK_MAX_AGE_SECONDS` | R1 | Resolved (ADR-0044) |
 | G9 | 10 | P10-V17 | FIFO pre-order allocation has no tie-break for equal `paid_at` | Break ties by `order.id` ascending | R2 | Deferred (R2) |
 | G10 | 10 | P10-V13 | The pickup reminder has no defined window | Send at ≤ 24 h remaining, with a dedupe key | R2 | Deferred (R2) |
-| G11 | 9 | P9-V21 | T1 reserves stock for the card TTL before the payment method is known; an OXXO voucher can arrive for an expired order | A separate checkout-session TTL; a `pending` notification for an expired order alerts and, where possible, cancels the voucher | R1 | Open |
+| G11 | 9 | P9-V21 | T1 reserves stock for the card TTL before the payment method is known; an OXXO voucher can arrive for an expired order | A `pending` notification for an expired or cancelled order alerts and cancels the voucher; the order stays as it is (built in T9.15). The separate checkout-session TTL was not adopted. | R1 | Resolved (ADR-0046) |
 | G12 | 3 | P3-V09 | `import_catalog` doesn't say what happens to valid rows when some rows are invalid | All or nothing per file, reporting every invalid row | R1 | Resolved (ADR-0033) |
 | G13 | 5 | P5-V07 | D10 suggests a badge "under 5"; 5.3 defines `low_stock` as 1 ≤ available ≤ 5 | Decide together with D10 | R1 | Resolved (ADR-0037) |
 | G14 | 9 | P9-V14 | A webhook and `reconcile_payments` processing one approval concurrently: the second `apply_event` raises `IllegalTransition` under the lock | Treat it as `webhook_no_op` when the order already reflects the status | R1 | Open |
@@ -531,6 +531,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-48 | 2026-10-25 | G25: Phase 8 needs a payment provider (`create_checkout`, `refund`) before the mock exists. Resolve it now, or keep it open with an `xfail`? | Option A: the proposed resolution. The two `MockPaymentProvider` methods are built in Phase 8 (T8.10), and the rest of the mock in Phase 9 (T9.9). The tests of T8.10 and T8.2 are plain tests, with no `xfail`. ADR-0041. |
 | OA-53 | 2026-10-26 | G7 and G8: how many times is a failing webhook row retried, and how are future timestamps and clock skew treated? | Option A for both: the proposed resolutions. G7: 10 attempts with exponential backoff, then the row is marked failed and an alert is raised. G8: a timestamp is accepted when `abs(now − ts) ≤ WEBHOOK_MAX_AGE_SECONDS`, so a future timestamp beyond that is rejected too. The tests of P9-V10, P9-V13 and P9-V17 are plain tests, with no `xfail`. ADR-0044. |
 | OA-54 | 2026-10-26 | `WEBHOOK_INLINE_BUDGET_MS`: T9.3 shipped 2000 ms; should that be the value recorded in §4.7? | Yes: 2000 ms in Part A and Part B, and the §4.7 row says so. ADR-0045. |
+| OA-55 | 2026-10-26 | G11: an OXXO or SPEI voucher can be generated after the card hold has lapsed and the order is `expired`. Alert only, cancel the voucher, or hold stock longer? | Option A, as the proposal reads minus its first half: the notification alerts a person and the voucher is cancelled at the provider; the order stays `expired`. No separate checkout-session TTL: T1 keeps the 30-minute card hold. The work is a new task, T9.15 (`cancel_payment`), run after T9.6. |
 | OA-49 | 2026-10-25 | G4: what happens when a price changes between the last cart view and "Pagar"? | Option A: the proposed resolution. Checkout takes an optional `expected_total_cents`; a mismatch returns 409 `total_changed` with the fresh totals, creates no order and reserves nothing. Built by the new task T8.12. ADR-0042. |
 | OA-50 | 2026-10-25 | G26: after a partial refund (T18), what happens to the order? | Option A: the proposed resolution. A partial refund is recorded on the payment and the order keeps its state, so it stays fulfillable. ADR-0043. |
 | OA-51 | 2026-10-25 | G27: can a refund be recorded after the order is `completed`, `expired` or `cancelled`? | Option A: the proposed resolution. The refund events are accepted from those three states as recorded payment events: an `order_event` row and the payment's `refunded_cents`, with the order state unchanged. ADR-0043. |
@@ -1168,7 +1169,7 @@ Coverage never decreases (CR-44). `coverage-baseline.json` records each scope's 
 
 | Variable | Where | Part A (dev default, §2.5) | Part B | Notes |
 |---|---|---|---|---|
-| `RESERVATION_TTL_CARD_MINUTES` | api | `30` | `30` | See G11 |
+| `RESERVATION_TTL_CARD_MINUTES` | api | `30` | `30` | See ADR-0046 |
 | `RESERVATION_TTL_SPEI_HOURS` | api | `4` | D6 | |
 | `RESERVATION_TTL_OXXO_HOURS` | api | `72` | D6 | |
 | `PAYMENT_INSTALLMENT_OPTIONS` | api | `3,6` | D7 | |
@@ -2878,7 +2879,7 @@ Everything on the application side of the adapter is shared. In Part A, the prov
 
 #### Tasks
 
-Execution order: T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.7, T9.8, T9.14, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b (phase-close, last). IDs keep their numbers (OA-52). T9.9 comes before T9.3 because the endpoint verifies and fetches through the mock. T9.14 follows T9.8 because it extends the refund side effects. T9.10 to T9.12b are dev tooling and need T9.9, T9.3 and T9.7. Mentions of a later task inside an earlier one (T9.3 "the mapping in 9.4", T9.4 "extend deadline (9.5)" and the refund events T17/T18) are not dependencies: T9.3 leaves the mapping step as a stub that T9.4 fills, and the T9.8/T9.14 side effects are added when those tasks run.
+Execution order: T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.15, T9.7, T9.8, T9.14, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b (phase-close, last). IDs keep their numbers (OA-52). T9.9 comes before T9.3 because the endpoint verifies and fetches through the mock. T9.15 follows T9.6 and adds the provider method that a late voucher needs (OA-55). T9.14 follows T9.8 because it extends the refund side effects. T9.10 to T9.12b are dev tooling and need T9.9, T9.3 and T9.7. Mentions of a later task inside an earlier one (T9.3 "the mapping in 9.4", T9.4 "extend deadline (9.5)" and the refund events T17/T18) are not dependencies: T9.3 leaves the mapping step as a stub that T9.4 fills, and the T9.8/T9.14 side effects are added when those tasks run.
 
 - [x] **T9.1 — Payment interface and value types** (2026-10-26, 8e38eb7)
   - Release: R1 · Gate: task
@@ -2930,6 +2931,7 @@ class PaymentProvider(Protocol):
     def find_payments(self, external_reference: str) -> list[ProviderPayment]: ...
     def refund(self, payment: Payment, amount_cents: int | None) -> RefundResult: ...
     def verify_webhook(self, headers: Mapping[str, str], body: bytes) -> WebhookRef | None: ...
+    def cancel_payment(self, provider_payment_id: str) -> None: ...  # T9.15, OA-55
 ```
 
 `find_payments` exists because reconciliation (9.7) must look payments up by order, and nothing else in the interface can. Each adapter maps its provider's vocabulary into `NormalizedStatus`; everything after that point is shared.
@@ -3026,10 +3028,10 @@ Rules applied in this order before any `apply_event`:
 - [x] **T9.5 — Deadlines by payment method** (2026-10-26, d91162d)
   - Release: R1 · Gate: task
   - REQs: REQ-012
-  - Verifies: P9-V09, P9-V21
+  - Verifies: P9-V09
   - Depends on: T9.4
   - Context: §2.5; §4.7
-  - Open items: D6 (stand-in §2.5); G11 (tests xfail until decided)
+  - Open items: D6 (stand-in §2.5)
 
 Deadlines by method, set when the payment is first observed:
 
@@ -3039,7 +3041,7 @@ Deadlines by method, set when the payment is first observed:
 | SPEI | 4 hours | now + 4 h |
 | OXXO cash | voucher expiry + 2 h grace (D6; Part A dev default 72 h, §2.5) | same |
 
-When a `pending` OXXO or SPEI payment arrives, **extend** the existing reservations' `expires_at` and the order's `payment_deadline_at` rather than creating new reservations. In Part A the mock issues vouchers expiring `RESERVATION_TTL_OXXO_HOURS` (SPEI: `RESERVATION_TTL_SPEI_HOURS`) after creation, mirroring the preference expiry the real adapter requests in 16.2. A customer who generates a voucher after the checkout TTL has lapsed follows G11's proposed resolution.
+When a `pending` OXXO or SPEI payment arrives, **extend** the existing reservations' `expires_at` and the order's `payment_deadline_at` rather than creating new reservations. In Part A the mock issues vouchers expiring `RESERVATION_TTL_OXXO_HOURS` (SPEI: `RESERVATION_TTL_SPEI_HOURS`) after creation, mirroring the preference expiry the real adapter requests in 16.2. A customer who generates a voucher after the checkout TTL has lapsed follows ADR-0046 (T9.15).
 
 G48: a reservation must never expire before its order's `payment_deadline_at`; extend both together, in one transaction. `expire_reservations` logs a `GuardFailed` from T5 as a one-line warning, not an exception. Add a test with a method whose deadline is longer than the card window.
 
@@ -3051,6 +3053,15 @@ G48: a reservation must never expire before its order's `payment_deadline_at`; e
   - Context: 9.4
 
 Store `voucher_url` and `voucher_expires_at` on the payment and surface them on the order status (the serializer behind the guest lookup, T6.7b, and the landing pages, Phase 13) and in the confirmation email. A customer who loses the OXXO ficha and cannot find it will not pay. In Part A the voucher URL points at the mock voucher page (9.10).
+
+- [ ] **T9.15 — Cancel a late voucher**
+  - Release: R1 · Gate: task
+  - REQs: —
+  - Verifies: P9-V21
+  - Depends on: T9.5
+  - Context: 9.1, 9.4, 9.5; ADR-0046
+
+Add `cancel_payment(provider_payment_id)` to `PaymentProvider` and to the mock: it ends the stored payment as `cancelled`, and cancelling a payment that is already `cancelled` does nothing. In `mapping.py`, the branch for a `pending` OXXO or SPEI payment on an `expired` or `cancelled` order (T9.5) keeps its alert and the order as it is, and also calls `cancel_payment`. If the provider call fails, the failure is raised like any webhook failure, so the row is retried (G7). The real adapter implements the method in T16.3.
 
 - [ ] **T9.7 — Payment reconciliation**
   - Release: R1 · Gate: task
@@ -3238,7 +3249,7 @@ Write PAY-09 to PAY-19 from the table in T9.13a against the same `PaymentDriver`
 | P9-V18 | concurrency | `api/tests/concurrency/test_mock_store.py::test_p9_v18_mock_store_atomic_writes` | Concurrent writes to one mock payment never leave invalid JSON on disk. |
 | P9-V19 | API | `api/tests/api/orders/test_status.py::test_p9_v19_voucher_surfaced` | `voucher_url` and `voucher_expires_at` appear on the payment row and in the order status API. |
 | P9-V20 | unit | `api/tests/unit/payments/test_signing.py::test_p9_v20_sign_verify` | `sign`/`verify` round-trip; a one-byte change fails; comparison uses `hmac.compare_digest`. |
-| P9-V21 | integration | `api/tests/integration/payments/test_deadlines.py::test_p9_v21_voucher_generated_after_checkout_ttl` | The customer takes 31 minutes on the provider page, then generates an OXXO voucher; the `pending` notification arrives for an order already `expired`. Proposed behaviour per G11. ⚠️ G11 |
+| P9-V21 | integration | `api/tests/integration/payments/test_deadlines.py::test_p9_v21_voucher_generated_after_checkout_ttl` | The customer takes 31 minutes on the provider page, then generates an OXXO voucher; the `pending` notification arrives for an order already `expired`. The order stays `expired`, one alert is logged, and the mock payment ends `cancelled` (ADR-0046, OA-55). |
 
 **Added in conversion:**
 
@@ -4609,7 +4620,7 @@ Account and credentials (S2). The agent lists the steps; the owner performs them
   - Depends on: T16.2
   - Context: 9.1, 9.4
 
-`fetch_payment` and `find_payments`, the latter searching payments by `external_reference`. Map Mercado Pago's vocabulary into `NormalizedStatus`:
+`fetch_payment` and `find_payments`, the latter searching payments by `external_reference`, and `cancel_payment` (T9.15), which sets a pending payment to cancelled. Map Mercado Pago's vocabulary into `NormalizedStatus`:
 
 | MP `status` | MP `status_detail` | `NormalizedStatus` |
 |---|---|---|
@@ -5359,7 +5370,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 5 | ~~G13~~ with ~~D10~~, ~~G32~~ |
 | Phase 6 | ~~G30~~, ~~G35~~ |
 | Phase 8 | ~~G3~~, ~~G4~~, ~~G5~~, ~~G25~~, ~~G26~~, ~~G27~~, ~~G31~~, ~~G33~~ |
-| Phase 9 | ~~G7~~, ~~G8~~, G11, G14 |
+| Phase 9 | ~~G7~~, ~~G8~~, ~~G11~~, G14 |
 | Phase 11 | G17; DSR-04, DSR-05 released |
 | Phase 12 | G18, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03, DSR-06, DSR-07 released; DSR-09 or its fallback |
 | Phase 13 | G21, G22 |
@@ -5410,6 +5421,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.27 | 2026-10-26 | Phase 9 task order: an execution-order note added (T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.7, T9.8, T9.14, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b), stating that forward mentions between tasks are not dependencies. No dependency, Verify ID, schema or task-ID change. | OA-52 |
 | 1.28 | 2026-10-26 | G7 and G8 resolved as proposed: a failing webhook row is retried 10 times with exponential backoff, then marked failed and alerted; a notification timestamp is accepted when `abs(now − ts) ≤ WEBHOOK_MAX_AGE_SECONDS`, future side included. T9.3 and T16.4 lose their open items; the ⚠️ marks of P9-V10, P9-V13, P9-V17, P16-V06, REQ-030 and REQ-031 (G7, G8) are removed; §4.7, R-20 and §7.2 follow. No Verify ID, task or schema change. | OA-53; ADR-0044 |
 | 1.29 | 2026-10-26 | `WEBHOOK_INLINE_BUDGET_MS` recorded as 2000 ms in the §4.7 row (it read "Set in 9.3"). No task, Verify ID, schema or code change. | OA-54; ADR-0045 |
+| 1.30 | 2026-10-26 | G11 resolved: a `pending` voucher for an expired or cancelled order alerts and is cancelled at the provider, and the order stays as it is. No separate checkout-session TTL. New task T9.15 (`cancel_payment` on `PaymentProvider` and the mock) runs after T9.6; P9-V21 moves from T9.5 to it and loses its `xfail`; T16.3 gains the real adapter method. | OA-55; ADR-0046 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5504,6 +5516,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0043 | Refunds are payment records: a partial refund keeps the order state, and a refund can be recorded after a terminal state | `docs/decisions/0043-refunds-are-payment-records.md` | G26, G27; OA-50, OA-51 |
 | ADR-0044 | A failing webhook row is retried 10 times, and a notification timestamp is fresh within the tolerance on both sides | `docs/decisions/0044-webhook-retry-cap-and-clock-skew.md` | G7, G8; OA-53 |
 | ADR-0045 | The inline webhook budget is 2000 ms | `docs/decisions/0045-webhook-inline-budget.md` | OA-54 |
+| ADR-0046 | A voucher for an expired order is cancelled at the provider, and the order stays expired | `docs/decisions/0046-late-voucher-is-cancelled.md` | G11; OA-55 |
 
 ## Appendix C — Dated market facts
 
@@ -5797,7 +5810,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 |---|---|---|
 | Phase 9 | Release 1 scope line added: all tasks plus T9.14 | §5 |
 | 9.A | Rule 5 cites §4.8 instead of Appendix B; closing line maps the rules to CR-11–CR-16 | Spec references |
-| Phase 9 | Tasks listed in execution order: T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.7, T9.8, T9.14, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b | Dependencies (the mock precedes the endpoint that uses it) |
+| Phase 9 | Tasks listed in execution order: T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.15, T9.7, T9.8, T9.14, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b | Dependencies (the mock precedes the endpoint that uses it) |
 | T9.1 | §5.D → §4.3; interface sentence trimmed ("new relative to the original four methods" dropped) | Spec references |
 | T9.3 | Adds `manage.py process_webhooks` and its crontab line; G7 and G8 notes | 9.A rule 5 named the command but no task built it; §4.8 |
 | T9.4 | Note that `approved` always fires T2 in R1; T3 is R2 | Pre-orders are R2 |

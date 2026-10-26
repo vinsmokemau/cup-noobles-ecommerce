@@ -1,4 +1,4 @@
-"""Deadlines by payment method and the reservation guard (SPEC.md 9.5, G11, G48)."""
+"""Deadlines by payment method and the reservation guard (SPEC.md 9.5, ADR-0046, G48)."""
 
 import logging
 from datetime import UTC, datetime, timedelta
@@ -171,7 +171,6 @@ def test_g48_guard_failed_is_a_one_line_warning(clock, db, caplog):
     assert warnings[0].exc_info is None
 
 
-@pytest.mark.xfail(strict=True, reason="G11")
 def test_p9_v21_voucher_generated_after_checkout_ttl(
     clock, api_client, settings, db, caplog
 ):
@@ -191,7 +190,7 @@ def test_p9_v21_voucher_generated_after_checkout_ttl(
     body, headers = signed_notification(settings, payment_id)
     assert post_notification(api_client, body, headers).status_code == 200
 
-    # G11, proposed: the order stays expired, a person is alerted, and the voucher is cancelled.
+    # ADR-0046: the order stays expired, a person is alerted, and the voucher is cancelled.
     assert state_of(order) == "expired"
     assert len([r for r in caplog.records if "ALERT" in r.getMessage()]) == 1
     assert MockPaymentProvider().fetch_payment(payment_id).status.value == "cancelled"

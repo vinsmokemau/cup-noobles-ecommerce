@@ -50,3 +50,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0043](0043-refunds-are-payment-records.md) | Refunds are payment records: a partial refund keeps the order state, and a refund can be recorded after a terminal state | accepted | G26, G27; OA-50, OA-51 |
 | [ADR-0044](0044-webhook-retry-cap-and-clock-skew.md) | A failing webhook row is retried 10 times, and a notification timestamp is fresh within the tolerance on both sides | accepted | G7, G8; OA-53 |
 | [ADR-0045](0045-webhook-inline-budget.md) | The inline webhook budget is 2000 ms | accepted | OA-54 |
+| [ADR-0046](0046-late-voucher-is-cancelled.md) | A voucher for an expired order is cancelled at the provider, and the order stays expired | accepted | G11; OA-55 |

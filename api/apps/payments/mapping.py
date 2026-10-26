@@ -157,7 +157,7 @@ def _extend_for_method(
     if deadline is None:
         return
     if order.state in _CLOSED_UNPAID:
-        # G11 (proposed): the stock is gone, so the voucher cannot be honoured.
+        # ADR-0046: the stock is gone, so the voucher must not be honoured (cancelled in T9.15).
         _alert(
             order,
             payment,
