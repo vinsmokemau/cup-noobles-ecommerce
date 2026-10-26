@@ -4,8 +4,7 @@
 assigns `order.state`: it takes the row lock, looks the event up, runs the guard and the side
 effects, and writes exactly one `order_event`. Anything not in `TRANSITIONS` is illegal.
 
-Side effects that need code from a later task are named in the row's comment and added there:
-the CFDI flag of T17 and T18 (T9.14).
+The CFDI review flag of T17 and T18 (T9.14) is part of `_effects_refund`.
 """
 
 from collections.abc import Callable
@@ -19,10 +18,12 @@ from django.utils import timezone
 
 from apps.core.providers import payment_provider
 from apps.inventory import services as inventory
+from apps.invoicing.models import InvoiceRequest
 from apps.notifications.outbox import enqueue_email
 from apps.orders.models import Order, OrderEvent, Shipment
 from apps.orders.pricing import compute_totals
 from apps.payments.models import Payment
+from apps.payments.money import cents_to_pesos
 
 
 class IllegalTransition(Exception):
@@ -254,9 +255,21 @@ def _effects_cancelled_by_staff(order: Order, **kwargs: Any) -> None:
 
 
 def _effects_refund(order: Order, **kwargs: Any) -> None:
-    Payment.objects.filter(pk=kwargs["payment_id"], order=order).update(
+    """T17 and T18. `refunded_cents` is the running total (G46); an issued CFDI is flagged for
+    the accountant, who decides the fiscal treatment (T9.14, A12, D16)."""
+    payment = Payment.objects.get(pk=kwargs["payment_id"], order=order)
+    refunded_now = kwargs["refunded_cents"] - payment.refunded_cents
+    Payment.objects.filter(pk=payment.pk).update(
         refunded_cents=kwargs["refunded_cents"]
     )
+    invoice = InvoiceRequest.objects.filter(
+        order=order, status=InvoiceRequest.Status.ISSUED
+    ).first()
+    if invoice is not None:
+        note = f"Reembolso de ${cents_to_pesos(refunded_now):,.2f} MXN."
+        invoice.needs_review = True
+        invoice.review_note = "\n".join(filter(None, [invoice.review_note, note]))
+        invoice.save(update_fields=["needs_review", "review_note", "updated_at"])
 
 
 # --- the table --------------------------------------------------------------------------
@@ -347,12 +360,12 @@ _row(
     _guard_cancel_reason,
     _effects_cancelled_by_staff,
 )
-# T17 (the CFDI flag arrives with T9.14)
+# T17
 _row(POST_PAID, "refund_issued", "refunded", _guard_full_refund, _effects_refund)
 _row(
     REFUND_AFTER_CLOSE, "refund_issued", _unchanged, _guard_full_refund, _effects_refund
 )
-# T18 never changes the order state (G26, ADR-0043; the CFDI flag arrives with T9.14)
+# T18 never changes the order state (G26, ADR-0043)
 _row(
     POST_PAID + REFUND_AFTER_CLOSE,
     "partial_refund_issued",

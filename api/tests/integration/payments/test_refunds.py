@@ -2,11 +2,14 @@
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 
+from apps.invoicing.models import InvoiceRequest
 from apps.payments.base import RefundNotSupported
 from apps.payments.mock import MockPaymentProvider
 from apps.payments.models import Payment
 from apps.payments.refunds import RefundRejected, refund_payment
+from tests.factories.invoicing import InvoiceRequestFactory
 from tests.factories.orders import order_in_state
 from tests.factories.payments import PaymentFactory, mock_payment_for
 
@@ -33,6 +36,24 @@ def paid_order(state="paid", *, method="credit_card"):
         amount_cents=order.total_cents,
     )
     return order, payment
+
+
+@pytest.fixture
+def issued_invoice_order():
+    """A paid order whose `invoice_request` is `issued`, with its payment: `(order, payment)`."""
+    order, payment = paid_order()
+    InvoiceRequestFactory(
+        order=order,
+        status="issued",
+        cfdi_uuid="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        issued_at=timezone.now(),
+    )
+    return order, payment
+
+
+def cfdi_queue():
+    """The requests the admin CFDI queue lists for review (T10.14): `needs_review`."""
+    return InvoiceRequest.objects.filter(needs_review=True)
 
 
 @pytest.fixture
@@ -340,3 +361,67 @@ def test_p9_v15_the_manual_form_ignores_a_payment_of_another_order(admin_client)
 
     assert "Registrar reembolso manual" not in html
     assert Payment.objects.count() == 2
+
+
+def test_p9_v22_refund_flags_issued_cfdi(issued_invoice_order):
+    order, payment = issued_invoice_order
+    assert not cfdi_queue().exists()
+
+    refund_payment(payment.pk, actor="staff:1", amount_cents=4000)
+
+    invoice = order.invoice_request
+    invoice.refresh_from_db()
+    assert invoice.needs_review is True
+    assert "$40.00" in invoice.review_note
+    assert invoice.status == "issued"
+    assert list(cfdi_queue()) == [invoice]
+
+    # The rest of the payment is a full refund; the note names each amount.
+    refund_payment(payment.pk, actor="staff:1", amount_cents=6000)
+
+    invoice.refresh_from_db()
+    assert "$40.00" in invoice.review_note and "$60.00" in invoice.review_note
+
+
+def test_p9_v22_a_failed_refund_leaves_the_request_unflagged(issued_invoice_order):
+    order, payment = issued_invoice_order
+
+    with pytest.raises(RefundRejected):
+        refund_payment(payment.pk, actor="staff:1", amount_cents=10001)
+
+    order.invoice_request.refresh_from_db()
+    assert order.invoice_request.needs_review is False
+
+
+@pytest.mark.parametrize("status", ["requested", "cancelled"])
+def test_p9_v22_a_request_that_is_not_issued_is_left_alone(status):
+    order, payment = paid_order()
+    InvoiceRequestFactory(
+        order=order,
+        status=status,
+        cancelled_at=timezone.now() if status == "cancelled" else None,
+    )
+
+    refund_payment(payment.pk, actor="staff:1", amount_cents=4000)
+
+    order.invoice_request.refresh_from_db()
+    assert (order.invoice_request.needs_review, order.invoice_request.review_note) == (
+        False,
+        "",
+    )
+
+
+def test_p9_v22_a_refund_of_an_order_without_a_cfdi_changes_no_request():
+    order, payment = paid_order()
+    other = InvoiceRequestFactory(
+        status="issued",
+        cfdi_uuid="3fa85f64-5717-4562-b3fc-2c963f66afa7",
+        issued_at=timezone.now(),
+    )
+
+    moved = refund_payment(payment.pk, actor="staff:1", amount_cents=4000)
+
+    assert moved.state == "paid"
+    other.refresh_from_db()
+    assert other.needs_review is False
+    assert not cfdi_queue().exists()
