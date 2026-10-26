@@ -2878,7 +2878,7 @@ Everything on the application side of the adapter is shared. In Part A, the prov
 
 Execution order: T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.7, T9.8, T9.14, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b (phase-close, last). IDs keep their numbers (OA-52). T9.9 comes before T9.3 because the endpoint verifies and fetches through the mock. T9.14 follows T9.8 because it extends the refund side effects. T9.10 to T9.12b are dev tooling and need T9.9, T9.3 and T9.7. Mentions of a later task inside an earlier one (T9.3 "the mapping in 9.4", T9.4 "extend deadline (9.5)" and the refund events T17/T18) are not dependencies: T9.3 leaves the mapping step as a stub that T9.4 fills, and the T9.8/T9.14 side effects are added when those tasks run.
 
-- [ ] **T9.1 — Payment interface and value types**
+- [x] **T9.1 — Payment interface and value types** (2026-10-26, 8e38eb7)
   - Release: R1 · Gate: task
   - REQs: REQ-030
   - Verifies: [no-test: value types and the Protocol; exercised from T9.2 on, and checked by the adapter test in T9.9]
