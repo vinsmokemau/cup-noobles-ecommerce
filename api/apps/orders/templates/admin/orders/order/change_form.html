@@ -1,0 +1,22 @@
+{% extends "admin/change_form.html" %}
+
+{% block content %}
+{% if event_actions %}
+<form method="post" action="{{ event_url }}" id="order-action-bar">
+  {% csrf_token %}
+  <fieldset class="module aligned">
+    <h2>Acciones</h2>
+    <div class="form-row">
+      {% for action in event_actions %}
+      {% if action.needs_reason %}
+      <label for="cancel_reason">Motivo de cancelación</label>
+      <input type="text" name="cancel_reason" id="cancel_reason" maxlength="500">
+      {% endif %}
+      <button type="submit" name="event" value="{{ action.event }}">{{ action.label }}</button>
+      {% endfor %}
+    </div>
+  </fieldset>
+</form>
+{% endif %}
+{{ block.super }}
+{% endblock %}
