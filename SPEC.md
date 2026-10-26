@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.26 |
+| Spec version | 1.27 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -532,6 +532,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-49 | 2026-10-25 | G4: what happens when a price changes between the last cart view and "Pagar"? | Option A: the proposed resolution. Checkout takes an optional `expected_total_cents`; a mismatch returns 409 `total_changed` with the fresh totals, creates no order and reserves nothing. Built by the new task T8.12. ADR-0042. |
 | OA-50 | 2026-10-25 | G26: after a partial refund (T18), what happens to the order? | Option A: the proposed resolution. A partial refund is recorded on the payment and the order keeps its state, so it stays fulfillable. ADR-0043. |
 | OA-51 | 2026-10-25 | G27: can a refund be recorded after the order is `completed`, `expired` or `cancelled`? | Option A: the proposed resolution. The refund events are accepted from those three states as recorded payment events: an `order_event` row and the payment's `refunded_cents`, with the order state unchanged. ADR-0043. |
+| OA-52 | 2026-10-26 | Phase 9 task order: the tasks are listed in a valid order, but their numbers do not follow it (T9.9 runs third, T9.14 tenth) and earlier tasks mention later ones. Renumber, or add an execution-order note? | Option B: add the note, no renumbering. IDs keep their numbers. The note says the forward mentions are not dependencies. No ADR: cheap to reverse, spec text only. |
 
 ---
 
@@ -2874,6 +2875,8 @@ checkout (8.4) ─► payment_provider().create_checkout(order) ─► CheckoutS
 Everything on the application side of the adapter is shared. In Part A, the provider side is `apps/payments/mock.py` plus the simulator; in Part B it is Mercado Pago.
 
 #### Tasks
+
+Execution order: T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.7, T9.8, T9.14, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b (phase-close, last). IDs keep their numbers (OA-52). T9.9 comes before T9.3 because the endpoint verifies and fetches through the mock. T9.14 follows T9.8 because it extends the refund side effects. T9.10 to T9.12b are dev tooling and need T9.9, T9.3 and T9.7. Mentions of a later task inside an earlier one (T9.3 "the mapping in 9.4", T9.4 "extend deadline (9.5)" and the refund events T17/T18) are not dependencies: T9.3 leaves the mapping step as a stub that T9.4 fills, and the T9.8/T9.14 side effects are added when those tasks run.
 
 - [ ] **T9.1 — Payment interface and value types**
   - Release: R1 · Gate: task
@@ -5404,6 +5407,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.24 | 2026-10-25 | G25 resolved as proposed: `MockPaymentProvider.create_checkout` and `refund` are built in Phase 8 (T8.10), and the rest of the mock in Phase 9 (T9.9). T8.10 and T8.2 lose their G25 open item; P8-V01 and P8-V06 lose their ⚠️ marker. No Verify ID, schema or task-ID change. | OA-48; ADR-0041 |
 | 1.25 | 2026-10-25 | G4 resolved as proposed: checkout takes an optional `expected_total_cents`, and a mismatch returns 409 `total_changed` with the fresh totals and reserves nothing. New task T8.12 builds it (P8-V09 moves from T8.4 to T8.12; T8.6a also depends on T8.12). The ⚠️ G4 mark is removed from P8-V09, P13-V19 and REQ-002; T8.4 and T13.6 lose their G4 open item. No other Verify ID or schema change. | OA-49; ADR-0042 |
 | 1.26 | 2026-10-25 | G26 and G27 resolved as proposed: a partial refund keeps the order state (T18), and the refund events are accepted from `completed`, `expired` and `cancelled` as recorded payment events (T17, T18). 8.A rows T17 and T18 and a note after the terminal states are amended; P8-V01 and P8-V07 text follows. New task T8.13 changes `TRANSITIONS` and its tests, and T8.6a now also depends on it. G45 registered at the owner's request (refund inside the order transaction, Phase 16); T16.5 gains it as an open item. No Verify ID, schema or REQ change. | OA-50, OA-51; ADR-0043 |
+| 1.27 | 2026-10-26 | Phase 9 task order: an execution-order note added (T9.1, T9.2, T9.9, T9.3, T9.4, T9.5, T9.6, T9.7, T9.8, T9.14, T9.10, T9.11, T9.12a, T9.12b, T9.13a, T9.13b), stating that forward mentions between tasks are not dependencies. No dependency, Verify ID, schema or task-ID change. | OA-52 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
