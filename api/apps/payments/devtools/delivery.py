@@ -26,6 +26,12 @@ from apps.payments import signing
 
 WEBHOOK_PATH = "/api/webhooks/payments/mock/"
 
+
+def webhook_path(provider_code: str) -> str:
+    """The endpoint a provider's notifications reach (9.B)."""
+    return f"/api/webhooks/payments/{provider_code}/"
+
+
 # (body, headers) -> HTTP status; a connection that fails raises OSError.
 Transport = Callable[[bytes, dict[str, str]], int]
 
@@ -37,8 +43,8 @@ class DeliveryResult:
     waiting: int = 0
 
 
-def http_transport(base_url: str) -> Transport:
-    """POST to `base_url` + the webhook path, with the `Host` of `SITE_URL`.
+def http_transport(base_url: str, path: str = WEBHOOK_PATH) -> Transport:
+    """POST to `base_url` + `path` (the mock webhook by default), with the `Host` of `SITE_URL`.
 
     Inside compose the proxy is reached as `http://proxy:8080`, a host Django does not allow, so
     the `Host` header names the public one, as the browser's request does.
@@ -47,7 +53,7 @@ def http_transport(base_url: str) -> Transport:
 
     def send(body: bytes, headers: dict[str, str]) -> int:
         request = urllib.request.Request(
-            base_url.rstrip("/") + WEBHOOK_PATH,
+            base_url.rstrip("/") + path,
             data=body,
             headers={**headers, "Content-Type": "application/json", "Host": host},
             method="POST",
