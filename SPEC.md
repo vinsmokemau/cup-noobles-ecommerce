@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.24 |
+| Spec version | 1.25 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -399,7 +399,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G1 | 1 | P1-V11, P1-V17 | `/api/health/` is verified in Phase 1 but specified only in 20.4 | Move the endpoint into Phase 1; 20.4 keeps the Lightsail health-check configuration | R1 | Resolved (ADR-0028) |
 | G2 | 4 | P4-V17, P8-V01 | The outbox writer is defined in 11.1, but Phases 4 and 8 already write outbox rows. Widened from the plan's Phase 6, which is now R2. | Move `enqueue_email()` (the write only, not sending) into Phase 4 | R1 | Resolved (ADR-0036) |
 | G3 | 8 | P8-V03, P8-V08 | 8.4 stores the `Idempotency-Key` "on the order", but no column holds it; reuse with a different body, the key's scope and its lifetime are undefined | `idempotency_key` plus a request fingerprint, with a partial unique index per cart token; a mismatched body returns 422 `idempotency_key_reused`. Schema change. | R1 | Resolved (ADR-0030) |
-| G4 | 8 | P8-V09, P13-V19 | A price change between the last view and "Pagar" applies silently | Checkout takes `expected_total_cents`; a mismatch returns 409 with fresh totals and reserves nothing | R1 | Open |
+| G4 | 8 | P8-V09, P13-V19 | A price change between the last view and "Pagar" applies silently | Checkout takes `expected_total_cents`; a mismatch returns 409 with fresh totals and reserves nothing | R1 | Resolved (ADR-0042) |
 | G5 | 8 | P8-V12 | The timezone of the order-number year is unspecified, and so is the per-year sequence. Widened: DS:formatting.md requires an explicit `timeZone` for every displayed date (CR-31). | `America/Mexico_City` as the store timezone for numbering and display; one Postgres sequence per year, created on first use | R1 | Resolved (ADR-0030) |
 | G6 | 8 | P8-V17 | Cancelling an order whose pre-order reservations are committed is undefined | `cancel_preorder_allocation(order)`, called from T16 and T19 | R2 | Deferred (R2) |
 | G7 | 9 | P9-V13, P9-V17 | Webhook processing failures have no retry cap | 10 attempts with exponential backoff, then mark failed and alert | R1 | Open |
@@ -525,6 +525,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-46 | 2026-10-25 | G44: should the cart store the postal code, or does the quote keep reading it from the request? | Keep the `postal_code` query parameter on `GET /api/cart/` for now, and check it in Phase 13. Registered as G44; no ADR, because the choice is cheap to reverse until then. |
 | OA-47 | 2026-10-25 | Phase 8 task order: the tasks are listed in a valid order, but their numbers do not follow it (T8.2 needs T8.3 and T8.10; T8.5 runs near the end) and the phase has no execution-order note. Add one? | Option A: add the note. Execution order: T8.1, T8.3, T8.10, T8.2, T8.4, T8.7, T8.8, T8.9, T8.5, T8.6a (phase-close); then, in R2, T8.11 and T8.6b. IDs keep their numbers. No ADR: cheap to reverse, spec text only. |
 | OA-48 | 2026-10-25 | G25: Phase 8 needs a payment provider (`create_checkout`, `refund`) before the mock exists. Resolve it now, or keep it open with an `xfail`? | Option A: the proposed resolution. The two `MockPaymentProvider` methods are built in Phase 8 (T8.10), and the rest of the mock in Phase 9 (T9.9). The tests of T8.10 and T8.2 are plain tests, with no `xfail`. ADR-0041. |
+| OA-49 | 2026-10-25 | G4: what happens when a price changes between the last cart view and "Pagar"? | Option A: the proposed resolution. Checkout takes an optional `expected_total_cents`; a mismatch returns 409 `total_changed` with the fresh totals, creates no order and reserves nothing. Built by the new task T8.12. ADR-0042. |
 
 ---
 
@@ -539,7 +540,7 @@ The acceptance criteria of a requirement are Verify IDs. The assertion text live
 | REQ | Requirement | Rules | Acceptance | Release |
 |---|---|---|---|---|
 | REQ-001 | Money is integer centavos of MXN everywhere: database, services, API and the conversion to a provider's pesos. | CR-01 | P2-V04 · P2-V10 · P7-V17 · P9-V08 · P12-V09 | R1 |
-| REQ-002 | The server computes every total, in one function, from prices frozen once when the order is created. The client renders totals and never computes them. | CR-02, CR-03, A2 | P7-V03 · P7-V06 · P7-V17 · P8-V09 ⚠️G4 · P13-V03 · P13-V19 ⚠️G4 | R1 |
+| REQ-002 | The server computes every total, in one function, from prices frozen once when the order is created. The client renders totals and never computes them. | CR-02, CR-03, A2 | P7-V03 · P7-V06 · P7-V17 · P8-V09 · P13-V03 · P13-V19 | R1 |
 
 ### 3.2 Inventory
 
@@ -2674,14 +2675,22 @@ In Release 1 the target is always a delivery address given in the request; a sav
 - [x] **T8.4 — Checkout endpoint** (2026-10-25, 24aa544)
   - Release: R1 · Gate: task
   - REQs: REQ-002, REQ-010, REQ-021
-  - Verifies: P8-V03, P8-V08, P8-V09, P8-V10, P8-V18
+  - Verifies: P8-V03, P8-V08, P8-V10, P8-V18
   - Depends on: T8.2
   - Context: §4.6 (API)
-  - Open items: G4 (tests xfail until decided)
 
 Checkout endpoint `POST /api/checkout/` — R1 body: `{email, phone, fulfillment_method: "delivery", address_payload, customer_note}`, plus the optional `invoice` object (T8.7). `address_id` (a saved address) and `pickup_location_id` are Release 2. Returns `{order_number, order_public_id, checkout_url}`.
 
-Idempotency: accept an `Idempotency-Key` header and return the existing order on replay. A double-clicked "Pagar" button must not create two orders holding two sets of stock. The key is stored on the order with a fingerprint of the request body, unique per cart token (G3, ADR-0030); the same key with a different body returns 422 `idempotency_key_reused`. A price change since the customer's last view follows G4's proposed resolution (`expected_total_cents`).
+Idempotency: accept an `Idempotency-Key` header and return the existing order on replay. A double-clicked "Pagar" button must not create two orders holding two sets of stock. The key is stored on the order with a fingerprint of the request body, unique per cart token (G3, ADR-0030); the same key with a different body returns 422 `idempotency_key_reused`. A price change since the customer's last view is handled by T8.12 (G4, ADR-0042).
+
+- [ ] **T8.12 — Checkout expected total**
+  - Release: R1 · Gate: task
+  - REQs: REQ-002
+  - Verifies: P8-V09
+  - Depends on: T8.4
+  - Context: §4.6 (API); T8.4
+
+Per G4's resolution (ADR-0042), `POST /api/checkout/` takes an optional integer `expected_total_cents`: the total the customer last saw. After `create_order_from_cart` has re-validated the lines and computed the totals (T8.2 steps 2 to 4), and before it creates the order, a total that differs from `expected_total_cents` raises an error and the endpoint returns 409 `{"code": "total_changed", "totals": {subtotal_cents, shipping_cents, discount_cents, total_cents, tax_included_cents}}` with the fresh totals. No order and no reservation is created. Without the field, no comparison is made. An `Idempotency-Key` replay returns the existing order before the comparison. The field is part of the request-body fingerprint (G3). Stock failures keep their own 409 `lines_unavailable` and are checked first.
 
 - [ ] **T8.7 — Invoice data at checkout**
   - Release: R1 · Gate: task
@@ -2731,7 +2740,7 @@ Admin `OrderAdmin`: read-only lines and totals; a state-transition action bar th
   - Release: R1 · Gate: phase-close
   - REQs: REQ-010, REQ-022
   - Verifies: P8-V04, P8-V13, P8-V14
-  - Depends on: T8.5, T8.7, T8.8, T8.9
+  - Depends on: T8.5, T8.7, T8.8, T8.9, T8.12
   - Context: 8.A; §4.8
 
 `manage.py advance_orders` — runs T12 (auto-completion). T5 (payment deadline expiry) is fired by `expire_reservations`, which from this task calls `apply_event` for the order after releasing its holds (G37); add that order-state assertion to the P4-V03 test. Idempotent, safe to run every 5 minutes: add its line to `infra/crontab` (§4.8).
@@ -2755,7 +2764,7 @@ Admin `OrderAdmin`: read-only lines and totals; a state-transition action bar th
 
 Add the R2 rows of 8.A to `TRANSITIONS`: T3, T8, T9, T13, T14, T15, T19, and T16 from `awaiting_stock` and `ready_for_pickup`. Checkout accepts `pickup_location_id` for pickup orders and `address_id` for a customer's saved address; `create_order_from_cart` takes the pickup branch (zero shipping, `pickup_location_id`) and sets `has_preorder_items` and `earliest_release_date`.
 
-Execution order: T8.1, T8.3, T8.10, T8.2, T8.4, T8.7, T8.8, T8.9, T8.5, T8.6a (phase-close, last of Release 1); then, in R2, T8.11 and T8.6b. IDs keep their numbers (OA-47). T8.2 needs T8.3 and T8.10 first; T8.7, T8.8 and T8.9 add their steps to `create_order_from_cart` (T8.2); T8.11 needs Phase 8 closed, and T8.6b needs T8.11.
+Execution order: T8.1, T8.3, T8.10, T8.2, T8.4, T8.12, T8.7, T8.8, T8.9, T8.5, T8.6a (phase-close, last of Release 1); then, in R2, T8.11 and T8.6b. IDs keep their numbers (OA-47). T8.2 needs T8.3 and T8.10 first; T8.7, T8.8 and T8.9 add their steps to `create_order_from_cart` (T8.2); T8.11 needs Phase 8 closed, and T8.6b needs T8.11.
 
 #### Verify — test specification
 
@@ -2778,7 +2787,7 @@ Execution order: T8.1, T8.3, T8.10, T8.2, T8.4, T8.7, T8.8, T8.9, T8.5, T8.6a (p
 |---|---|---|---|
 | P8-V07 | integration | `api/tests/integration/orders/test_transitions.py::test_p8_v07_every_illegal_event_rejected[state-event]` | Every one of the 14 states × every event absent from `TRANSITIONS` for that state raises `IllegalTransition`; the order row, its reservations and `order_event` are untouched. Terminal states reject every event. |
 | P8-V08 | API | `api/tests/api/orders/test_checkout.py::test_p8_v08_idempotency_key_reused_different_body` | The same key with a different body — proposed: 422 `idempotency_key_reused`, no new order, the original untouched. |
-| P8-V09 | API | `api/tests/api/orders/test_checkout.py::test_p8_v09_price_change_between_cart_and_checkout` | The price rises after the last cart GET: `order_line.unit_price_cents` is the checkout-time price, and later price changes do not alter the order. The customer-facing signal is G4. ⚠️ G4 |
+| P8-V09 | API | `api/tests/api/orders/test_checkout.py::test_p8_v09_price_change_between_cart_and_checkout` | The price rises after the last cart GET: `order_line.unit_price_cents` is the checkout-time price, and later price changes do not alter the order. A checkout sent with the previously seen `expected_total_cents` returns 409 `total_changed` with the fresh totals, creates no order and reserves nothing (G4, ADR-0042). |
 | P8-V10 | API | `api/tests/api/orders/test_checkout.py::test_p8_v10_partial_stock_failure_atomic` | One short line returns 409 with per-line errors; no order and no reservations are created. |
 | P8-V11 | concurrency | `api/tests/concurrency/test_order_races.py::test_p8_v11_crossed_carts_no_deadlock` | Carts `[A, B]` and `[B, A]` check out concurrently and both finish within the timeout — each succeeds or fails with `InsufficientStock` — thanks to the sorted locking in 8.2. |
 | P8-V12 | unit | `api/tests/unit/orders/test_numbering.py::test_p8_v12_number_format_and_year_rollover` | Format `CN-YYYY-NNNNNN`; the sequence restarts each year; an order at 23:59 on 31 December local time gets the year from G5. |
@@ -4049,10 +4058,9 @@ The checkout's Factura section: a checkbox, "Quiero factura", reveals the fiscal
   - Verifies: P13-V17, P13-V18, P13-V19
   - Depends on: T13.11
   - Context: 8.4; T4.2 (`InsufficientStock`)
-  - Open items: G4 (tests xfail until decided)
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
 
-Checkout error handling: a 409 from `/api/checkout/` renders its per-line errors next to the affected lines ("Solo quedan 2 de …"), and 400 field errors render under their inputs, via `ApiError.fieldErrors`. Under G4's proposal, "Pagar" also sends `expected_total_cents`, and a 409 with fresh totals re-renders the review section so the customer sees what they will pay.
+Checkout error handling: a 409 from `/api/checkout/` renders its per-line errors next to the affected lines ("Solo quedan 2 de …"), and 400 field errors render under their inputs, via `ApiError.fieldErrors`. Per G4's resolution (ADR-0042), "Pagar" also sends `expected_total_cents`, and a 409 with fresh totals re-renders the review section so the customer sees what they will pay.
 
 - [ ] **T13.12 — Purchase-limit message**
   - Release: R1 · Gate: task
@@ -4142,7 +4150,7 @@ Pickup and pre-orders in the cart and checkout: the delivery or pickup toggle in
 |---|---|---|---|
 | P13-V17 | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v17 server validation errors inline` | An invalid email, and delivery without an address, show the server's field errors under their inputs; nothing is reserved. |
 | P13-V18 | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v18 stock lost between cart and pay` | A second API client buys the last unit before "Pagar". Checkout shows the per-line 409 message and creates no order. |
-| P13-V19 | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v19 price changed before pay` | The price changes between the review render and "Pagar". The expected behaviour follows G4. ⚠️ G4 |
+| P13-V19 | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v19 price changed before pay` | The price changes between the review render and "Pagar". "Pagar" gets a 409 `total_changed`, the review section shows the fresh total, and a second press pays that total (G4, ADR-0042). |
 | P13-V20 | E2E | `web/e2e/p13_errors.spec.ts` › `p13_v20 cart failure stays inside its boundary` | With the cart API returning 500, the cart region shows "Reintentar" while the header and navigation keep working. |
 | P13-V21 | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v21 idempotency key lifecycle` | Retries after a dropped response resend the same `Idempotency-Key`; reloading the page generates a new one (asserted on intercepted request headers). |
 | P13-V22 [R2] | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v22 mixed cart notice on cart and review` | A cart with a pre-order and an in-stock line shows the ship-complete notice with the release date, both in the cart and in the review section. |
@@ -5321,7 +5329,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 4 | ~~G2~~, ~~G15~~, ~~G20~~, ~~G24~~, ~~G34~~, ~~G37~~, ~~G38~~ |
 | Phase 5 | ~~G13~~ with ~~D10~~, ~~G32~~ |
 | Phase 6 | ~~G30~~, ~~G35~~ |
-| Phase 8 | ~~G3~~, G4, ~~G5~~, ~~G25~~, G26, G27, ~~G31~~, ~~G33~~ |
+| Phase 8 | ~~G3~~, ~~G4~~, ~~G5~~, ~~G25~~, G26, G27, ~~G31~~, ~~G33~~ |
 | Phase 9 | G7, G8, G11, G14 |
 | Phase 11 | G17; DSR-04, DSR-05 released |
 | Phase 12 | G18, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03, DSR-06, DSR-07 released; DSR-09 or its fallback |
@@ -5368,6 +5376,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.22 | 2026-10-25 | G44 registered: the cart quote reads the postal code from the request, not from the cart; to be checked in Phase 13. No requirement, Verify ID, schema or task-ID change. | OA-46 |
 | 1.23 | 2026-10-25 | Phase 8 task order: an execution-order note added (T8.1, T8.3, T8.10, T8.2, T8.4, T8.7, T8.8, T8.9, T8.5, T8.6a, then the R2 tasks T8.11, T8.6b). No dependency, Verify ID, schema or task-ID change. | OA-47 |
 | 1.24 | 2026-10-25 | G25 resolved as proposed: `MockPaymentProvider.create_checkout` and `refund` are built in Phase 8 (T8.10), and the rest of the mock in Phase 9 (T9.9). T8.10 and T8.2 lose their G25 open item; P8-V01 and P8-V06 lose their ⚠️ marker. No Verify ID, schema or task-ID change. | OA-48; ADR-0041 |
+| 1.25 | 2026-10-25 | G4 resolved as proposed: checkout takes an optional `expected_total_cents`, and a mismatch returns 409 `total_changed` with the fresh totals and reserves nothing. New task T8.12 builds it (P8-V09 moves from T8.4 to T8.12; T8.6a also depends on T8.12). The ⚠️ G4 mark is removed from P8-V09, P13-V19 and REQ-002; T8.4 and T13.6 lose their G4 open item. No other Verify ID or schema change. | OA-49; ADR-0042 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5378,7 +5387,7 @@ Generated from §3 and §6; from T1.14b on, `scripts/check_traceability.py` rege
 | REQ | Release | Tasks | Verify IDs |
 |---|---|---|---|
 | REQ-001 | R1 | T2.1c, T7.9, T9.2, T12.6 | P2-V04 · P2-V10 · P7-V17 · P9-V08 · P12-V09 |
-| REQ-002 | R1 | T7.3, T7.9, T8.4, T13.1, T13.6 | P7-V03 · P7-V06 · P7-V17 · P8-V09 · P13-V03 · P13-V19 |
+| REQ-002 | R1 | T7.3, T7.9, T8.12, T13.1, T13.6 | P7-V03 · P7-V06 · P7-V17 · P8-V09 · P13-V03 · P13-V19 |
 | REQ-010 | R1 | T2.1b, T4.1, T8.6a, T8.4, T8.2, T13.6, T15.6b, T4.10 | P2-V02 · P4-V01 · P4-V09 · P4-V11 · P8-V04 · P8-V10 · P8-V11 · P13-V18 · P15-V08 · P4-V04 [R2] · P4-V14 [R2] |
 | REQ-011 | R1 | T1.12b, T4.1, T4.9, T4.4 | P1-V05 · P4-V02 · P4-V06 · P4-V07 · P4-V12 · P4-V15 · P4-V18 |
 | REQ-012 | R1 | T4.3, T4.1, T9.5, T15.6a | P4-V03 · P4-V05 · P4-V08 · P9-V09 · P15-V04 |
@@ -5458,6 +5467,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0039 | The full SEPOMEX dataset is a launch requirement | `docs/decisions/0039-sepomex-launch-requirement.md` | G30; OA-43 |
 | ADR-0040 | The guest order lookup is a POST with a JSON body | `docs/decisions/0040-guest-lookup-post.md` | G35; OA-44 |
 | ADR-0041 | The mock payment provider's checkout and refund are built in Phase 8 | `docs/decisions/0041-mock-provider-checkout-refund-phase-8.md` | G25; OA-48 |
+| ADR-0042 | A checkout whose expected total no longer matches is refused with the fresh totals | `docs/decisions/0042-checkout-expected-total.md` | G4; OA-49 |
 
 ## Appendix C — Dated market facts
 

@@ -104,7 +104,6 @@ def test_the_same_key_on_another_cart_is_a_new_order(checkout_client):
     assert Order.objects.count() == 2
 
 
-@pytest.mark.xfail(strict=True, reason="G4")
 def test_p8_v09_price_change_between_cart_and_checkout(checkout_client):
     variant = stocked_variant(5, price_cents=10000)
     cart = cart_with((variant, 1))

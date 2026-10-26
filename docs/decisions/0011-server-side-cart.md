@@ -18,7 +18,7 @@ A client-side cart needs localStorage sync and can show or submit a stale price.
 
 - No stale price lives on the client.
 - Every cart view reads the database.
-- A price change between the last view and payment must be surfaced to the customer (G4, open).
+- A price change between the last view and payment must be surfaced to the customer (G4, resolved by ADR-0042).
 
 ## Source
 
