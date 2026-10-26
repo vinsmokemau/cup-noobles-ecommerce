@@ -12,3 +12,6 @@
 
 # Auto-complete delivered orders after 7 days, every 5 minutes (SPEC.md §4.8, T8.6a)
 */5 * * * * python manage.py advance_orders
+
+# Retry unprocessed payment webhook rows, every minute (SPEC.md §4.8, T9.3)
+* * * * * python manage.py process_webhooks

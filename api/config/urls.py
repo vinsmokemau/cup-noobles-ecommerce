@@ -15,6 +15,7 @@ urlpatterns = [
     path("api/cart/", include("apps.carts.urls")),
     path("api/checkout/", CheckoutView.as_view(), name="checkout"),
     path("api/orders/", include("apps.orders.urls")),
+    path("api/webhooks/", include("apps.payments.urls")),
     path("api/postal-codes/", include("apps.shipping.urls")),
     path("admin/", admin.site.urls),
 ]
