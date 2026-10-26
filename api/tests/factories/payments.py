@@ -25,7 +25,12 @@ class WebhookEventFactory(factory.django.DjangoModelFactory):
 
 
 def mock_payment_for(
-    order, *, status="approved", method="credit_card", amount_cents=None
+    order,
+    *,
+    status="approved",
+    method="credit_card",
+    amount_cents=None,
+    voucher_expires_at=None,
 ):
     """Record a payment for `order` on the mock provider's side; returns its `mock_pay_…` id.
 
@@ -41,6 +46,7 @@ def mock_payment_for(
         status=NormalizedStatus(status),
         method=method,
         amount_cents=amount_cents,
+        voucher_expires_at=voucher_expires_at,
     )
 
 

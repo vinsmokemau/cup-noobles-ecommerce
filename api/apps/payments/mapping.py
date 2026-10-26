@@ -4,14 +4,17 @@
 already-applied check, the late-payment case, then `apply_event`. The `Payment` row has been
 recorded by the caller before this runs, so every refusal below still leaves the payment on file.
 
-Extending the deadline of a pending voucher (9.5) belongs to T9.5; the voucher itself is already
-stored on the payment.
+A `pending` OXXO or SPEI payment extends the order's deadline and its holds together (9.5, G48).
 """
 
 import logging
+from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 
+from apps.inventory.models import InventoryReservation
 from apps.orders.models import Order, OrderEvent
 from apps.orders.state_machine import GuardFailed, apply_event
 from apps.payments.base import NormalizedStatus, ProviderPayment
@@ -20,6 +23,9 @@ from apps.payments.models import Payment
 logger = logging.getLogger(__name__)
 
 ACTOR = "webhook"
+
+# D6: an OXXO order stays open for this long after its voucher expires (9.5, §2.5).
+OXXO_GRACE = timedelta(hours=2)
 
 # `NormalizedStatus` -> `payment.status` (the 9.4 table, first two columns).
 PAYMENT_STATUS: dict[NormalizedStatus, str] = {
@@ -62,7 +68,10 @@ def apply_payment_status(
             )
             return
         event = ORDER_EVENT.get(status)
-        if event is None:  # pending, in_review, cancelled: nothing to do to the order
+        if event is None:
+            # pending, in_review, cancelled: the order state does not move
+            if status in (NormalizedStatus.PENDING, NormalizedStatus.IN_REVIEW):
+                _extend_for_method(order, payment, provider_payment)
             return
 
         # 1. Amount guard.
@@ -116,6 +125,57 @@ def apply_payment_status(
             logger.warning(
                 "Rejected payment ignored for order %s: %s", order.number, failed
             )
+
+
+def method_deadline(
+    method: str, voucher_expires_at: datetime | None, *, now: datetime
+) -> datetime | None:
+    """When an order paid with `method` must be paid by (9.5), or None when the checkout window
+    already covers the method (card, wallet, Mercado Crédito)."""
+    if method == "spei":
+        return now + timedelta(hours=settings.RESERVATION_TTL_SPEI_HOURS)
+    if method == "oxxo":
+        # A voucher with no stated expiry gets the configured OXXO window from now.
+        expiry = voucher_expires_at or now + timedelta(
+            hours=settings.RESERVATION_TTL_OXXO_HOURS
+        )
+        return expiry + OXXO_GRACE
+    return None
+
+
+def _extend_for_method(
+    order: Order, payment: Payment, provider_payment: ProviderPayment
+) -> None:
+    """Extend the deadline and the holds of a `pending_payment` order to the method's deadline.
+
+    Caller holds the order row lock. Both move in the caller's transaction (G48), and neither
+    ever moves earlier, so a later notification cannot shorten a window already granted.
+    """
+    deadline = method_deadline(
+        provider_payment.method, provider_payment.voucher_expires_at, now=timezone.now()
+    )
+    if deadline is None:
+        return
+    if order.state in _CLOSED_UNPAID:
+        # G11 (proposed): the stock is gone, so the voucher cannot be honoured.
+        _alert(
+            order,
+            payment,
+            f"a {provider_payment.method} voucher was generated for an order that is "
+            f"{order.state}; its stock was released, so the voucher must be cancelled",
+        )
+        return
+    if order.state != "pending_payment":
+        return
+    if order.payment_deadline_at is None or order.payment_deadline_at < deadline:
+        order.payment_deadline_at = deadline
+        order.save(update_fields=["payment_deadline_at", "updated_at"])
+    InventoryReservation.objects.filter(
+        order=order,
+        kind=InventoryReservation.Kind.STOCK,
+        state=InventoryReservation.State.HELD,
+        expires_at__lt=deadline,
+    ).update(expires_at=deadline)
 
 
 def _already_applied(order: Order, payment: Payment, status: NormalizedStatus) -> bool:

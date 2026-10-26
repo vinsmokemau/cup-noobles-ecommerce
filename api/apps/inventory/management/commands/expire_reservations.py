@@ -68,7 +68,10 @@ class Command(BaseCommand):
         for order_id in order_ids:
             try:
                 released += expire_order(order_id)
-            except (GuardFailed, IllegalTransition):
+            except GuardFailed as failed:
+                # T5 refuses an order whose deadline outlives its hold (G48): say so on one line.
+                logger.warning("Order %s not expired: %s", order_id, failed)
+            except IllegalTransition:
                 # One order in an odd shape must not stop the others from expiring.
                 logger.exception("Order %s could not be expired; left alone", order_id)
         self.stdout.write(f"expire_reservations: {released} order(s) released")
