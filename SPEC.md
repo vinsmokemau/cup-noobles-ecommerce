@@ -2727,7 +2727,7 @@ Per G31's resolution (ADR-0030): a variant may carry a per-customer limit (`vari
 
 Per G33's resolution (ADR-0030): `create_order_from_cart` snapshots `variant.cost_cents` into `order_line.unit_cost_cents` when it freezes the line (step 3), or `NULL` when the variant has no cost. Later cost changes never alter it. The weekly and monthly reports read it (T10.16).
 
-- [ ] **T8.5 — Order admin**
+- [x] **T8.5 — Order admin** (2026-10-25, c0a5998)
   - Release: R1 · Gate: task
   - REQs: REQ-020
   - Verifies: P8-V15
