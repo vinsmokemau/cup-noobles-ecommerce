@@ -3222,7 +3222,7 @@ class PaymentDriver(Protocol):
 | PAY-18 | Chargeback | Alert; no transition |
 | PAY-19 | Notification for an unknown order | Stored; marked processed with an error; alert; no crash |
 
-- [ ] **T9.17 — Close Phase 9 coverage gaps**
+- [x] **T9.17 — Close Phase 9 coverage gaps** (2026-10-26, 56b0b72)
   - Release: R1 · Gate: task
   - REQs: REQ-030, REQ-041
   - Verifies: [no-test: adds tests for uncovered branches in apps/payments and apps/inventory; no new Verify ID]
