@@ -246,3 +246,20 @@ def test_refund_of_an_oxxo_payment_is_not_supported(provider, preference, settin
     assert provider.fetch_payment(payment_id).refunded_cents == 0
     folder = Path(settings.MOCK_STORE_DIR) / "payments"
     assert list(folder.glob("mock_ref_*.json")) == []
+
+
+def test_cancel_payment_ends_a_pending_payment_and_is_idempotent(provider, preference):
+    _, preference_id = preference
+    payment_id = provider.record_payment(
+        preference_id, status=NormalizedStatus.PENDING, method="oxxo"
+    )
+
+    provider.cancel_payment(payment_id)
+    provider.cancel_payment(payment_id)
+
+    assert provider.fetch_payment(payment_id).status is NormalizedStatus.CANCELLED
+
+
+def test_cancel_payment_of_an_unknown_id_is_not_found(provider, db):
+    with pytest.raises(PaymentNotFound):
+        provider.cancel_payment("mock_pay_" + "0" * 32)

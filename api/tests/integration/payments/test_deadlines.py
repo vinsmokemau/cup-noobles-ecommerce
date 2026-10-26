@@ -194,3 +194,43 @@ def test_p9_v21_voucher_generated_after_checkout_ttl(
     assert state_of(order) == "expired"
     assert len([r for r in caplog.records if "ALERT" in r.getMessage()]) == 1
     assert MockPaymentProvider().fetch_payment(payment_id).status.value == "cancelled"
+
+
+def test_late_voucher_cancel_failure_is_retried(
+    clock, api_client, settings, db, monkeypatch
+):
+    """ADR-0046: a provider failure on `cancel_payment` leaves the webhook row for a retry (G7)."""
+    from apps.payments.models import WebhookEvent
+
+    order = checkout_at(clock)
+    clock.travel(CHECKOUT + timedelta(minutes=31))
+    release_due()
+    payment_id = mock_payment_for(
+        order,
+        status="pending",
+        method="oxxo",
+        voucher_expires_at=CHECKOUT + timedelta(hours=72),
+    )
+    real_cancel = MockPaymentProvider.cancel_payment
+    failures = [ConnectionError("provider timed out")]
+
+    def flaky(self, provider_payment_id):
+        if failures:
+            raise failures.pop()
+        return real_cancel(self, provider_payment_id)
+
+    monkeypatch.setattr(MockPaymentProvider, "cancel_payment", flaky)
+    body, headers = signed_notification(settings, payment_id)
+    assert post_notification(api_client, body, headers).status_code == 200
+
+    event = WebhookEvent.objects.get()
+    assert event.processed_at is None
+    assert "ConnectionError" in event.error
+    assert MockPaymentProvider().fetch_payment(payment_id).status.value == "pending"
+
+    clock.travel(CHECKOUT + timedelta(minutes=32))
+    call_command("process_webhooks")
+    event.refresh_from_db()
+    assert event.processed_at is not None
+    assert state_of(order) == "expired"
+    assert MockPaymentProvider().fetch_payment(payment_id).status.value == "cancelled"

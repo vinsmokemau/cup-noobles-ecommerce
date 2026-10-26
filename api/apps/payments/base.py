@@ -77,6 +77,11 @@ class PaymentProvider(Protocol):
 
     def refund(self, payment: "Payment", amount_cents: int | None) -> RefundResult: ...
 
+    def cancel_payment(self, provider_payment_id: str) -> None:
+        """End a pending payment as cancelled (T9.15, ADR-0046). Cancelling a cancelled payment
+        does nothing."""
+        ...
+
     def verify_webhook(
         self, headers: Mapping[str, str], body: bytes
     ) -> WebhookRef | None: ...

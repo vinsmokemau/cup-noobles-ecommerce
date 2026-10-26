@@ -86,6 +86,18 @@ class MockPaymentProvider:
         found.sort(key=lambda stored: (stored["created_at"], stored["id"]))
         return [self._to_provider_payment(stored) for stored in found]
 
+    def cancel_payment(self, provider_payment_id: str) -> None:
+        """End the stored payment as `cancelled`; one already cancelled is left alone."""
+        with self._locked():
+            stored = self._read(provider_payment_id, _PAYMENT_ID)
+            if stored is None:
+                raise PaymentNotFound(provider_payment_id)
+            if stored["status"] == NormalizedStatus.CANCELLED.value:
+                return
+            stored["status"] = NormalizedStatus.CANCELLED.value
+            stored["status_detail"] = NormalizedStatus.CANCELLED.value
+            self._write(provider_payment_id, stored)
+
     def verify_webhook(
         self, headers: Mapping[str, str], body: bytes
     ) -> WebhookRef | None:

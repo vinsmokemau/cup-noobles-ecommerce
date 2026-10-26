@@ -14,6 +14,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+from apps.core.providers import payment_provider
 from apps.inventory.models import InventoryReservation
 from apps.orders.models import Order, OrderEvent
 from apps.orders.state_machine import GuardFailed, apply_event
@@ -157,13 +158,15 @@ def _extend_for_method(
     if deadline is None:
         return
     if order.state in _CLOSED_UNPAID:
-        # ADR-0046: the stock is gone, so the voucher must not be honoured (cancelled in T9.15).
+        # ADR-0046: the stock is gone, so the voucher is cancelled at the provider. A failure
+        # propagates, so the webhook row is retried (G7).
         _alert(
             order,
             payment,
             f"a {provider_payment.method} voucher was generated for an order that is "
-            f"{order.state}; its stock was released, so the voucher must be cancelled",
+            f"{order.state}; its stock was released, so the voucher is being cancelled",
         )
+        payment_provider().cancel_payment(provider_payment.provider_payment_id)
         return
     if order.state != "pending_payment":
         return
