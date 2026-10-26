@@ -83,3 +83,21 @@ def test_storages_is_never_imported():
 
 def test_relative_import_of_a_local_module_is_not_a_vendor_import():
     assert vendor_violations("apps/orders/services.py", "from . import requests") == []
+
+
+def test_p9_v06_payment_adapters_clean():
+    from apps.core.providers import PAYMENT_IMPLS
+
+    source = (API_DIR / "apps/payments/mock.py").read_text(encoding="utf-8")
+    assert imported_packages(source) & VENDOR_ALLOWLIST.keys() == set()
+    assert vendor_violations("apps/payments/mock.py", source) == []
+
+    # Every entry names a class in a module under apps/payments. The Mercado Pago module is
+    # written in Phase 16, so only the entries whose module exists are imported.
+    for dotted in PAYMENT_IMPLS.values():
+        module, _, name = dotted.rpartition(".")
+        assert module.startswith("apps.payments.") and name
+        if (API_DIR / (module.replace(".", "/") + ".py")).exists():
+            from django.utils.module_loading import import_string
+
+            assert isinstance(import_string(dotted), type)

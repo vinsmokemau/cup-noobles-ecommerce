@@ -49,6 +49,13 @@ OWNER_ALERT_EMAIL = env.str("OWNER_ALERT_EMAIL", default="owner@cupnoobles.test"
 SITE_URL = env.str("SITE_URL", default="http://localhost:8080")
 MOCK_STORE_DIR = env.str("MOCK_STORE_DIR", default=str(BASE_DIR / "var" / "mocks"))
 
+# Signs the mock provider's notifications (9.9); `WEBHOOK_MAX_AGE_SECONDS` is the signature
+# timestamp tolerance (9.A). The secret is a development value: production runs a real provider.
+MOCK_PAYMENT_WEBHOOK_SECRET = env.str(
+    "MOCK_PAYMENT_WEBHOOK_SECRET", default="dev-mock-payment-webhook-secret"
+)
+WEBHOOK_MAX_AGE_SECONDS = env.int("WEBHOOK_MAX_AGE_SECONDS", default=300)
+
 # Gates the simulator, the mock tracking page, `/dev/test/` and the dev commands.
 DEV_TOOLS_ENABLED = env.bool("DEV_TOOLS_ENABLED", default=False)
 
