@@ -3073,7 +3073,7 @@ Add `cancel_payment(provider_payment_id)` to `PaymentProvider` and to the mock: 
 
 `manage.py reconcile_payments` — for every order in `pending_payment` older than 15 minutes, call `find_payments(order.public_id)` and pass each result through the same processing path as a webhook (upsert the payment row, then apply the 9.4 mapping). This is the safety net for dropped webhooks. Run it every 10 minutes: add its line to `infra/crontab` (§4.8). **Do not skip it.** Webhooks are lost in production; this is what makes the system self-healing. A webhook and reconciliation processing the same approval concurrently treat the second as `webhook_no_op` when the order already reflects the status (G14, ADR-0047).
 
-- [ ] **T9.8 — Refunds**
+- [x] **T9.8 — Refunds** (2026-10-26, a86a299)
   - Release: R1 · Gate: task
   - REQs: REQ-032
   - Verifies: P9-V15, P9-V16
