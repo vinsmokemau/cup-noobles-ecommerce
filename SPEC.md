@@ -2652,7 +2652,7 @@ Per ADR-0041 (G25), build the two `MockPaymentProvider` methods that Phase 8 nee
 
 Phase 9 completes the mock (`fetch_payment`, `find_payments`, `verify_webhook`, notifications and the simulator) on top of these.
 
-- [ ] **T8.2 — Order creation from the cart**
+- [x] **T8.2 — Order creation from the cart** (2026-10-25, eef9a4e)
   - Release: R1 · Gate: task
   - REQs: REQ-010, REQ-020
   - Verifies: P8-V01, P8-V11
