@@ -3320,7 +3320,7 @@ The critical property: **pre-orders never touch physical stock**, so they cannot
 
 #### Tasks
 
-- [ ] **T10.9 — Mock carrier**
+- [x] **T10.9 — Mock carrier** (2026-10-26, 12e40cf)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P10-V03
