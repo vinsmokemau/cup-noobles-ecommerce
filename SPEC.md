@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.35 |
+| Spec version | 1.36 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -3299,6 +3299,15 @@ Write PAY-09 to PAY-19 from the table in T9.13a against the same `PaymentDriver`
 
 **Release 1 scope:** delivery, the CFDI admin queue and global-invoice export, the reporting exports, and the packing view. Pickup, pre-orders and counter sales are R2.
 
+**Execution order.** Task IDs do not follow the order of work. Run the tasks in the order they are listed below, which is also this one:
+
+- Delivery: T10.9 → T10.1 → T10.11 → T10.10 → T10.12 → T10.13
+- Packing view: T10.17 (needs only T10.1)
+- Invoicing and reports: T10.14 → T10.15 → T10.16 (phase-close; needs T10.17)
+- R2, after R1: T10.5 → T10.3 → T10.4 and T10.6; T10.2 → T10.8; T10.7 (T10.5 and T10.2 depend on T10.16 only to keep this order)
+
+Some tasks are verified by a later one: T10.1 by T10.10 and T10.13, and the `cfdi_issued` email of T10.14 by T11.8 (P11-V11).
+
 #### 10.A How stock is reserved on each path
 
 | Path | At checkout | On payment approved | On fulfillment | Release |
@@ -3407,7 +3416,7 @@ An admin view, "Facturas (CFDI)", over `invoice_request` (A8, ADR-0019):
 
 - The queue lists paid orders whose request is `requested`, oldest first, followed by any request with `needs_review` (set by T9.14). Each row shows the order number, the paid date, the total and the fiscal data as the customer entered it.
 - "Registrar CFDI" first calls `providers.invoicer().issue(request)`. With `INVOICE_PROVIDER=manual` it raises `ManualIssueRequired` (§4.3), and the form then requires the folio, the UUID (folio fiscal), the PDF and the XML. A missing value, a file over 5 MB or a file of the wrong type is a field error, and nothing is saved.
-- Saving stores both files in `invoice_document` with their sha256 and size, sets the request to `issued` with `issued_at` and the staff user, and queues one `cfdi_issued` email (T11.8), all in one transaction.
+- Saving stores both files in `invoice_document` with their sha256 and size, sets the request to `issued` with `issued_at` and the staff user, and queues one `cfdi_issued` email (T11.8), all in one transaction. T10.14 only writes the `email_outbox` row, through `enqueue_email()` (T4.6); the template, the attachments and the sending are T11.8 and P11-V11.
 - "Marcar revisado" clears `needs_review` and requires a note in `review_note`. "Cancelar CFDI" records a cancellation made outside the store: status `cancelled`, `cancelled_at`, and a required note. The store never decides the fiscal treatment (A12, D16).
 - Staff only. The documents download from the admin and are never served from public media storage (§4.4).
 
@@ -5453,6 +5462,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.33 | 2026-10-26 | The cart is converted at T1 (the cart half of G22 and the Phase 9 question of T8.4). New task T9.16 (after T9.14) sets `cart.converted_order` in the checkout transaction and keeps the same-key replay working; new Verify ID P9-V23, added to REQ-021. G22's row narrows to the pay-retry endpoint, still open for Phase 13; T13.10 cites the decision. No schema change. | OA-58; ADR-0049 |
 | 1.34 | 2026-10-26 | Phase 9 closes only when the coverage ratchet passes. New task T9.17 (after T9.13a, before T9.13b) adds tests for the branches that lowered critical coverage from 100% to 97.15% and backend from 96.58% to 95.94%; T9.13b also depends on it. The baseline is not lowered. No Verify ID, schema or code change. | Owner answer in chat, 2026-10-26 |
 | 1.35 | 2026-10-26 | G48 resolved as proposed: a reservation never expires before its order's `payment_deadline_at`, both are extended together, and `expire_reservations` logs a `GuardFailed` as a one-line warning. T9.5 built it as written, so no code, Verify ID, task or schema change. | OA-59; ADR-0050 |
+| 1.36 | 2026-10-26 | Phase 10 states its execution order under the deliverable, grouped as delivery, packing view, and invoicing and reports, with R2 after. T10.14 says it only writes the outbox row; the email itself is T11.8. No task, Verify ID, dependency or schema change. | Owner answer in chat, 2026-10-26 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
