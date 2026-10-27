@@ -3232,7 +3232,7 @@ class PaymentDriver(Protocol):
 
 Add tests for the uncovered branches in `webhooks.py`, `mapping.py`, `mock.py`, `devtools/delivery.py`, `devtools/replay.py`, `devtools/views.py`, `mock_payments.py`, the `webhooks` command and `expire_reservations.py`, until `make test-all` passes the coverage ratchet without lowering the baseline. Change no production code.
 
-- [ ] **T9.13b — Payment contract suite: idempotency, security and recovery**
+- [x] **T9.13b — Payment contract suite: idempotency, security and recovery** (2026-10-26, 5b948f9)
   - Release: R1 · Gate: phase-close
   - REQs: REQ-030, REQ-041
   - Verifies: P9-V01, PAY-09 to PAY-19
