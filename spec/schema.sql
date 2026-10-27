@@ -617,7 +617,7 @@ CREATE TABLE shipment (
   shipped_at      timestamptz NOT NULL DEFAULT now(),
   delivered_at    timestamptz NULL
 );
-CREATE INDEX shipment_order_idx ON shipment(order_id);
+CREATE UNIQUE INDEX shipment_order_idx ON shipment(order_id);  -- one shipment per order (OA-60, ADR-0051)
 
 -- ---------------------------------------------------------------------
 -- TRANSACTIONAL EMAIL OUTBOX  (retry without a broker)

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.36 |
+| Spec version | 1.37 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -444,6 +444,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G46 | 9 | T8.13, T9.8 | T17 and T18 say "Set `refunded_cents` on payment" and `_effects_refund` stores the `refunded_cents` value the caller passes. 8.A does not say whether that value is the running total or only the new refund. If T9.8 passes the new amount, a second partial refund overwrites the first and the payment under-reports what was returned. | T9.8 passes the running total (the payment's current `refunded_cents` plus the new amount), and the guards compare that total with `amount_cents`. A test issues two partial refunds in a row and checks the total after each. Built in T9.8. | R1 | Resolved (ADR-0048) |
 | G47 | 13 | T6.7b, T8.6a, T8.5 | The Phase 8 review found three small defects, none of which breaks a Verify ID. (1) `OrderLookupView` compares the email exactly, so a guest who types it with other capitals than at checkout gets "No encontramos ese pedido", and the miss counts toward the 5-per-hour limit. (2) `advance_orders` catches only `IllegalTransition`, so one unexpected error on an order stops the run for the orders after it. (3) `partially_refunded` is still listed in `COUNTED_STATES` of `purchase_limits.py`, though G26 (ADR-0043) says no order is in that state. | Before the storefront lookup page is built (Phase 13): compare with `email__iexact`; catch and log any exception per order in `advance_orders`, as `expire_reservations` does; drop the dead entry. Add a test for each. A small fix task, or part of the next task that touches these files. | R1 | Open |
 | G48 | 9 | T8.6a, T9.5 | `expire_reservations` picks orders by the hold's expiry but T5 only passes when `payment_deadline_at` is in the past. Today both come from the same card window. T9.5 gives payment methods different deadlines; a hold that lapses before its order's deadline makes the job raise `GuardFailed` and log a stack trace for that order every 5 minutes, and the hold stays. | In T9.5, set the hold length so it never ends before the order's `payment_deadline_at`, and have `expire_reservations` log a `GuardFailed` as a one-line warning instead of an exception. Add a test with a method whose deadline is longer than the card window. | R1 | Resolved (ADR-0050) |
+| G49 | 21 | 10.11, T21.4 | `sync_shipments` must "add to the daily digest" a shipment the carrier reports as `EXCEPTION` (10.11), but nothing records it: `shipment` has no field for it and T21.4's digest list has no shipment line. T10.11 only logs an error. | Add `shipment.exception_at`, set by `sync_shipments` and cleared when the shipment is delivered, and a digest line for shipments with it set. The alternative is for the digest to ask the carrier for each undelivered shipment. | R1 | Open |
 
 #### Design System requests (DSR)
 
@@ -536,6 +537,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-57 | 2026-10-26 | G46: is the `refunded_cents` a refund sets the payment's running total, or only the new refund? | Option A: the proposed resolution. The running total (the payment's current `refunded_cents` plus the new amount), and the guards compare that total with `amount_cents`. ADR-0048. |
 | OA-58 | 2026-10-26 | When does the cart count as converted (`cart.converted_order`), the Phase 9 question left open since T8.4? | Option A: at T1 (checkout), in the same transaction as the order, as G22 proposes. A second checkout from that cart is refused; a repeat with the same `Idempotency-Key` still returns the original order. New task T9.16. Recorded for the cart half of G22 only; its pay-retry endpoint stays open until Phase 13. ADR-0049. |
 | OA-59 | 2026-10-26 | G48: a reservation could lapse before its order's `payment_deadline_at` once payment methods have different deadlines. Resolve it as proposed? | Option A: the proposed resolution. A reservation never expires before its order's `payment_deadline_at`; both are extended together in one transaction, and `expire_reservations` logs a `GuardFailed` from T5 as a one-line warning. A test uses a method whose deadline is longer than the card window. T9.5 built it as written. ADR-0050. |
+| OA-60 | 2026-10-26 | Can an order have more than one shipment? Asked after T10.11, because T11 marks every undelivered shipment of the order delivered. | An order has at most one shipment. Split shipments are not supported. `shipment.order_id` becomes unique, the admin offers no second shipment, and T11 stays as written. ADR-0051. |
 | OA-49 | 2026-10-25 | G4: what happens when a price changes between the last cart view and "Pagar"? | Option A: the proposed resolution. Checkout takes an optional `expected_total_cents`; a mismatch returns 409 `total_changed` with the fresh totals, creates no order and reserves nothing. Built by the new task T8.12. ADR-0042. |
 | OA-50 | 2026-10-25 | G26: after a partial refund (T18), what happens to the order? | Option A: the proposed resolution. A partial refund is recorded on the payment and the order keeps its state, so it stays fulfillable. ADR-0043. |
 | OA-51 | 2026-10-25 | G27: can a refund be recorded after the order is `completed`, `expired` or `cancelled`? | Option A: the proposed resolution. The refund events are accepted from those three states as recorded payment events: an `order_event` row and the payment's `refunded_cents`, with the order state unchanged. ADR-0043. |
@@ -3341,7 +3343,7 @@ The critical property: **pre-orders never touch physical stock**, so they cannot
   - Depends on: T10.9
   - Context: §4.3 (Boundaries: Carrier); 8.A (T10)
 
-Delivery: `ShipmentInline` on `OrderAdmin` — tracking number (optional when the active carrier can generate one) and optional cost. Saving it calls `providers.carrier().create_shipment(order, tracking_number=...)`, stores the returned `carrier`, `tracking_number` and `tracking_url`, and fires T10. In Part A, `MockCarrier` (T10.9) generates the tracking number and URL. No carrier API (A7). The production carrier is Phase 19.
+Delivery: `ShipmentInline` on `OrderAdmin` — tracking number (optional when the active carrier can generate one) and optional cost. Saving it calls `providers.carrier().create_shipment(order, tracking_number=...)`, stores the returned `carrier`, `tracking_number` and `tracking_url`, and fires T10. In Part A, `MockCarrier` (T10.9) generates the tracking number and URL. An order has at most one shipment (OA-60, ADR-0051): the inline offers no second one. No carrier API (A7). The production carrier is Phase 19.
 
 - [x] **T10.11 — Shipment status sync** (2026-10-26, 656c03d)
   - Release: R1 · Gate: task
@@ -3356,7 +3358,7 @@ Delivery: `ShipmentInline` on `OrderAdmin` — tracking number (optional when th
 - `EXCEPTION` → alert and add to the daily digest; no transition.
 - `IN_TRANSIT` or `UNKNOWN` → nothing.
 
-It never regresses a delivered shipment, and a second run is a no-op. Staff can still fire T11 at any time from the 8.5 action bar; with the manual carrier (Phase 19) that is the only path.
+It never regresses a delivered shipment, and a second run is a no-op. Because an order has one shipment (OA-60), T11 never leaves a parcel behind. Staff can still fire T11 at any time from the 8.5 action bar; with the manual carrier (Phase 19) that is the only path.
 
 - [ ] **T10.10 — Mock tracking page**
   - Release: R1 · Gate: task
@@ -5414,7 +5416,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 18 | S1 |
 | Phase 19 | S7 |
 | Phase 20 | D1, G23 |
-| Phase 21 | S6 |
+| Phase 21 | S6, G49 |
 | Phase 22 | D2, D4, D5, ~~D10~~, D12, D15, D16 (the rest), D18 |
 | Release 2 | D8, D9, G6, G9, G10, G16, G36, DSR-08 |
 
@@ -5463,6 +5465,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.34 | 2026-10-26 | Phase 9 closes only when the coverage ratchet passes. New task T9.17 (after T9.13a, before T9.13b) adds tests for the branches that lowered critical coverage from 100% to 97.15% and backend from 96.58% to 95.94%; T9.13b also depends on it. The baseline is not lowered. No Verify ID, schema or code change. | Owner answer in chat, 2026-10-26 |
 | 1.35 | 2026-10-26 | G48 resolved as proposed: a reservation never expires before its order's `payment_deadline_at`, both are extended together, and `expire_reservations` logs a `GuardFailed` as a one-line warning. T9.5 built it as written, so no code, Verify ID, task or schema change. | OA-59; ADR-0050 |
 | 1.36 | 2026-10-26 | Phase 10 states its execution order under the deliverable, grouped as delivery, packing view, and invoicing and reports, with R2 after. T10.14 says it only writes the outbox row; the email itself is T11.8. No task, Verify ID, dependency or schema change. | Owner answer in chat, 2026-10-26 |
+| 1.37 | 2026-10-26 | An order has at most one shipment: `shipment.order_id` is unique in `spec/schema.sql`, T10.1 and T10.11 say so. New gap G49: where `sync_shipments` records a carrier `EXCEPTION` for the daily digest. No Verify ID changes. | OA-60; ADR-0051 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5562,6 +5565,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0048 | A refund sets the payment's `refunded_cents` to the running total | `docs/decisions/0048-refunded-cents-is-the-running-total.md` | G46; OA-57 |
 | ADR-0049 | A cart is converted at checkout (T1), in the order's transaction | `docs/decisions/0049-cart-converted-at-checkout.md` | G22; OA-58 |
 | ADR-0050 | A reservation never expires before its order's payment deadline | `docs/decisions/0050-reservation-never-before-payment-deadline.md` | G48; OA-59 |
+| ADR-0051 | An order has at most one shipment | `docs/decisions/0051-one-shipment-per-order.md` | OA-60 |
 
 ## Appendix C — Dated market facts
 
