@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.37 |
+| Spec version | 1.38 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -3303,7 +3303,7 @@ Write PAY-09 to PAY-19 from the table in T9.13a against the same `PaymentDriver`
 
 **Execution order.** Task IDs do not follow the order of work. Run the tasks in the order they are listed below, which is also this one:
 
-- Delivery: T10.9 → T10.1 → T10.11 → T10.10 → T10.12 → T10.13
+- Delivery: T10.9 → T10.1 → T10.18 → T10.11 → T10.10 → T10.12 → T10.13
 - Packing view: T10.17 (needs only T10.1)
 - Invoicing and reports: T10.14 → T10.15 → T10.16 (phase-close; needs T10.17)
 - R2, after R1: T10.5 → T10.3 → T10.4 and T10.6; T10.2 → T10.8; T10.7 (T10.5 and T10.2 depend on T10.16 only to keep this order)
@@ -3344,6 +3344,15 @@ The critical property: **pre-orders never touch physical stock**, so they cannot
   - Context: §4.3 (Boundaries: Carrier); 8.A (T10)
 
 Delivery: `ShipmentInline` on `OrderAdmin` — tracking number (optional when the active carrier can generate one) and optional cost. Saving it calls `providers.carrier().create_shipment(order, tracking_number=...)`, stores the returned `carrier`, `tracking_number` and `tracking_url`, and fires T10. In Part A, `MockCarrier` (T10.9) generates the tracking number and URL. An order has at most one shipment (OA-60, ADR-0051): the inline offers no second one. No carrier API (A7). The production carrier is Phase 19.
+
+- [ ] **T10.18 — One shipment per order**
+  - Release: R1 · Gate: task
+  - REQs: —
+  - Verifies: P10-V27
+  - Depends on: T10.1
+  - Context: §4.4; ADR-0051; T10.1
+
+Make the Django model match `spec/schema.sql` after OA-60: `shipment.order_id` is unique (index `shipment_order_idx`, now unique), so an order has at most one shipment. Change the `Shipment` model and add its migration. The migration must fail with a clear message if existing data holds an order with two or more shipments; no data is deleted or merged silently. The admin offers no second shipment on an order that has one. Existing tests that build two shipments on one order (P10-V03) change their setup only, never their assertions (CR-38); list each in the report.
 
 - [x] **T10.11 — Shipment status sync** (2026-10-26, 656c03d)
   - Release: R1 · Gate: task
@@ -3568,6 +3577,7 @@ Counter sales (A11): the admin page from T4.5, plus a `stock_ledger` filter by `
 | P10-V24 | integration | `api/tests/integration/invoicing/test_global_export.py::test_p10_v24_global_invoice_export` | The global-invoice export for a date range lists every paid order in it with no issued CFDI, with its total and IVA, and excludes cancelled, expired and invoiced orders. The range boundaries use the store timezone. |
 | P10-V25 | integration | `api/tests/integration/reports/test_exports.py::test_p10_v25_csv_exports` | The admin CSV exports of orders, order lines and shipments for a date range contain the columns G33 defines, one row per record, money in integer centavos, and are available to staff only. |
 | P10-V26 | integration | `api/tests/integration/fulfillment/test_packing.py::test_p10_v26_packing_view_bin_locations` | The admin order page lists each line with its stock item's bin location. |
+| P10-V27 | integration | `api/tests/integration/fulfillment/test_one_shipment.py::test_p10_v27_one_shipment_per_order` | A second shipment on the same order is rejected by the database, and the admin offers no second shipment. The migration refuses to run on data that already breaks the rule. |
 
 **Fixtures and factories introduced** (reused by later phases)
 
@@ -5466,6 +5476,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.35 | 2026-10-26 | G48 resolved as proposed: a reservation never expires before its order's `payment_deadline_at`, both are extended together, and `expire_reservations` logs a `GuardFailed` as a one-line warning. T9.5 built it as written, so no code, Verify ID, task or schema change. | OA-59; ADR-0050 |
 | 1.36 | 2026-10-26 | Phase 10 states its execution order under the deliverable, grouped as delivery, packing view, and invoicing and reports, with R2 after. T10.14 says it only writes the outbox row; the email itself is T11.8. No task, Verify ID, dependency or schema change. | Owner answer in chat, 2026-10-26 |
 | 1.37 | 2026-10-26 | An order has at most one shipment: `shipment.order_id` is unique in `spec/schema.sql`, T10.1 and T10.11 say so. New gap G49: where `sync_shipments` records a carrier `EXCEPTION` for the daily digest. No Verify ID changes. | OA-60; ADR-0051 |
+| 1.38 | 2026-10-26 | New task T10.18 (after T10.1, before T10.11) makes the `Shipment` model and a migration match the unique `shipment_order_idx` of 1.37, with Verify ID P10-V27. It fixes `test_p2_v01_schema_matches_canonical_ddl`, red since 1.37. | Owner answer in chat, 2026-10-26; OA-60 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5884,7 +5895,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 |---|---|---|
 | Phase 10 | Deliverable and scope rewritten for R1: delivery, the CFDI tools, the exports and the packing view; pickup and pre-orders follow in R2 | §1.2; OA-08, OA-11 |
 | 10.A | `Release` column added (delivery R1; pickup and pre-order R2); "In-store pickup" → "Pickup"; "walk-in customers" dropped from the critical property, which now cites REQ-013 | §1.2; CR-47 |
-| Tasks | Listed in execution order: T10.9, T10.1, T10.11, T10.10, T10.12, T10.13, T10.17, T10.14, T10.15, T10.16 (R1), then T10.5, T10.3, T10.4, T10.6, T10.2, T10.8, T10.7 (R2) | Execution order; R2 after R1 |
+| Tasks | Listed in execution order: T10.9, T10.1, T10.18, T10.11, T10.10, T10.12, T10.13, T10.17, T10.14, T10.15, T10.16 (R1), then T10.5, T10.3, T10.4, T10.6, T10.2, T10.8, T10.7 (R2) | Execution order; R2 after R1 |
 | T10.1 | R1; no test of its own (P10-V02 in T10.10 and CAR-01/02 in T10.13 cover it) | Ownership: one task per Verify ID |
 | T10.2–T10.8 | Tagged R2 | §1.2 |
 | T10.3 | Body adds that the "Recibir mercancía" action (T4.7) calls `receive_preorder_stock` for pre-order variants | G20 |
@@ -5892,6 +5903,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T10.5 | Open item G36 added (pre-order closing date) | G36 |
 | T10.7 | "the admin page from 4.5" → "from T4.5"; depends on T4.10 (`record_in_store_sale`) | Phase 4 split |
 | T10.11 | Adds its `infra/crontab` line | §4.8 |
+| T10.18 | New: one shipment per order, so the model matches the schema | OA-60; ADR-0051 |
 | T10.14 | New: CFDI admin queue and recording, through `providers.invoicer()` and `ManualIssueRequired` | REQ-060; A8; §4.3 |
 | T10.15 | New: global-invoice export | REQ-060; GE:T32 |
 | T10.16 | New: reporting exports; phase-close task | REQ-063; A19; G33 |
@@ -5901,6 +5913,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | P10-V24 | New (pre-allocated): global-invoice export | REQ-060 |
 | P10-V25 | New (pre-allocated): reporting exports | REQ-063 |
 | P10-V26 | New (pre-allocated): packing view bin locations; moved out of P4-V20 | REQ-064 |
+| P10-V27 | New: one shipment per order | OA-60; ADR-0051 |
 | Fixtures | `ready_pickup_order`, `preorder_variant`, `awaiting_stock_orders` tagged R2; `invoice_request`, `cfdi_documents`, `export_rows` added | §1.2; new tests |
 
 #### Phase 11
