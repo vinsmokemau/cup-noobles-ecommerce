@@ -3334,7 +3334,7 @@ The critical property: **pre-orders never touch physical stock**, so they cannot
 - **Storage.** State lives in `MOCK_STORE_DIR/carrier/<tracking number>.json`: the current status plus an event history. A new shipment starts `in_transit`. The store is outside the app database, for the same reason as 9.9.
 - **`get_status`** returns the stored status; an unknown tracking number returns `UNKNOWN`.
 
-- [ ] **T10.1 — Delivery shipments in the admin**
+- [x] **T10.1 — Delivery shipments in the admin** (2026-10-26, c495674)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: P10-V02 (T10.10) drives the shipment inline end to end; CAR-01 and CAR-02 (T10.13) cover `create_shipment`]
