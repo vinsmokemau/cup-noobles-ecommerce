@@ -54,3 +54,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0047](0047-webhook-vs-reconcile-is-a-no-op.md) | A webhook and a reconciliation run on one approval move the order once, and the second is a no-op | accepted | G14; OA-56 |
 | [ADR-0048](0048-refunded-cents-is-the-running-total.md) | A refund sets the payment's `refunded_cents` to the running total | accepted | G46; OA-57 |
 | [ADR-0049](0049-cart-converted-at-checkout.md) | A cart is converted at checkout (T1), in the order's transaction | accepted | G22; OA-58 |
+| [ADR-0050](0050-reservation-never-before-payment-deadline.md) | A reservation never expires before its order's payment deadline | accepted | G48; OA-59 |
