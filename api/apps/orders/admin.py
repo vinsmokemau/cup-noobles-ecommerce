@@ -1,18 +1,34 @@
 """Order admin (SPEC.md 8.A, T8.5, REQ-020).
 
-An order is read-only here except for its internal note. `state` is never in the form: staff move
-an order through the action bar, which calls `apply_event` and shows a button only for an event
-that is legal from the current state (CR-09, CR-10).
+An order is read-only here except for its internal note and, while it is being prepared for
+delivery, a new shipment (T10.1). `state` is never in the form: staff move an order through the
+action bar, which calls `apply_event` and shows a button only for an event that is legal from the
+current state (CR-09, CR-10).
 """
 
+from datetime import datetime
 from typing import Any
 
+from django import forms
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
+from django.forms.formsets import (
+    INITIAL_FORM_COUNT,
+    MAX_NUM_FORM_COUNT,
+    MIN_NUM_FORM_COUNT,
+    TOTAL_FORM_COUNT,
+    ManagementForm,
+)
+from django.forms.models import BaseInlineFormSet
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import path, reverse
+from django.utils import timezone
+from django.utils.formats import localize
+from django.utils.functional import cached_property
 
-from apps.orders.models import Order, OrderEvent, OrderLine
+from apps.core import providers
+from apps.orders.models import Order, OrderEvent, OrderLine, Shipment
 from apps.orders.state_machine import (
     TRANSITIONS,
     GuardFailed,
@@ -20,8 +36,9 @@ from apps.orders.state_machine import (
     apply_event,
 )
 from apps.payments.base import RefundNotSupported
-from apps.payments.money import pesos_to_cents
+from apps.payments.money import cents_to_pesos, pesos_to_cents
 from apps.payments.refunds import RefundRejected, refund_payment, refundable_payments
+from apps.shipping.carriers.base import TrackingNumberRequired
 
 EVENT_LABELS = {
     "checkout_submitted": "Enviar a pago",
@@ -109,6 +126,147 @@ class OrderEventInline(ReadOnlyInline):
     ordering = ("created_at", "pk")
 
 
+def _local(moment: datetime) -> str:
+    """A timestamp in the store's timezone (G5, CR-31)."""
+    return localize(timezone.localtime(moment))
+
+
+class ShipmentForm(forms.ModelForm):
+    """A new shipment: the tracking number (optional when the carrier can generate one) and an
+    optional cost in pesos. The row itself is written by `OrderAdmin.save_formset`, because the
+    carrier supplies `carrier`, `tracking_number` and `tracking_url`."""
+
+    create = forms.BooleanField(
+        required=False,
+        label="Crear envío",
+        help_text="Marca esta casilla para crear el envío sin escribir una guía.",
+    )
+    tracking_number = forms.CharField(required=False, label="Guía", max_length=200)
+    cost = forms.CharField(required=False, label="Costo (MXN)")
+
+    class Meta:
+        model = Shipment
+        fields = ("tracking_number",)
+        # The change form's column headers read these, not the field labels.
+        labels = {
+            "create": "Crear envío",
+            "tracking_number": "Guía",
+            "cost": "Costo (MXN)",
+        }
+
+    def clean_cost(self) -> int | None:
+        raw = self.cleaned_data["cost"].strip()
+        if not raw:
+            return None
+        try:
+            return pesos_to_cents(raw)
+        except (ArithmeticError, ValueError):
+            raise forms.ValidationError("El costo no es válido.") from None
+
+
+class ShipmentFormSet(BaseInlineFormSet):
+    """A page rendered before the order reached `preparing` has no shipment form. Saving it
+    afterwards (the note, say) must still work, so a post without the management data is a post
+    with no shipment forms, not an error."""
+
+    @cached_property
+    def management_form(self) -> ManagementForm:
+        if self.is_bound and f"{self.prefix}-{TOTAL_FORM_COUNT}" not in self.data:
+            form = ManagementForm(
+                {
+                    f"{self.prefix}-{TOTAL_FORM_COUNT}": 0,
+                    f"{self.prefix}-{INITIAL_FORM_COUNT}": 0,
+                    f"{self.prefix}-{MIN_NUM_FORM_COUNT}": 0,
+                    f"{self.prefix}-{MAX_NUM_FORM_COUNT}": 0,
+                },
+                auto_id=self.auto_id,
+                prefix=self.prefix,
+                renderer=self.renderer,  # type: ignore[attr-defined]
+            )
+            form.full_clean()
+            return form
+        return super().management_form
+
+
+class ShipmentInline(admin.TabularInline):
+    """Existing shipments are shown read-only; only a new one can be added, and only while the
+    order is in `preparing` and goes out for delivery (T10)."""
+
+    model = Shipment
+    form = ShipmentForm
+    formset = ShipmentFormSet
+    extra = 1
+    max_num = 1
+    can_delete = False
+    verbose_name = "envío"
+    verbose_name_plural = "Envíos"
+    fields = (
+        "create",
+        "tracking_number",
+        "cost",
+        "carrier_name",
+        "tracking_link",
+        "shipped",
+        "delivered",
+    )
+    readonly_fields = ("carrier_name", "tracking_link", "shipped", "delivered")
+
+    def has_change_permission(self, request: HttpRequest, obj: Any = None) -> bool:
+        # With no change permission a saved row is shown through the display methods below;
+        # only the blank row is a form.
+        return False
+
+    def has_add_permission(self, request: HttpRequest, obj: Any = None) -> bool:
+        return self._can_ship(obj) and super().has_add_permission(request, obj)
+
+    def has_delete_permission(self, request: HttpRequest, obj: Any = None) -> bool:
+        return False
+
+    @staticmethod
+    def _can_ship(order: Order | None) -> bool:
+        return (
+            order is not None
+            and order.state == "preparing"
+            and order.fulfillment_method == Order.FulfillmentMethod.DELIVERY
+        )
+
+    def get_extra(self, request: HttpRequest, obj: Any = None, **kwargs: Any) -> int:
+        return 1 if self._can_ship(obj) else 0
+
+    def get_max_num(self, request: HttpRequest, obj: Any = None, **kwargs: Any) -> int:
+        # A second parcel is another save; the form never offers more than one blank row.
+        saved = obj.shipments.count() if obj is not None else 0
+        return saved + (1 if self._can_ship(obj) else 0)
+
+    @admin.display(description="Crear envío")
+    def create(self, obj: Shipment) -> str:
+        return ""
+
+    @admin.display(description="Guía")
+    def tracking_number(self, obj: Shipment) -> str:
+        return obj.tracking_number
+
+    @admin.display(description="Costo (MXN)")
+    def cost(self, obj: Shipment) -> str:
+        return "" if obj.cost_cents is None else str(cents_to_pesos(obj.cost_cents))
+
+    @admin.display(description="Transportista")
+    def carrier_name(self, obj: Shipment) -> str:
+        return obj.carrier if obj.pk else ""
+
+    @admin.display(description="Seguimiento")
+    def tracking_link(self, obj: Shipment) -> str:
+        return obj.tracking_url if obj.pk else ""
+
+    @admin.display(description="Enviado")
+    def shipped(self, obj: Shipment) -> str:
+        return _local(obj.shipped_at) if obj.pk else ""
+
+    @admin.display(description="Entregado")
+    def delivered(self, obj: Shipment) -> str:
+        return _local(obj.delivered_at) if obj.pk and obj.delivered_at else ""
+
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
@@ -123,7 +281,7 @@ class OrderAdmin(admin.ModelAdmin):
     search_fields = ("number", "email", "phone")
     ordering = ("-created_at", "-pk")
     date_hierarchy = "created_at"
-    inlines = (OrderLineInline, OrderEventInline)
+    inlines = (OrderLineInline, ShipmentInline, OrderEventInline)
     change_form_template = "admin/orders/order/change_form.html"
 
     fieldsets = (
@@ -206,6 +364,56 @@ class OrderAdmin(admin.ModelAdmin):
         # Only the note is writable: a stale `state` loaded with the page must never be saved
         # over a transition committed meanwhile (CR-09).
         obj.save(update_fields=["internal_note", "updated_at"])
+
+    def save_formset(
+        self, request: HttpRequest, form: Any, formset: Any, change: bool
+    ) -> None:
+        if formset.model is not Shipment:
+            super().save_formset(request, form, formset, change)
+            return
+        order = form.instance
+        actor = f"staff:{request.user.pk}"
+        # The admin's change message reads these; the formset's own `save` is not used.
+        formset.new_objects = []
+        formset.changed_objects = []
+        formset.deleted_objects = []
+        for shipment_form in formset.forms:
+            if shipment_form.instance.pk or not shipment_form.has_changed():
+                continue
+            data = shipment_form.cleaned_data
+            try:
+                with transaction.atomic():
+                    ref = providers.carrier().create_shipment(
+                        order, tracking_number=data["tracking_number"].strip() or None
+                    )
+                    shipment = Shipment.objects.create(
+                        order=order,
+                        carrier=ref.carrier,
+                        tracking_number=ref.tracking_number,
+                        tracking_url=ref.tracking_url,
+                        cost_cents=data["cost"],
+                    )
+                    moved = apply_event(order.pk, "shipment_created", actor=actor)
+                formset.new_objects.append(shipment)
+            except TrackingNumberRequired:
+                self.message_user(
+                    request,
+                    "El transportista activo no genera guías: escribe el número de guía.",
+                    messages.ERROR,
+                )
+            except (IllegalTransition, GuardFailed) as error:
+                reason = getattr(error, "reason", None) or str(error)
+                self.message_user(
+                    request,
+                    f"No se pudo crear el envío: {reason}.",
+                    messages.ERROR,
+                )
+            else:
+                self.message_user(
+                    request,
+                    f"Envío creado: el pedido está en {moved.state}.",
+                    messages.SUCCESS,
+                )
 
     @admin.display(description="Subtotal")
     def subtotal(self, obj: Order) -> str:
