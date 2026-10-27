@@ -3343,7 +3343,7 @@ The critical property: **pre-orders never touch physical stock**, so they cannot
 
 Delivery: `ShipmentInline` on `OrderAdmin` — tracking number (optional when the active carrier can generate one) and optional cost. Saving it calls `providers.carrier().create_shipment(order, tracking_number=...)`, stores the returned `carrier`, `tracking_number` and `tracking_url`, and fires T10. In Part A, `MockCarrier` (T10.9) generates the tracking number and URL. No carrier API (A7). The production carrier is Phase 19.
 
-- [ ] **T10.11 — Shipment status sync**
+- [x] **T10.11 — Shipment status sync** (2026-10-26, 656c03d)
   - Release: R1 · Gate: task
   - REQs: REQ-022
   - Verifies: P10-V19
