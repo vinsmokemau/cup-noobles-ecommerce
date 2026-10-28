@@ -3378,7 +3378,7 @@ It never regresses a delivered shipment, and a second run is a no-op. Because an
 
 Mock tracking page `/dev/carrier/track/<tracking number>/`, registered only when `DEV_TOOLS_ENABLED` (404 in production). It shows the event history, the banner **"SIMULADOR — este envío no es real"**, and buttons **"En tránsito"**, **"Entregado"** and **"Incidencia"**. Each button updates the mock store and then runs `sync_shipments` for that shipment, so pressing "Entregado" moves the order to `delivered` through the production code path.
 
-- [ ] **T10.12 — Mock carrier command**
+- [x] **T10.12 — Mock carrier command** (2026-10-27, bcd3d78)
   - Release: R1 · Gate: task
   - REQs: REQ-040
   - Verifies: P10-V04
