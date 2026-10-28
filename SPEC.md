@@ -3369,7 +3369,7 @@ Make the Django model match `spec/schema.sql` after OA-60: `shipment.order_id` i
 
 It never regresses a delivered shipment, and a second run is a no-op. Because an order has one shipment (OA-60), T11 never leaves a parcel behind. Staff can still fire T11 at any time from the 8.5 action bar; with the manual carrier (Phase 19) that is the only path.
 
-- [ ] **T10.10 — Mock tracking page**
+- [x] **T10.10 — Mock tracking page** (2026-10-27, e93034d)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P10-V02
