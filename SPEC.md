@@ -5518,7 +5518,7 @@ Generated from §3 and §6; from T1.14b on, `scripts/check_traceability.py` rege
 | REQ-072 | R1 | T1.12a, T2.1c | P1-V04 · P2-V01 · P2-V07 |
 | REQ-073 | R1 | T1.14a, T1.9, T15.5 | P1-V03 · P1-V23 · P15-V14 |
 
-362 Verify IDs in §6; 139 are acceptance criteria of a §3 requirement. The others are feature-level checks of their phase (OA-02).
+363 Verify IDs in §6; 139 are acceptance criteria of a §3 requirement. The others are feature-level checks of their phase (OA-02).
 
 ## Appendix B — ADR index
 
