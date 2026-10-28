@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seguimiento {{ tracking_number }}</title>
+</head>
+<body>
+  <p role="status"><strong>SIMULADOR — este envío no es real</strong></p>
+  <main>
+    <h1>Guía {{ tracking_number }}</h1>
+    {% if order_number %}<p>Pedido {{ order_number }}</p>{% endif %}
+    <h2>Historial</h2>
+    <table>
+      <thead>
+        <tr><th scope="col">Estado</th><th scope="col">Fecha</th></tr>
+      </thead>
+      <tbody>
+        {% for event in events %}
+          <tr><td>{{ event.status }}</td><td>{{ event.at }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <form method="post" action="{% url 'dev-carrier-report' tracking_number 'in_transit' %}">{% csrf_token %}
+      <button type="submit">En tránsito</button>
+    </form>
+    <form method="post" action="{% url 'dev-carrier-report' tracking_number 'delivered' %}">{% csrf_token %}
+      <button type="submit">Entregado</button>
+    </form>
+    <form method="post" action="{% url 'dev-carrier-report' tracking_number 'exception' %}">{% csrf_token %}
+      <button type="submit">Incidencia</button>
+    </form>
+  </main>
+</body>
+</html>

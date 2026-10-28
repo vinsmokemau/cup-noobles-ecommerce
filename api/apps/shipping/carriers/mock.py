@@ -51,6 +51,24 @@ class MockCarrier:
             return ShipmentStatus.UNKNOWN
         return ShipmentStatus(stored["status"])
 
+    def history(self, tracking_number: str) -> list[dict[str, str]] | None:
+        """The stored event history, oldest first; `None` for a number the store has never seen."""
+        try:
+            stored = json.loads(self._path(tracking_number).read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return None
+        return list(stored["events"])
+
+    def record_status(self, tracking_number: str, status: ShipmentStatus) -> None:
+        """Dev tools: what the carrier now reports for this shipment. Appends to the history."""
+        try:
+            stored = json.loads(self._path(tracking_number).read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            raise KeyError(tracking_number) from None
+        stored["status"] = status.value
+        stored["events"].append(self._event(status))
+        self._write(tracking_number, stored)
+
     @staticmethod
     def _event(status: ShipmentStatus) -> dict[str, str]:
         return {"status": status.value, "at": timezone.now().isoformat()}

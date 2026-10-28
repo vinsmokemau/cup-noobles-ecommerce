@@ -25,4 +25,5 @@ urlpatterns = [
 if settings.DEV_TOOLS_ENABLED:
     urlpatterns += [
         path("dev/payments/", include("apps.payments.devtools.urls")),
+        path("dev/carrier/", include("apps.shipping.devtools.urls")),
     ]

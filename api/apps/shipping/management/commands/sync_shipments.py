@@ -14,6 +14,7 @@ order once: the loser finds the shipment delivered or the order no longer `shipp
 """
 
 import logging
+from collections.abc import Collection
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -37,12 +38,11 @@ class SyncResult:
     exceptions: list[str] = field(default_factory=list)
 
 
-def _pending_shipments() -> list[Shipment]:
-    return list(
-        Shipment.objects.filter(order__state="shipped", delivered_at__isnull=True)
-        .select_related("order")
-        .order_by("pk")
-    )
+def _pending_shipments(shipment_ids: Collection[int] | None) -> list[Shipment]:
+    pending = Shipment.objects.filter(order__state="shipped", delivered_at__isnull=True)
+    if shipment_ids is not None:
+        pending = pending.filter(pk__in=shipment_ids)
+    return list(pending.select_related("order").order_by("pk"))
 
 
 def _mark_delivered(shipment_id: int, order_id: int) -> bool:
@@ -61,11 +61,11 @@ def _mark_delivered(shipment_id: int, order_id: int) -> bool:
     return True
 
 
-def sync_shipments() -> SyncResult:
-    """Sync every pending shipment."""
+def sync_shipments(shipment_ids: Collection[int] | None = None) -> SyncResult:
+    """Sync every pending shipment, or only those in `shipment_ids` (the mock tracking page)."""
     carrier = providers.carrier()
     result = SyncResult()
-    for shipment in _pending_shipments():
+    for shipment in _pending_shipments(shipment_ids):
         result.checked += 1
         try:
             status = carrier.get_status(shipment.tracking_number)
