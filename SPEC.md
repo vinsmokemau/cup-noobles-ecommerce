@@ -3387,7 +3387,7 @@ Mock tracking page `/dev/carrier/track/<tracking number>/`, registered only when
 
 `manage.py mock_carrier advance <tracking number> --to in_transit|delivered|exception [--sync]` — the command-line equivalent of the T10.10 buttons. Refuses to run unless `DEV_TOOLS_ENABLED`.
 
-- [ ] **T10.13 — Carrier contract suite**
+- [x] **T10.13 — Carrier contract suite** (2026-10-27, 04aeec8)
   - Release: R1 · Gate: task
   - REQs: REQ-041
   - Verifies: P10-V01 (CAR-01 to CAR-07)
