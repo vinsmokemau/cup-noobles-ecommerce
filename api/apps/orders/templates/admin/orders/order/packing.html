@@ -1,0 +1,37 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+  @media print {
+    #header, .breadcrumbs, #nav-sidebar, #packing-print { display: none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <p id="packing-print"><button type="button" onclick="window.print()">Imprimir</button></p>
+  <table id="packing-lines">
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Producto</th>
+        <th>Opciones</th>
+        <th>Cantidad</th>
+        <th>Ubicación</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for line in lines %}
+      <tr>
+        <td>{{ line.sku }}</td>
+        <td>{{ line.product_name }}</td>
+        <td>{{ line.options }}</td>
+        <td>{{ line.quantity }}</td>
+        <td>{{ line.bin_location|default:"—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

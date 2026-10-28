@@ -22,12 +22,14 @@ from django.forms.formsets import (
 )
 from django.forms.models import BaseInlineFormSet
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.formats import localize
 from django.utils.functional import cached_property
 
 from apps.core import providers
+from apps.inventory.models import InventoryReservation, StockItem
 from apps.orders.models import Order, OrderEvent, OrderLine, Shipment
 from apps.orders.state_machine import (
     TRANSITIONS,
@@ -71,6 +73,40 @@ OXXO_REFUND_MESSAGE = (
 def legal_events(order: Order) -> list[str]:
     """The events `TRANSITIONS` accepts from the order's current state, in table order."""
     return [event for state, event in TRANSITIONS if state == order.state]
+
+
+def packing_lines(order: Order) -> list[dict[str, Any]]:
+    """Each line with the bin location of the stock item it was reserved from. A line with no
+    reservation row falls back to the variant's fulfillment-source stock rows. Reads only: nothing
+    here moves stock (T10.17)."""
+    lines = list(order.lines.order_by("pk"))
+    locations: dict[int, int] = {}
+    for variant_id, location_id in InventoryReservation.objects.filter(
+        order=order, location__isnull=False
+    ).values_list("variant_id", "location_id"):
+        locations.setdefault(variant_id, location_id)
+    rows = []
+    for line in lines:
+        items = StockItem.objects.filter(variant_id=line.variant_id or 0)
+        if line.variant_id in locations:
+            items = items.filter(location_id=locations[line.variant_id])
+        else:
+            items = items.filter(
+                location__is_active=True, location__is_fulfillment_source=True
+            )
+        item = items.exclude(bin_location="").order_by("pk").first()
+        rows.append(
+            {
+                "sku": line.sku,
+                "product_name": line.product_name,
+                "options": ", ".join(
+                    f"{key}: {value}" for key, value in line.options_snapshot.items()
+                ),
+                "quantity": line.quantity,
+                "bin_location": item.bin_location if item else "",
+            }
+        )
+    return rows
 
 
 def format_money(cents: int | None) -> str:
@@ -451,8 +487,41 @@ class OrderAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(self.fire_event),
                 name=f"{self.opts.app_label}_{self.opts.model_name}_event",
             ),
+            path(
+                "<path:object_id>/packing/",
+                self.admin_site.admin_view(self.packing_view),
+                name=f"{self.opts.app_label}_{self.opts.model_name}_packing",
+            ),
             *super().get_urls(),
         ]
+
+    def packing_view(self, request: HttpRequest, object_id: str) -> HttpResponse:
+        """The printable pick list for an order being prepared (T10.17)."""
+        order = self.get_object(request, object_id)
+        if order is None or not self.has_view_permission(request, order):
+            raise PermissionDenied
+        if order.state != "preparing":
+            self.message_user(
+                request,
+                "La hoja de empaque solo está disponible para pedidos en preparación.",
+                messages.WARNING,
+            )
+            return HttpResponseRedirect(
+                reverse(
+                    f"admin:{self.opts.app_label}_{self.opts.model_name}_change",
+                    args=[order.pk],
+                )
+            )
+        return TemplateResponse(
+            request,
+            "admin/orders/order/packing.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": f"Hoja de empaque · pedido {order.number}",
+                "order": order,
+                "lines": packing_lines(order),
+            },
+        )
 
     def change_view(
         self,
@@ -492,6 +561,14 @@ class OrderAdmin(admin.ModelAdmin):
                 (p.pk for p in payments if str(p.pk) == manual), None
             ),
             "manual_amount": request.GET.get("amount", ""),
+            "packing_url": (
+                reverse(
+                    f"admin:{self.opts.app_label}_{self.opts.model_name}_packing",
+                    args=[object_id],
+                )
+                if order is not None and order.state == "preparing"
+                else ""
+            ),
             "event_url": reverse(
                 f"admin:{self.opts.app_label}_{self.opts.model_name}_event",
                 args=[object_id],
