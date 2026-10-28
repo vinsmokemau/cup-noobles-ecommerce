@@ -259,4 +259,5 @@ class Shipment(models.Model):
                 name="shipment_cost_cents_check",
             )
         ]
-        indexes = [models.Index(fields=["order"], name="shipment_order_idx")]
+        # `shipment_order_idx` is a unique index (one shipment per order, OA-60), created by
+        # `RunSQL` in migration 0002: Django's `UniqueConstraint` would make a constraint.

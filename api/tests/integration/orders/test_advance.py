@@ -57,8 +57,7 @@ def test_p8_v14_advance_orders_idempotent(clock):
 
 
 def test_completion_waits_for_the_last_delivered_shipment(clock):
-    order = delivered_order()
-    ShipmentFactory(order=order, delivered_at=DELIVERED_AT + timedelta(days=2))
+    order = delivered_order(DELIVERED_AT + timedelta(days=2))
 
     clock.travel(DELIVERED_AT + WEEK + timedelta(days=1))
     call_command("advance_orders")

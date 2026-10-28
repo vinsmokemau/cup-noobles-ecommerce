@@ -12,7 +12,7 @@ from typing import Any
 from django import forms
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.forms.formsets import (
     INITIAL_FORM_COUNT,
     MAX_NUM_FORM_COUNT,
@@ -59,6 +59,8 @@ EVENT_LABELS = {
 EVENT_NEEDS_REASON = "cancelled_by_staff"
 # Refunds go through `refund_payment`, which calls the provider first (T9.8).
 REFUND_EVENTS = ("refund_issued", "partial_refund_issued")
+
+ALREADY_SHIPPED = "No se pudo crear el envío: el pedido ya tiene un envío."
 
 OXXO_REFUND_MESSAGE = (
     "Los pagos en efectivo (OXXO) no se pueden reembolsar a través del proveedor. "
@@ -228,13 +230,14 @@ class ShipmentInline(admin.TabularInline):
             order is not None
             and order.state == "preparing"
             and order.fulfillment_method == Order.FulfillmentMethod.DELIVERY
+            and not order.shipments.exists()
         )
 
     def get_extra(self, request: HttpRequest, obj: Any = None, **kwargs: Any) -> int:
         return 1 if self._can_ship(obj) else 0
 
     def get_max_num(self, request: HttpRequest, obj: Any = None, **kwargs: Any) -> int:
-        # A second parcel is another save; the form never offers more than one blank row.
+        # An order has at most one shipment (OA-60): a saved one leaves no blank row.
         saved = obj.shipments.count() if obj is not None else 0
         return saved + (1 if self._can_ship(obj) else 0)
 
@@ -395,6 +398,10 @@ class OrderAdmin(admin.ModelAdmin):
                     )
                     moved = apply_event(order.pk, "shipment_created", actor=actor)
                 formset.new_objects.append(shipment)
+            except (
+                IntegrityError
+            ):  # a second save raced past the form's own check (OA-60)
+                self.message_user(request, ALREADY_SHIPPED, messages.ERROR)
             except TrackingNumberRequired:
                 self.message_user(
                     request,

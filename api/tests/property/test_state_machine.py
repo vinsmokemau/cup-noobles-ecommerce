@@ -89,7 +89,9 @@ class OrderMachine(RuleBasedStateMachine):
 
     @rule()
     def add_shipment(self):
-        ShipmentFactory(order=self.order)
+        # An order has at most one shipment (OA-60).
+        if not self.order.shipments.exists():
+            ShipmentFactory(order=self.order)
 
     @invariant()
     def one_event_row_per_legal_transition(self):
