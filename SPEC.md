@@ -3406,7 +3406,7 @@ Carrier contract suite — `tests/contract/carrier/`, written against a `Carrier
 | CAR-06 | Unknown tracking number | `UNKNOWN`; no transition |
 | CAR-07 | Staff fire T11, then `sync_shipments` runs | No second transition |
 
-- [ ] **T10.17 — Packing view with bin locations**
+- [x] **T10.17 — Packing view with bin locations** (2026-10-27, ff7f240)
   - Release: R1 · Gate: task
   - REQs: REQ-064
   - Verifies: P10-V26
