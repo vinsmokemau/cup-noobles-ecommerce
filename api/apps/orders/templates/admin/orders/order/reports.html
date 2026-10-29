@@ -1,0 +1,15 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p><a href="{{ list_url }}">Volver a Pedidos</a></p>
+  <form method="get" id="report-export">
+    <fieldset class="module aligned">
+      <h2>Exportar reportes</h2>
+      <p>Pedidos y líneas, por fecha de pedido; envíos, por fecha de envío. Fechas en hora de la tienda, ambas incluidas. Importes en centavos.</p>
+      {{ form.as_div }}
+      <div class="submit-row"><input type="submit" value="Descargar CSV"></div>
+    </fieldset>
+  </form>
+</div>
+{% endblock %}

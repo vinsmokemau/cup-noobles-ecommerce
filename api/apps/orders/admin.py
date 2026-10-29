@@ -7,6 +7,7 @@ current state (CR-09, CR-10).
 """
 
 from datetime import datetime
+from io import StringIO
 from typing import Any
 
 from django import forms
@@ -30,6 +31,7 @@ from django.utils.functional import cached_property
 
 from apps.core import providers
 from apps.inventory.models import InventoryReservation, StockItem
+from apps.orders import exports
 from apps.orders.models import Order, OrderEvent, OrderLine, Shipment
 from apps.orders.state_machine import (
     TRANSITIONS,
@@ -281,10 +283,6 @@ class ShipmentInline(admin.TabularInline):
     def create(self, obj: Shipment) -> str:
         return ""
 
-    @admin.display(description="Guía")
-    def tracking_number(self, obj: Shipment) -> str:
-        return obj.tracking_number
-
     @admin.display(description="Costo (MXN)")
     def cost(self, obj: Shipment) -> str:
         return "" if obj.cost_cents is None else str(cents_to_pesos(obj.cost_cents))
@@ -306,6 +304,23 @@ class ShipmentInline(admin.TabularInline):
         return _local(obj.delivered_at) if obj.pk and obj.delivered_at else ""
 
 
+class ReportExportForm(forms.Form):
+    """The range and the file for the reporting exports (T10.16)."""
+
+    report = forms.ChoiceField(label="Reporte", choices=list(exports.report_choices()))
+    start = forms.DateField(
+        label="Desde", widget=forms.DateInput(attrs={"type": "date"})
+    )
+    end = forms.DateField(label="Hasta", widget=forms.DateInput(attrs={"type": "date"}))
+
+    def clean(self) -> dict[str, Any]:
+        data = super().clean() or {}
+        start, end = data.get("start"), data.get("end")
+        if start and end and end < start:
+            self.add_error("end", "La fecha final no puede ser anterior a la inicial.")
+        return data
+
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
@@ -322,6 +337,7 @@ class OrderAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
     inlines = (OrderLineInline, ShipmentInline, OrderEventInline)
     change_form_template = "admin/orders/order/change_form.html"
+    change_list_template = "admin/orders/order/change_list.html"
 
     fieldsets = (
         (
@@ -483,6 +499,11 @@ class OrderAdmin(admin.ModelAdmin):
     def get_urls(self):
         return [
             path(
+                "reports/",
+                self.admin_site.admin_view(self.reports_view),
+                name=f"{self.opts.app_label}_{self.opts.model_name}_reports",
+            ),
+            path(
                 "<path:object_id>/event/",
                 self.admin_site.admin_view(self.fire_event),
                 name=f"{self.opts.app_label}_{self.opts.model_name}_event",
@@ -494,6 +515,37 @@ class OrderAdmin(admin.ModelAdmin):
             ),
             *super().get_urls(),
         ]
+
+    def reports_view(self, request: HttpRequest) -> HttpResponse:
+        """CSV exports of orders, order lines and shipments for a date range (T10.16, A19)."""
+        if not self.has_view_permission(request):
+            raise PermissionDenied
+        form = ReportExportForm(request.GET or None)
+        if form.is_bound and form.is_valid():
+            report = form.cleaned_data["report"]
+            start, end = form.cleaned_data["start"], form.cleaned_data["end"]
+            buffer = StringIO()
+            exports.REPORTS[report][1](buffer, start, end)
+            response = HttpResponse(
+                buffer.getvalue(), content_type="text/csv; charset=utf-8"
+            )
+            response["Content-Disposition"] = (
+                f'attachment; filename="{report}-{start}-{end}.csv"'
+            )
+            response["Cache-Control"] = "private, no-store"
+            return response
+        return TemplateResponse(
+            request,
+            "admin/orders/order/reports.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Exportar reportes",
+                "form": form,
+                "list_url": reverse(
+                    f"admin:{self.opts.app_label}_{self.opts.model_name}_changelist"
+                ),
+            },
+        )
 
     def packing_view(self, request: HttpRequest, object_id: str) -> HttpResponse:
         """The printable pick list for an order being prepared (T10.17)."""
