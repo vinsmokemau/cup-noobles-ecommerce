@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.38 |
+| Spec version | 1.39 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -542,6 +542,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-50 | 2026-10-25 | G26: after a partial refund (T18), what happens to the order? | Option A: the proposed resolution. A partial refund is recorded on the payment and the order keeps its state, so it stays fulfillable. ADR-0043. |
 | OA-51 | 2026-10-25 | G27: can a refund be recorded after the order is `completed`, `expired` or `cancelled`? | Option A: the proposed resolution. The refund events are accepted from those three states as recorded payment events: an `order_event` row and the payment's `refunded_cents`, with the order state unchanged. ADR-0043. |
 | OA-52 | 2026-10-26 | Phase 9 task order: the tasks are listed in a valid order, but their numbers do not follow it (T9.9 runs third, T9.14 tenth) and earlier tasks mention later ones. Renumber, or add an execution-order note? | Option B: add the note, no renumbering. IDs keep their numbers. The note says the forward mentions are not dependencies. No ADR: cheap to reverse, spec text only. |
+| OA-61 | 2026-10-28 | Phase 11 task order: the tasks are listed in a valid, linear order, but their numbers do not follow it (T11.3 comes fourth, T11.1 sixth) and the phase has no execution-order note. Add one, or renumber? | Option A: add the note. Execution order: T11.4, T11.5, T11.6, T11.3, T11.7, T11.1, T11.2, T11.8 (phase-close); then, in R2, T11.9. IDs keep their numbers. The note flags that T11.6 waits for DSR-04 and DSR-05. No ADR: cheap to reverse, spec text only. |
 
 ---
 
@@ -3595,6 +3596,15 @@ Counter sales (A11): the admin page from T4.5, plus a `stock_ledger` filter by `
 
 **Release 1 scope:** the seven R1 templates (§4.5), built from the DS email package, with their plain-text parts; the CFDI email carries the PDF and XML.
 
+**Execution order.** Task IDs do not follow the order of work. Run the tasks in the order they are listed below, which is also this one, and each depends on the one before it:
+
+- Sender and DS base: T11.4 → T11.5 → T11.6 (blocked until DSR-04 and DSR-05 are released; build them in the DS repository before starting T11.6)
+- Templates: T11.3 → T11.7
+- Sending: T11.1 → T11.2 → T11.8 (phase-close)
+- R2, after R1: T11.9
+
+Some tasks are verified by a later one: the `cfdi_issued` row that T10.14 queues is rendered, sent and tested by T11.8 (P11-V11), and `enqueue_email()` already exists from T4.6, so T11.1 only adds the sending.
+
 #### Tasks
 
 - [ ] **T11.4 — Sender and Reply-To**
@@ -5477,6 +5487,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.36 | 2026-10-26 | Phase 10 states its execution order under the deliverable, grouped as delivery, packing view, and invoicing and reports, with R2 after. T10.14 says it only writes the outbox row; the email itself is T11.8. No task, Verify ID, dependency or schema change. | Owner answer in chat, 2026-10-26 |
 | 1.37 | 2026-10-26 | An order has at most one shipment: `shipment.order_id` is unique in `spec/schema.sql`, T10.1 and T10.11 say so. New gap G49: where `sync_shipments` records a carrier `EXCEPTION` for the daily digest. No Verify ID changes. | OA-60; ADR-0051 |
 | 1.38 | 2026-10-26 | New task T10.18 (after T10.1, before T10.11) makes the `Shipment` model and a migration match the unique `shipment_order_idx` of 1.37, with Verify ID P10-V27. It fixes `test_p2_v01_schema_matches_canonical_ddl`, red since 1.37. | Owner answer in chat, 2026-10-26; OA-60 |
+| 1.39 | 2026-10-28 | Phase 11 states its execution order under the deliverable (sender and DS base, templates, sending, then R2), flags that T11.6 waits for DSR-04 and DSR-05, and notes that the `cfdi_issued` row of T10.14 is sent and tested by T11.8. No task, Verify ID, dependency or schema change. | OA-61 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
