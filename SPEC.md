@@ -3431,7 +3431,7 @@ An admin view, "Facturas (CFDI)", over `invoice_request` (A8, ADR-0019):
 - "Marcar revisado" clears `needs_review` and requires a note in `review_note`. "Cancelar CFDI" records a cancellation made outside the store: status `cancelled`, `cancelled_at`, and a required note. The store never decides the fiscal treatment (A12, D16).
 - Staff only. The documents download from the admin and are never served from public media storage (§4.4).
 
-- [ ] **T10.15 — Global-invoice export**
+- [x] **T10.15 — Global-invoice export** (2026-10-28, d8b201b)
   - Release: R1 · Gate: task
   - REQs: REQ-060
   - Verifies: P10-V24
