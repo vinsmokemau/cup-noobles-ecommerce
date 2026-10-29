@@ -3415,7 +3415,7 @@ Carrier contract suite — `tests/contract/carrier/`, written against a `Carrier
 
 The admin order page for an order in `preparing` shows a printable packing view: each line's SKU, product name, options and quantity, with its stock item's bin location (T4.8). Staff pick from it before creating the shipment (T10.1). Nothing on this view moves stock.
 
-- [ ] **T10.14 — CFDI admin queue and recording**
+- [x] **T10.14 — CFDI admin queue and recording** (2026-10-28, 2407558)
   - Release: R1 · Gate: task
   - REQs: REQ-060
   - Verifies: P10-V23
