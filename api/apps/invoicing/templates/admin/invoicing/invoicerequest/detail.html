@@ -1,0 +1,70 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div id="content-main">
+  <p><a href="{{ list_url }}">Volver a Facturas (CFDI)</a></p>
+  <fieldset class="module aligned" id="cfdi-data">
+    <h2>Datos fiscales del cliente</h2>
+    <div class="form-row"><label>Pedido</label> <div class="readonly">{{ request_obj.order.number }}</div></div>
+    <div class="form-row"><label>Total</label> <div class="readonly">{{ order_total }}</div></div>
+    <div class="form-row"><label>RFC</label> <div class="readonly">{{ request_obj.rfc }}</div></div>
+    <div class="form-row"><label>Nombre o razón social</label> <div class="readonly">{{ request_obj.legal_name }}</div></div>
+    <div class="form-row"><label>Código postal fiscal</label> <div class="readonly">{{ request_obj.fiscal_postal_code }}</div></div>
+    <div class="form-row"><label>Régimen fiscal</label> <div class="readonly">{{ request_obj.tax_regime }}</div></div>
+    <div class="form-row"><label>Uso de CFDI</label> <div class="readonly">{{ request_obj.cfdi_use }}</div></div>
+    <div class="form-row"><label>Estado</label> <div class="readonly">{{ request_obj.get_status_display }}</div></div>
+    {% if request_obj.folio %}<div class="form-row"><label>Folio</label> <div class="readonly">{{ request_obj.folio }}</div></div>{% endif %}
+    {% if request_obj.cfdi_uuid %}<div class="form-row"><label>Folio fiscal (UUID)</label> <div class="readonly">{{ request_obj.cfdi_uuid }}</div></div>{% endif %}
+    {% if request_obj.review_note %}<div class="form-row"><label>Notas</label> <div class="readonly">{{ request_obj.review_note|linebreaksbr }}</div></div>{% endif %}
+  </fieldset>
+
+  {% if documents %}
+  <fieldset class="module aligned" id="cfdi-documents">
+    <h2>Documentos</h2>
+    {% for document in documents %}
+    <div class="form-row"><a href="{{ document.url }}">Descargar {{ document.kind }}</a> · {{ document.filename }} · {{ document.size }} bytes · sha256 {{ document.sha256 }}</div>
+    {% endfor %}
+  </fieldset>
+  {% endif %}
+
+  {% if can_edit %}
+  {% if request_obj.status == "requested" %}
+  <form method="post" action="{{ record_url }}" enctype="multipart/form-data" id="cfdi-record">
+    {% csrf_token %}
+    <fieldset class="module aligned">
+      <h2>Registrar CFDI</h2>
+      {{ form.as_div }}
+      <div class="submit-row"><input type="submit" value="Registrar CFDI"></div>
+    </fieldset>
+  </form>
+  {% endif %}
+
+  {% if request_obj.needs_review %}
+  <form method="post" action="{{ review_url }}" id="cfdi-review">
+    {% csrf_token %}
+    <fieldset class="module aligned">
+      <h2>Marcar revisado</h2>
+      {% if errors.note %}<ul class="errorlist"><li>{{ errors.note }}</li></ul>{% endif %}
+      <label for="review_note">Nota</label>
+      <textarea name="note" id="review_note" rows="3"></textarea>
+      <div class="submit-row"><input type="submit" value="Marcar revisado"></div>
+    </fieldset>
+  </form>
+  {% endif %}
+
+  {% if request_obj.status != "cancelled" %}
+  <form method="post" action="{{ cancel_url }}" id="cfdi-cancel">
+    {% csrf_token %}
+    <fieldset class="module aligned">
+      <h2>Cancelar CFDI</h2>
+      <p>Registra una cancelación hecha fuera de la tienda.</p>
+      {% if errors.note %}<ul class="errorlist"><li>{{ errors.note }}</li></ul>{% endif %}
+      <label for="cancel_note">Motivo</label>
+      <textarea name="note" id="cancel_note" rows="3"></textarea>
+      <div class="submit-row"><input type="submit" value="Cancelar CFDI"></div>
+    </fieldset>
+  </form>
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}
