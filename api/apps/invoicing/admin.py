@@ -8,6 +8,7 @@ served from public media storage (§4.4).
 
 from __future__ import annotations
 
+from io import StringIO
 from typing import Any
 from uuid import UUID
 
@@ -22,7 +23,7 @@ from django.utils import timezone
 from django.utils.formats import localize
 
 from apps.core import providers
-from apps.invoicing import services
+from apps.invoicing import exports, services
 from apps.invoicing.base import ManualIssueRequired
 from apps.invoicing.models import InvoiceDocument, InvoiceRequest
 from apps.invoicing.services import MAX_DOCUMENT_BYTES, InvoiceError
@@ -34,6 +35,20 @@ CONTENT_TYPES = {"pdf": "application/pdf", "xml": "application/xml"}
 def _sniff(kind: str, head: bytes) -> bool:
     head = head.lstrip(b"\xef\xbb\xbf \t\r\n")
     return head.startswith(b"%PDF-") if kind == "pdf" else head.startswith(b"<")
+
+
+class GlobalExportForm(forms.Form):
+    start = forms.DateField(
+        label="Desde", widget=forms.DateInput(attrs={"type": "date"})
+    )
+    end = forms.DateField(label="Hasta", widget=forms.DateInput(attrs={"type": "date"}))
+
+    def clean(self) -> dict[str, Any]:
+        data = super().clean() or {}
+        start, end = data.get("start"), data.get("end")
+        if start and end and end < start:
+            self.add_error("end", "La fecha final no puede ser anterior a la inicial.")
+        return data
 
 
 class RecordCfdiForm(forms.Form):
@@ -78,6 +93,7 @@ class InvoiceRequestAdmin(admin.ModelAdmin):
     list_filter = ("status", "needs_review")
     search_fields = ("order__number", "rfc", "legal_name")
     list_select_related = ("order",)
+    change_list_template = "admin/invoicing/invoicerequest/change_list.html"
 
     def has_add_permission(self, request: HttpRequest) -> bool:
         return False
@@ -127,6 +143,11 @@ class InvoiceRequestAdmin(admin.ModelAdmin):
     def get_urls(self):
         name = f"{self.opts.app_label}_{self.opts.model_name}"
         return [
+            path(
+                "global-export/",
+                self.admin_site.admin_view(self.global_export_view),
+                name=f"{name}_global_export",
+            ),
             path(
                 "<path:object_id>/record/",
                 self.admin_site.admin_view(self.record_view),
@@ -312,6 +333,35 @@ class InvoiceRequestAdmin(admin.ModelAdmin):
     def cancel_view(self, request: HttpRequest, object_id: str) -> HttpResponse:
         return self._note_action(
             request, object_id, services.cancel_cfdi, "Cancelación de CFDI registrada."
+        )
+
+    def global_export_view(self, request: HttpRequest) -> HttpResponse:
+        if not self.has_view_permission(request):
+            raise PermissionDenied
+        form = GlobalExportForm(request.GET or None)
+        if form.is_bound and form.is_valid():
+            start, end = form.cleaned_data["start"], form.cleaned_data["end"]
+            buffer = StringIO()
+            exports.write_global_invoice_csv(buffer, start, end)
+            response = HttpResponse(
+                buffer.getvalue(), content_type="text/csv; charset=utf-8"
+            )
+            response["Content-Disposition"] = (
+                f'attachment; filename="factura-global-{start}-{end}.csv"'
+            )
+            response["Cache-Control"] = "private, no-store"
+            return response
+        return TemplateResponse(
+            request,
+            "admin/invoicing/invoicerequest/global_export.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Exportar para factura global",
+                "form": form,
+                "list_url": reverse(
+                    f"admin:{self.opts.app_label}_{self.opts.model_name}_changelist"
+                ),
+            },
         )
 
     def document_view(

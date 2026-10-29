@@ -1,0 +1,6 @@
+{% extends "admin/change_list.html" %}
+
+{% block object-tools-items %}
+<li><a href="{% url 'admin:invoicing_invoicerequest_global_export' %}">Exportar para factura global</a></li>
+{{ block.super }}
+{% endblock %}
