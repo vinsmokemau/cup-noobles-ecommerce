@@ -3441,7 +3441,7 @@ An admin view, "Facturas (CFDI)", over `invoice_request` (A8, ADR-0019):
 
 An admin action, "Exportar para factura global": staff choose a date range, and the store returns a CSV of every order paid in that range that has no issued CFDI, excluding cancelled and expired orders and orders whose request is `issued`. Columns: order number, paid at (in the store timezone, G5), payment method, `total_cents` and `tax_included_cents`. Money stays in integer centavos (CR-01). The period the accountant uses, and how refunds after an export are handled, are D16.
 
-- [ ] **T10.16 — Reporting exports**
+- [x] **T10.16 — Reporting exports** (2026-10-28, 5880b20)
   - Release: R1 · Gate: phase-close
   - REQs: REQ-063
   - Verifies: P10-V25
