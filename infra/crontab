@@ -21,3 +21,6 @@
 
 # Sync shipment status from the carrier, every 30 minutes (SPEC.md §4.8, T10.11)
 */30 * * * * python manage.py sync_shipments
+
+# Send queued email, every minute (SPEC.md §4.8, T11.1)
+* * * * * python manage.py send_outbox
