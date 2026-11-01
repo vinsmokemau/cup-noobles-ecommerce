@@ -3793,7 +3793,7 @@ While pre-launch mode is on (T5.7), every route above shows the "próximamente" 
 
 #### Tasks
 
-- [ ] **T12.1 — Nuxt configuration**
+- [x] **T12.1 — Nuxt configuration** (2026-11-01, 51ec5ad)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: P12-V01 (T12.16) and P12-V25 (T12.10) prove the server-rendering path]
