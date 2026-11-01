@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.39 |
+| Spec version | 1.40 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
-| Design System | `@vinsmokemau/cup-noobles-tokens`, `-nuxt` and `-email`, pinned at exactly `1.0.1` (A17). Raised only by a DS upgrade task. |
+| Design System | `@vinsmokemau/cup-noobles-tokens`, `-nuxt` and `-email`, pinned at exactly `1.1.0` (A17). Raised only by a DS upgrade task. |
 | Normative files | `SPEC.md` and `spec/schema.sql` (the canonical schema, §4.4) |
 | Converted from | `cup-noobles-implementation-plan.md` (September 2026). Appendix E maps every old section to its new place. |
 
@@ -209,7 +209,7 @@ Tasks and Verify IDs tagged R2 keep their IDs and stay in §6. The traceability 
 
 ## 2. Rules, conflicts, assumptions and open items
 
-Source key: **plan** is `cup-noobles-implementation-plan.md`. **DS** is the Design System repository at version 1.0.1. **GE** is the owner's internal execution guide (v4), cited by ID only. **OA** is an owner answer in §2.6.
+Source key: **plan** is `cup-noobles-implementation-plan.md`. **DS** is the Design System repository at version 1.1.0. **GE** is the owner's internal execution guide (v4), cited by ID only. **OA** is an owner answer in §2.6.
 
 ### 2.1 Carried-forward rules
 
@@ -317,7 +317,7 @@ Each rule is binding. "Enforced by" names the check that fails when the rule is 
 | C-06 | Plan Phase 15 is called "MVP acceptance" and is local. In GE:M1, "MVP" means the live store. | Phase 15 becomes "local acceptance". This spec says "Release 1" for the live store and never uses "MVP" for Part A. | Resolved (OA-11) |
 | C-07 | Plan §6 runs the whole suite on every task. The owner wants a light suite per task and the full suite per phase and in CI. | §0.2 and CR-37 | Resolved (OA-03) |
 | C-08 | Plan 12.4 formats prices as `$1,234.00 MXN`; plan 12.6 gives the `Intl` output with no suffix (G19). | DS:formatting.md decides: the `Intl` output, with no symbol by hand and no suffix (CR-30) | Resolved (DS:formatting.md); ADR in T1.15 |
-| C-09 | The DS email layout has six fixed parts and is built only from DS components. The plan has 11 templates and commerce rows such as order lines. | The seven R1 templates fit the six-part layout. Rows inside the card are a DS request (DSR-04). | Partly resolved (OA-09); DSR-04 open |
+| C-09 | The DS email layout has six fixed parts and is built only from DS components. The plan has 11 templates and commerce rows such as order lines. | The seven R1 templates fit the six-part layout. Rows inside the card are a DS request (DSR-04). | Resolved (OA-09; DSR-04, DS 1.1.0) |
 | C-10 | The DS photo standard says "no text inside the image" (DS:ADR-0057). Product packaging photos always carry printed text. | The DS clarifies the rule's scope for product photos (DSR-07) | Open |
 | C-11 | Plan 1.5 installs `@nuxt/ui` on its own and uses npm. The DS layer brings Nuxt UI 4.11.2 and Tailwind 4.3.3, and its install path is verified with pnpm. | `web/` uses pnpm, gets Nuxt UI only through the layer, and pins Nuxt to the version of the DS consumer fixture (4.5.2) | Resolved (OA-12) |
 | C-12 | Plan S5 wants a private repository with branch protection. On GitHub Free, branch protection is available only to public repositories (DS:OD-14). | The repository is public (OA-10), and CR-48 keeps internal data out | Resolved (OA-10) |
@@ -346,7 +346,7 @@ Each assumption is cheap to reverse unless its row says otherwise. A1–A14 keep
 | A14 | Each mock behaves exactly like its real provider at the interface level; the shared contract suites run against both | A mock easier than the real thing hides bugs until Part B | Medium | R1 |
 | A15 | One maintainer: the owner is the developer and the business owner. Governance is sized for one person, and decisions are recorded as owner answers and ADRs. | OA-04; DS:A-01 | n/a | R1 |
 | A16 | Guest checkout only in R1. A customer is identified by email, and also by phone and shipping address for purchase limits (G31). | OA-11 | Medium | R1 |
-| A17 | The three DS packages are pinned at an exact version, currently `1.0.1`. A DS upgrade is its own task. | OA-12; DS:R-01 | Low | R1 |
+| A17 | The three DS packages are pinned at an exact version, currently `1.1.0`. A DS upgrade is its own task. | OA-12; DS:R-01 | Low | R1 |
 | A18 | The repository is public on GitHub Free, created by the owner | OA-10 | Low | R1 |
 | A19 | The weekly dashboard and the monthly report are built by the owner from admin CSV exports. The store has no reporting screens. | GE:T34, GE:T43 | Low | R1 |
 
@@ -455,8 +455,8 @@ Each item is built in the DS repository under its own SPEC and released as a DS 
 | DSR-01 | A generic slot in `CnMediaCard`, under the title, for a price and an availability badge | Phase 12 (product card) | R1 | Open |
 | DSR-02 | A key-value list for attributes | Phase 12 (product page) | R1 | Open |
 | DSR-03 | An image gallery, for example Nuxt UI's carousel themed by the DS | Phase 12 (product page) | R1 | Open |
-| DSR-04 | Rows inside the email card, for order lines and totals | Phase 11 | R1 | Open |
-| DSR-05 | A raster logo for the email `{{ logo_url }}` slot. The DS ships SVG only, and most email clients don't render SVG. | Phase 11 | R1 | Open |
+| DSR-04 | Rows inside the email card, for order lines and totals | Phase 11 | R1 | Resolved (DS 1.1.0, T11.5b) |
+| DSR-05 | A raster logo for the email `{{ logo_url }}` slot. The DS ships SVG only, and most email clients don't render SVG. | Phase 11 | R1 | Resolved (DS 1.1.0, T11.5b) |
 | DSR-06 | `color-scheme: dark` and a `theme-color` meta. The layer doesn't set them in its own files; if Nuxt UI doesn't either, the DS adds them. | Phase 12 | R1 | Open |
 | DSR-07 | The scope of the photo rule "no text inside the image" for product packaging (C-10) | Phase 12 | R1 | Open |
 | DSR-08 | An order timeline | Phase 14 | R2 | Deferred (R2) |
@@ -543,6 +543,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-51 | 2026-10-25 | G27: can a refund be recorded after the order is `completed`, `expired` or `cancelled`? | Option A: the proposed resolution. The refund events are accepted from those three states as recorded payment events: an `order_event` row and the payment's `refunded_cents`, with the order state unchanged. ADR-0043. |
 | OA-52 | 2026-10-26 | Phase 9 task order: the tasks are listed in a valid order, but their numbers do not follow it (T9.9 runs third, T9.14 tenth) and earlier tasks mention later ones. Renumber, or add an execution-order note? | Option B: add the note, no renumbering. IDs keep their numbers. The note says the forward mentions are not dependencies. No ADR: cheap to reverse, spec text only. |
 | OA-61 | 2026-10-28 | Phase 11 task order: the tasks are listed in a valid, linear order, but their numbers do not follow it (T11.3 comes fourth, T11.1 sixth) and the phase has no execution-order note. Add one, or renumber? | Option A: add the note. Execution order: T11.4, T11.5, T11.6, T11.3, T11.7, T11.1, T11.2, T11.8 (phase-close); then, in R2, T11.9. IDs keep their numbers. The note flags that T11.6 waits for DSR-04 and DSR-05. No ADR: cheap to reverse, spec text only. |
+| OA-62 | 2026-10-31 | DS 1.1.0 resolves DSR-04 and DSR-05. When is the pin raised? | Option Y: a new task T11.5b, after T11.5 and before T11.6, which depends on it. The citations of the pin in the spec read 1.1.0. No ADR: cheap to reverse, spec text only. |
 
 ---
 
@@ -949,7 +950,7 @@ The admin form, the storefront filters and the API validation all read `attribut
 
 ### 4.5 Storefront and the Design System
 
-**Packages.** `web/` consumes the three DS packages at one exact version, currently `1.0.1` (A17):
+**Packages.** `web/` consumes the three DS packages at one exact version, currently `1.1.0` (A17):
 
 | Package | What the storefront uses | Where |
 |---|---|---|
@@ -3598,7 +3599,7 @@ Counter sales (A11): the admin page from T4.5, plus a `stock_ledger` filter by `
 
 **Execution order.** Task IDs do not follow the order of work. Run the tasks in the order they are listed below, which is also this one, and each depends on the one before it:
 
-- Sender and DS base: T11.4 → T11.5 → T11.6 (blocked until DSR-04 and DSR-05 are released; build them in the DS repository before starting T11.6)
+- Sender and DS base: T11.4 → T11.5 → T11.5b (raises the DS pin to 1.1.0, which holds DSR-04 and DSR-05) → T11.6
 - Templates: T11.3 → T11.7
 - Sending: T11.1 → T11.2 → T11.8 (phase-close)
 - R2, after R1: T11.9
@@ -3625,13 +3626,23 @@ A dedicated `noreply@` sender (`DEFAULT_FROM_EMAIL`, set in Phase 17) with a rea
 
 Sending goes through `providers.email_sender()`. In Part A, `EMAIL_PROVIDER=file` writes each email as `.html` and `.txt` to `EMAIL_FILE_DIR` (default `var/emails/`), and each attachment as `<same prefix>-<filename>` (§4.3). `EMAIL_MOCK_FAIL=1` forces send failures for testing the retry path (§4.3).
 
+- [ ] **T11.5b — Design System 1.1.0**
+  - Release: R1 · Gate: task
+  - REQs: REQ-050
+  - Verifies: [no-test: `nuxt typecheck` passes; the pin is checked by P12-V27 (T12.14)]
+  - Depends on: T11.5
+  - Context: §4.5 (Email)
+  - Open items: DSR-04, DSR-05 resolved by this task
+
+DS 1.1.0 adds the email rows component `rows.html` for order lines and totals (DSR-04) and the PNG logo `assets/logo-horizontal.png` (DSR-05), with no other change. Raise the three DS packages in `web/` to exactly `1.1.0` (A17). Refresh `pnpm-lock.yaml`. `nuxt typecheck` must pass. The vendored email HTML does not exist yet (T11.6 creates it), so there is nothing to refresh. The logo PNG is 232×72 px, shown at 116×36 px; the store hosts it at a public HTTPS address passed as `{{ logo_url }}`, so note in the report the stand-in address Part A uses and that the production address belongs to the Phase 22 launch checklist.
+
 - [ ] **T11.6 — Vendor the Design System email HTML**
   - Release: R1 · Gate: task
   - REQs: REQ-055
   - Verifies: P11-V12
-  - Depends on: T11.5, DSR-04 released, DSR-05 released
+  - Depends on: T11.5b
   - Context: §4.5 (Email); DS:email-components.md, DS:email-layouts.md
-  - Open items: DSR-04, DSR-05 (blocking)
+  - Open items: DSR-04, DSR-05 resolved by DS 1.1.0 (T11.5b)
   - Done when: the vendored files match the DS version pinned in `web/package.json`.
 
 Copy the compiled HTML of the pinned `@vinsmokemau/cup-noobles-email` version (its `dist/*.html`, including `reference.html`) into `api/apps/notifications/templates/email/ds/`, and write `ds-email-manifest.json` with the DS version and each file's sha256. A script, `scripts/vendor_ds_email.py`, does the copy from `web/node_modules`, so a DS upgrade task reruns it. The vendored files are never edited by hand.
@@ -5488,6 +5499,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.37 | 2026-10-26 | An order has at most one shipment: `shipment.order_id` is unique in `spec/schema.sql`, T10.1 and T10.11 say so. New gap G49: where `sync_shipments` records a carrier `EXCEPTION` for the daily digest. No Verify ID changes. | OA-60; ADR-0051 |
 | 1.38 | 2026-10-26 | New task T10.18 (after T10.1, before T10.11) makes the `Shipment` model and a migration match the unique `shipment_order_idx` of 1.37, with Verify ID P10-V27. It fixes `test_p2_v01_schema_matches_canonical_ddl`, red since 1.37. | Owner answer in chat, 2026-10-26; OA-60 |
 | 1.39 | 2026-10-28 | Phase 11 states its execution order under the deliverable (sender and DS base, templates, sending, then R2), flags that T11.6 waits for DSR-04 and DSR-05, and notes that the `cfdi_issued` row of T10.14 is sent and tested by T11.8. No task, Verify ID, dependency or schema change. | OA-61 |
+| 1.40 | 2026-10-31 | Design System pin raised to 1.1.0 (DS release with DSR-04 and DSR-05). New task T11.5b, after T11.5; T11.6 depends on it instead of on the open DSR items. DSR-04, DSR-05 and C-09 resolved. A17 and the pin citations read 1.1.0. No requirement, Verify ID or schema change. | OA-62 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5932,11 +5944,12 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | Item | Change | Reason |
 |---|---|---|
 | Phase 11 | Deliverable adds "built from the Design System email components"; R1 scope added | §4.5; OA-09 |
-| Tasks | Listed in execution order: T11.4, T11.5, T11.6, T11.3, T11.7, T11.1, T11.2, T11.8 (R1), then T11.9 (R2). `send_outbox` needs a sender and templates before it can be tested | Execution order |
+| Tasks | Listed in execution order: T11.4, T11.5, T11.5b, T11.6, T11.3, T11.7, T11.1, T11.2, T11.8 (R1), then T11.9 (R2). `send_outbox` needs a sender and templates before it can be tested | Execution order |
 | T11.1 | The outbox write helper moved to T4.6 (G2); this task sends; adds its `infra/crontab` line | G2; §4.8 |
 | T11.3 | Templates built on the vendored DS reference layout instead of "MJML or plain responsive HTML"; table gains a `Release` column and the `cfdi_issued` row; T3 and T15 triggers noted as R2 | §4.5; OA-09; A8 |
 | T11.4 | `Reply-To` comes from `EMAIL_REPLY_TO`; no test of its own (P11-V08 in T11.5) | §4.7 |
 | T11.5 | `FileEmailSender` also writes attachments | §4.3; REQ-060 |
+| T11.5b | New: raise the DS pin to 1.1.0, which resolves DSR-04 and DSR-05 | OA-62; §4.5 |
 | T11.6 | New: vendor the DS email HTML and `ds-email-manifest.json` | §4.5; REQ-055 |
 | T11.7 | New: plain-text counterparts; owns P11-V01, which needs the text part | §4.5; DS:email-layouts.md |
 | T11.8 | New: `cfdi_issued` with attachments; phase-close task | REQ-060 |
