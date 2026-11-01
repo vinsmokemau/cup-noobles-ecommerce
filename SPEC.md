@@ -3684,7 +3684,7 @@ Templates (Spanish, `es-MX`), each built on the vendored DS reference layout (§
 
 Every template has a `text/plain` part built from the same slot values as its HTML, following the DS reference layout's counterpart: the blocks in the order of the parts, a blank line between blocks, every link written as its label, a colon and the full address, the logo as its alt text, and no markup. It carries every slot of the HTML except `{{ logo_url }}`.
 
-- [ ] **T11.1 — Outbox sending**
+- [x] **T11.1 — Outbox sending** (2026-10-31, 9f372f7)
   - Release: R1 · Gate: task
   - REQs: REQ-022
   - Verifies: P11-V02, P11-V05, P11-V06, P11-V10
