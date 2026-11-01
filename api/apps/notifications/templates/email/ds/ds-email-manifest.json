@@ -1,0 +1,14 @@
+{
+  "package": "@vinsmokemau/cup-noobles-email",
+  "version": "1.1.0",
+  "files": {
+    "button.html": "6f3521d7154c14d4708bbffcd93205bac695918e4822d6851c9b1f19efc63855",
+    "card.html": "6d94710bf970ca9ecfd59ef7f808888a0586c5ec183bcf40ef9700a12c69cf95",
+    "content-section.html": "3aa8da962ce623263211bd3a8d2c15c3274a229822781376348676b148126778",
+    "divider.html": "0a1a753621e243e2f0d9c50a498d6c4c9d4856db256dfe760ef186d3a88f589d",
+    "footer.html": "f658ef0584c3ce3d30e3ed0fac7906ed7cfc05c2b408682c3a6019fcc7745830",
+    "header.html": "511c600836d8bc7806d8ebbecc001246bd741a2e5924b34c6c803ca37c335fc0",
+    "reference.html": "fe63c680fb9a40ae98698f81404c05fe7f4a668ab30c5d4ca40c052653803bdb",
+    "rows.html": "8779111ff5bb230990c7a7599469ad400708eba36bc080834d83e2578f710333"
+  }
+}

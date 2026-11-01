@@ -1,0 +1,2 @@
+# Vendored Design System email HTML: byte-exact, so the sha256 in the manifest holds on every checkout (T11.6).
+api/apps/notifications/templates/email/ds/* -text
