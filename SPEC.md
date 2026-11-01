@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.42 |
+| Spec version | 1.43 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -323,6 +323,7 @@ Each rule is binding. "Enforced by" names the check that fails when the rule is 
 | C-12 | Plan S5 wants a private repository with branch protection. On GitHub Free, branch protection is available only to public repositories (DS:OD-14). | The repository is public (OA-10), and CR-48 keeps internal data out | Resolved (OA-10) |
 | C-13 | DS rules ER-01 to ER-06 cite plan sections (§3.3, §6, Phases 11–12) that this spec renumbers | Appendix E keeps every old section findable. A DS amendment that updates those citations is optional. | Open (low) |
 | C-14 | Plan §0 uses commits like `feat(inventory): 4.3 …`. The DS `/task` skill commits `T0.1: <title>`. | This spec uses `T<id>: <title>` (§0.1 step 11), so the task skill is shared | Resolved (this spec) |
+| C-15 | T11.8 gives the `cfdi_issued` dedupe key as `f"{order.id}:cfdi_issued"`, but P11-V11 says the email is queued once per issued request, and T10.14 already builds `cfdi_issued:{request.pk}`. The schema lets an order have more than one invoice request, so the order-level key would drop the email of a second issued request. | The key is per request: `f"cfdi_issued:{request.pk}"`. T11.8 says so. | Resolved (OA-65; ADR-0054) |
 
 ### 2.3 Assumptions
 
@@ -546,6 +547,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-62 | 2026-10-31 | DS 1.1.0 resolves DSR-04 and DSR-05. When is the pin raised? | Option Y: a new task T11.5b, after T11.5 and before T11.6, which depends on it. The citations of the pin in the spec read 1.1.0. No ADR: cheap to reverse, spec text only. |
 | OA-63 | 2026-10-31 | T11.5: the file sender names its files with the outbox id (§4.3), but `OutgoingEmail` carries no outbox id. How does the sender learn it? | Option A: `OutgoingEmail` gets an optional `outbox_id: int \| None = None`. `send_outbox` (T11.1) sets it from the row; `FileEmailSender` uses it in the file name, and a short random token when it is `None`; Resend and SES ignore it or send it as a tag. ADR-0052. |
 | OA-64 | 2026-10-31 | G17: `send_outbox` does not claim rows, so two overlapping runs can send one email twice. How is it fixed? | Option A: the proposed resolution. Each row is claimed with `SELECT … FOR UPDATE SKIP LOCKED` for the length of its attempt, so a row another run holds is skipped. P11-V10 loses its `xfail`. ADR-0053. |
+| OA-65 | 2026-11-01 | C-15: T11.8 says the `cfdi_issued` dedupe key is `f"{order.id}:cfdi_issued"`; P11-V11 says one email per issued request, and T10.14 built `cfdi_issued:{request.pk}`. Which key? | Option A: the per-request key `f"cfdi_issued:{request.pk}"`, as built in T10.14. The T11.8 text is amended to match. No code change. ADR-0054. |
 
 ---
 
@@ -3710,7 +3712,7 @@ Outbox pattern: business code writes an `email_outbox` row inside the same trans
   - Depends on: T11.2
   - Context: §4.3 (`Attachment`); §4.4 (Invoicing tables); T10.14
 
-The `cfdi_issued` email names the order number and attaches the request's PDF and XML from `invoice_document`, as `Attachment` values on `OutgoingEmail` (§4.3). The outbox row carries the invoice request's id in its context, and `send_outbox` loads the documents at send time, so the files are never copied into the outbox. Its dedupe key is `f"{order.id}:cfdi_issued"`.
+The `cfdi_issued` email names the order number and attaches the request's PDF and XML from `invoice_document`, as `Attachment` values on `OutgoingEmail` (§4.3). The outbox row carries the invoice request's id in its context, and `send_outbox` loads the documents at send time, so the files are never copied into the outbox. Its dedupe key is `f"cfdi_issued:{request.pk}"`, one email per issued request (C-15, ADR-0054); an order can have more than one request, so the order-level key of `{order.id}:{template}` (T11.2) does not apply here.
 
 - [ ] **T11.9 — Release 2 templates**
   - Release: R2 · Gate: —
@@ -5504,6 +5506,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.40 | 2026-10-31 | Design System pin raised to 1.1.0 (DS release with DSR-04 and DSR-05). New task T11.5b, after T11.5; T11.6 depends on it instead of on the open DSR items. DSR-04, DSR-05 and C-09 resolved. A17 and the pin citations read 1.1.0. No requirement, Verify ID or schema change. | OA-62 |
 | 1.41 | 2026-10-31 | `OutgoingEmail` (§4.3) gets an optional `outbox_id`, so the file sender can name its files `<ts>-<template>-<outbox id>`; the §4.3 Email boundary row, P11-V08 and T11.1 say so. No task, dependency or schema change. | OA-63; ADR-0052 |
 | 1.42 | 2026-10-31 | G17 resolved as proposed: `send_outbox` claims each row with `SELECT … FOR UPDATE SKIP LOCKED`. T11.1 loses its open item; the ⚠️ marks of P11-V10 and REQ-022 are removed; §4.8 and §7.2 follow. No Verify ID, task or schema change. | OA-64; ADR-0053 |
+| 1.43 | 2026-11-01 | C-15 registered and resolved: the `cfdi_issued` dedupe key is per invoice request (`cfdi_issued:{request.pk}`), as T10.14 built it. The T11.8 text says so. No Verify ID, task, schema or code change. | OA-65; ADR-0054 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5606,6 +5609,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0051 | An order has at most one shipment | `docs/decisions/0051-one-shipment-per-order.md` | OA-60 |
 | ADR-0052 | `OutgoingEmail` carries the outbox id | `docs/decisions/0052-outgoing-email-outbox-id.md` | OA-63 |
 | ADR-0053 | `send_outbox` claims rows with `SKIP LOCKED` | `docs/decisions/0053-send-outbox-claims-rows.md` | G17; OA-64 |
+| ADR-0054 | The `cfdi_issued` dedupe key is per invoice request | `docs/decisions/0054-cfdi-dedupe-key-per-request.md` | C-15; OA-65 |
 
 ## Appendix C — Dated market facts
 
