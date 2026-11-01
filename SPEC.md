@@ -3694,7 +3694,7 @@ Every template has a `text/plain` part built from the same slot values as its HT
 
 Outbox pattern: business code writes an `email_outbox` row inside the same transaction as the state change, through `enqueue_email()` (T4.6, G2). `manage.py send_outbox` (every minute; add its line to `infra/crontab`, §4.8) renders and sends pending rows, claiming each with `SELECT … FOR UPDATE SKIP LOCKED` so overlapping runs never send one twice (G17, ADR-0053) (setting `OutgoingEmail.outbox_id` to the row's id, ADR-0052), sets `sent_at`, and increments `attempts` with exponential backoff on failure. Give up after 6 attempts and alert.
 
-- [ ] **T11.2 — Deduplication**
+- [x] **T11.2 — Deduplication** (2026-11-01, 7d143ec)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P11-V03, P11-V07
