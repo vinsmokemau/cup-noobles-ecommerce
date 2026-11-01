@@ -16,7 +16,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.core import providers
-from apps.notifications.email.base import OutgoingEmail
+from apps.invoicing.models import InvoiceDocument
+from apps.notifications.email.base import Attachment, OutgoingEmail
 from apps.notifications.models import EmailOutbox
 from apps.notifications.rendering import render_email
 
@@ -65,9 +66,41 @@ def _attempt(pk: int, now: datetime) -> bool | None:
         return _send_row(row)
 
 
+_CONTENT_TYPES = {
+    InvoiceDocument.Kind.PDF: "application/pdf",
+    InvoiceDocument.Kind.XML: "application/xml",
+}
+
+
+def _attachments(row: EmailOutbox) -> tuple[Attachment, ...]:
+    """The CFDI files of the invoice request named in the row's context, read now and never copied
+    into the outbox (REQ-060). A row without `invoice_request_id` has none; a request missing its
+    PDF or XML raises, so the row stays pending."""
+    request_id = row.context.get("invoice_request_id")
+    if request_id is None:
+        return ()
+    documents = {
+        d.kind: d for d in InvoiceDocument.objects.filter(invoice_request_id=request_id)
+    }
+    missing = {k.value for k in _CONTENT_TYPES} - documents.keys()
+    if missing:
+        raise ValueError(
+            f"Invoice request {request_id} has no {', '.join(sorted(missing))} document"
+        )
+    return tuple(
+        Attachment(
+            filename=documents[kind].filename,
+            content_type=content_type,
+            content=bytes(documents[kind].content),
+        )
+        for kind, content_type in _CONTENT_TYPES.items()
+    )
+
+
 def _send_row(row: EmailOutbox) -> bool:
     try:
         rendered = render_email(row.template, row.context, row.order)
+        attachments = _attachments(row)
         providers.email_sender().send(
             OutgoingEmail(
                 to=row.to_email,
@@ -76,6 +109,7 @@ def _send_row(row: EmailOutbox) -> bool:
                 text=rendered.text,
                 template=row.template,
                 reply_to=settings.EMAIL_REPLY_TO,
+                attachments=attachments,
                 outbox_id=row.pk,
             )
         )

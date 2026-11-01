@@ -100,3 +100,45 @@ def template_context():
         return context, order
 
     return build
+
+
+@dataclass
+class SentEmail:
+    prefix: str
+    html: str
+    text: str
+    attachments: dict[str, bytes]
+
+
+class Mailbox:
+    """The emails `FileEmailSender` wrote to `EMAIL_FILE_DIR`, with their attachments."""
+
+    def __init__(self, folder: Path):
+        self.folder = folder
+
+    def messages(self) -> list[SentEmail]:
+        if not self.folder.exists():
+            return []
+        found = []
+        for html in sorted(self.folder.glob("*.html")):
+            prefix = html.stem
+            attachments = {
+                p.name[len(prefix) + 1 :]: p.read_bytes()
+                for p in sorted(self.folder.iterdir())
+                if p.name.startswith(f"{prefix}-")
+            }
+            found.append(
+                SentEmail(
+                    prefix,
+                    html.read_text(encoding="utf-8"),
+                    html.with_suffix(".txt").read_text(encoding="utf-8"),
+                    attachments,
+                )
+            )
+        return found
+
+
+@pytest.fixture
+def mailbox(settings) -> Mailbox:
+    """`mailbox.messages()` parses the files in `EMAIL_FILE_DIR` into messages."""
+    return Mailbox(Path(settings.EMAIL_FILE_DIR))

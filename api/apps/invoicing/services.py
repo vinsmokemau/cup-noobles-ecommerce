@@ -79,7 +79,11 @@ def record_cfdi(
             enqueue_email(
                 request.order.email,
                 "cfdi_issued",
-                {"order_number": request.order.number, "folio": folio},
+                {
+                    "order_number": request.order.number,
+                    "folio": folio,
+                    "invoice_request_id": request.pk,
+                },
                 order=request.order,
                 dedupe_key=f"cfdi_issued:{request.pk}",
             )
