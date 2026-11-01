@@ -3835,7 +3835,7 @@ The scan runs early so every later task is checked as it goes.
 
 Every request in the app goes through this. No bare `$fetch` calls anywhere else (CR-29).
 
-- [ ] **T12.11 — Lint rule for `$fetch`**
+- [x] **T12.11 — Lint rule for `$fetch`** (2026-11-01, 352f385)
   - Release: R1 · Gate: task
   - REQs: REQ-054
   - Verifies: P12-V24
