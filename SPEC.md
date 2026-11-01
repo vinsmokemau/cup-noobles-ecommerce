@@ -3844,7 +3844,7 @@ Every request in the app goes through this. No bare `$fetch` calls anywhere else
 
 ESLint `no-restricted-syntax` rule: a call to `$fetch` anywhere except `app/composables/useApi.ts` is an error. This enforces the T12.2 rule mechanically.
 
-- [ ] **T12.6 — Money formatting**
+- [x] **T12.6 — Money formatting** (2026-11-01, db1d6fa)
   - Release: R1 · Gate: task
   - REQs: REQ-001, REQ-052
   - Verifies: P12-V09
