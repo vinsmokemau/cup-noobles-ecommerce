@@ -56,3 +56,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0049](0049-cart-converted-at-checkout.md) | A cart is converted at checkout (T1), in the order's transaction | accepted | G22; OA-58 |
 | [ADR-0050](0050-reservation-never-before-payment-deadline.md) | A reservation never expires before its order's payment deadline | accepted | G48; OA-59 |
 | [ADR-0051](0051-one-shipment-per-order.md) | An order has at most one shipment | accepted | OA-60 |
+| [ADR-0052](0052-outgoing-email-outbox-id.md) | `OutgoingEmail` carries the outbox id | accepted | OA-63 |

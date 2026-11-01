@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.40 |
+| Spec version | 1.41 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -544,6 +544,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-52 | 2026-10-26 | Phase 9 task order: the tasks are listed in a valid order, but their numbers do not follow it (T9.9 runs third, T9.14 tenth) and earlier tasks mention later ones. Renumber, or add an execution-order note? | Option B: add the note, no renumbering. IDs keep their numbers. The note says the forward mentions are not dependencies. No ADR: cheap to reverse, spec text only. |
 | OA-61 | 2026-10-28 | Phase 11 task order: the tasks are listed in a valid, linear order, but their numbers do not follow it (T11.3 comes fourth, T11.1 sixth) and the phase has no execution-order note. Add one, or renumber? | Option A: add the note. Execution order: T11.4, T11.5, T11.6, T11.3, T11.7, T11.1, T11.2, T11.8 (phase-close); then, in R2, T11.9. IDs keep their numbers. The note flags that T11.6 waits for DSR-04 and DSR-05. No ADR: cheap to reverse, spec text only. |
 | OA-62 | 2026-10-31 | DS 1.1.0 resolves DSR-04 and DSR-05. When is the pin raised? | Option Y: a new task T11.5b, after T11.5 and before T11.6, which depends on it. The citations of the pin in the spec read 1.1.0. No ADR: cheap to reverse, spec text only. |
+| OA-63 | 2026-10-31 | T11.5: the file sender names its files with the outbox id (§4.3), but `OutgoingEmail` carries no outbox id. How does the sender learn it? | Option A: `OutgoingEmail` gets an optional `outbox_id: int \| None = None`. `send_outbox` (T11.1) sets it from the row; `FileEmailSender` uses it in the file name, and a short random token when it is `None`; Resend and SES ignore it or send it as a tag. ADR-0052. |
 
 ---
 
@@ -779,6 +780,7 @@ class OutgoingEmail:
     template: str
     reply_to: str | None = None
     attachments: tuple[Attachment, ...] = ()   # the CFDI PDF and XML (REQ-060)
+    outbox_id: int | None = None               # the `email_outbox` row; names the file in Part A (ADR-0052)
 
 class EmailSendError(Exception): ...
 
@@ -872,7 +874,7 @@ A pytest fixture, `use_provider(setting, value)`, applies `override_settings` an
 |---|---|---|---|---|
 | Payments | `PAYMENT_PROVIDER=mock\|mercadopago` | `apps/payments/mock.py` → `MockPaymentProvider` | `apps/payments/mercadopago.py` (Phase 16) | A local simulator page (9.10). HMAC-signed notifications, signed with `MOCK_PAYMENT_WEBHOOK_SECRET`, delivered to the real endpoint `/api/webhooks/payments/mock/`. State in a JSON store under `MOCK_STORE_DIR`. Full specification: 9.9–9.13. |
 | Carrier | `CARRIER_PROVIDER=mock\|manual` | `apps/shipping/carriers/mock.py` → `MockCarrier` | `apps/shipping/carriers/manual.py` (Phase 19): staff enter the tracking number; the URL comes from a per-carrier template. No carrier API (A7). | Deterministic tracking numbers `MOCK-<order number>-<n>`; `tracking_url` points at a local dev-only page. `get_status` returns whatever the tracking page or `mock_carrier advance` last set. Full specification: 10.9–10.13. |
-| Email | `EMAIL_PROVIDER=file\|resend\|ses` | `apps/notifications/email/file.py` → `FileEmailSender` | `resend.py` or `ses.py` in the same package (Phase 17) | Writes `<EMAIL_FILE_DIR>/<YYYYmmdd-HHMMSS>-<template>-<outbox id>.html`, a matching `.txt`, and each attachment as `<same prefix>-<filename>`. `EMAIL_FILE_DIR` defaults to `var/emails/`. `EMAIL_MOCK_FAIL=1` makes every send raise `EmailSendError`, for testing outbox retries. |
+| Email | `EMAIL_PROVIDER=file\|resend\|ses` | `apps/notifications/email/file.py` → `FileEmailSender` | `resend.py` or `ses.py` in the same package (Phase 17) | Writes `<EMAIL_FILE_DIR>/<YYYYmmdd-HHMMSS>-<template>-<outbox id>.html` (`outbox id` is `OutgoingEmail.outbox_id`, or a short random token when it is `None`), a matching `.txt`, and each attachment as `<same prefix>-<filename>`. `EMAIL_FILE_DIR` defaults to `var/emails/`. `EMAIL_MOCK_FAIL=1` makes every send raise `EmailSendError`, for testing outbox retries. |
 | Media storage | `MEDIA_STORAGE=local\|s3` | Django `FileSystemStorage`, `MEDIA_ROOT=var/media/`, served at `/media/` by Django in `DEBUG` | `django-storages` S3 backend against Lightsail Object Storage (Phase 18) | Plain files on disk. The backend is named as a dotted string in `STORAGES`, so `storages` and `boto3` are never imported by app code. `@nuxt/image` uses the `none` provider in Part A and the CDN provider from 18.3. CFDI documents never go here (§4.4). |
 | Postal codes | `POSTAL_CODE_DATASET=sample\|sepomex` (read by `manage.py load_postal_codes`) | `api/fixtures/mx_postal_codes_sample.csv`: about 40 postal codes across at least 6 states (CMX, MEX, JAL, NLE, YUC, PUE), including every one the test suite uses (06700, 97000) | The full SEPOMEX dataset from a manually downloaded file path; the loader never makes a network call (G30) | The runtime lookup is always `DbPostalCodeLookup` reading `mx_postal_code`; only the loaded data differs. The sample file is headed `SAMPLE — not authoritative`. Colonia names need not be exact, but each code's `state_code` must be correct, because the shipping zone depends on it. |
 | Error tracking | `ERROR_TRACKING=off\|sentry` (api), `NUXT_PUBLIC_ERROR_TRACKING=off\|sentry` (web) | `apps/core/errors/null.py` → `NullErrorReporter`, which logs to stdout. Web: no Sentry module registered. | `apps/core/errors/sentry.py` (Phase 21). Web: `@sentry/nuxt` registered in `nuxt.config.ts` only when the value is `sentry`. | Logs the exception and its context at ERROR. It never initialises an SDK or opens a socket. |
@@ -3690,7 +3692,7 @@ Every template has a `text/plain` part built from the same slot values as its HT
   - Context: §4.8; T4.6
   - Open items: G17 (tests xfail until decided)
 
-Outbox pattern: business code writes an `email_outbox` row inside the same transaction as the state change, through `enqueue_email()` (T4.6, G2). `manage.py send_outbox` (every minute; add its line to `infra/crontab`, §4.8) renders and sends pending rows, sets `sent_at`, and increments `attempts` with exponential backoff on failure. Give up after 6 attempts and alert.
+Outbox pattern: business code writes an `email_outbox` row inside the same transaction as the state change, through `enqueue_email()` (T4.6, G2). `manage.py send_outbox` (every minute; add its line to `infra/crontab`, §4.8) renders and sends pending rows (setting `OutgoingEmail.outbox_id` to the row's id, ADR-0052), sets `sent_at`, and increments `attempts` with exponential backoff on failure. Give up after 6 attempts and alert.
 
 - [ ] **T11.2 — Deduplication**
   - Release: R1 · Gate: task
@@ -3739,7 +3741,7 @@ The R2 rows of the T11.3 table: `verify_email`, `password_reset`, `preorder_arri
 | P11-V05 | integration | `api/tests/integration/notifications/test_outbox.py::test_p11_v05_backoff_and_give_up` | Retry delays grow exponentially; after the 6th failure there are no more attempts and `error_reporter().capture_message` is called. |
 | P11-V06 | integration | `api/tests/integration/notifications/test_outbox.py::test_p11_v06_outbox_rolls_back_with_transaction` | A state change whose transaction rolls back leaves no outbox row. |
 | P11-V07 | integration | `api/tests/integration/notifications/test_outbox.py::test_p11_v07_dedupe_key_unique` | Enqueuing the same `dedupe_key` twice leaves one row, and the caller sees no exception. |
-| P11-V08 | unit | `api/tests/unit/notifications/test_file_sender.py::test_p11_v08_file_names_and_reply_to` | Files are named `<ts>-<template>-<outbox id>.html` and `.txt`; `OutgoingEmail.reply_to` is `EMAIL_REPLY_TO` (§4.7). |
+| P11-V08 | unit | `api/tests/unit/notifications/test_file_sender.py::test_p11_v08_file_names_and_reply_to` | A message with `outbox_id=42` is written as `<ts>-<template>-42.html` and `.txt` (exact name asserted); with `outbox_id=None` the last part is a short random token; `OutgoingEmail.reply_to` is `EMAIL_REPLY_TO` (§4.7). |
 | P11-V09 | integration | `api/tests/integration/notifications/test_triggers.py::test_p11_v09_each_trigger_queues_its_template[trigger]` | Every R1 trigger in the T11.3 table queues exactly its template: T2, pending OXXO, T5, T10, T6/T16, and T17/T18. (`cfdi_issued` is P11-V11.) |
 | P11-V10 | concurrency | `api/tests/concurrency/test_outbox.py::test_p11_v10_overlapping_send_outbox_runs` | Two overlapping `send_outbox` runs send every row exactly once. ⚠️ G17 |
 
@@ -5500,6 +5502,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.38 | 2026-10-26 | New task T10.18 (after T10.1, before T10.11) makes the `Shipment` model and a migration match the unique `shipment_order_idx` of 1.37, with Verify ID P10-V27. It fixes `test_p2_v01_schema_matches_canonical_ddl`, red since 1.37. | Owner answer in chat, 2026-10-26; OA-60 |
 | 1.39 | 2026-10-28 | Phase 11 states its execution order under the deliverable (sender and DS base, templates, sending, then R2), flags that T11.6 waits for DSR-04 and DSR-05, and notes that the `cfdi_issued` row of T10.14 is sent and tested by T11.8. No task, Verify ID, dependency or schema change. | OA-61 |
 | 1.40 | 2026-10-31 | Design System pin raised to 1.1.0 (DS release with DSR-04 and DSR-05). New task T11.5b, after T11.5; T11.6 depends on it instead of on the open DSR items. DSR-04, DSR-05 and C-09 resolved. A17 and the pin citations read 1.1.0. No requirement, Verify ID or schema change. | OA-62 |
+| 1.41 | 2026-10-31 | `OutgoingEmail` (§4.3) gets an optional `outbox_id`, so the file sender can name its files `<ts>-<template>-<outbox id>`; the §4.3 Email boundary row, P11-V08 and T11.1 say so. No task, dependency or schema change. | OA-63; ADR-0052 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5600,6 +5603,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0049 | A cart is converted at checkout (T1), in the order's transaction | `docs/decisions/0049-cart-converted-at-checkout.md` | G22; OA-58 |
 | ADR-0050 | A reservation never expires before its order's payment deadline | `docs/decisions/0050-reservation-never-before-payment-deadline.md` | G48; OA-59 |
 | ADR-0051 | An order has at most one shipment | `docs/decisions/0051-one-shipment-per-order.md` | OA-60 |
+| ADR-0052 | `OutgoingEmail` carries the outbox id | `docs/decisions/0052-outgoing-email-outbox-id.md` | OA-63 |
 
 ## Appendix C — Dated market facts
 
