@@ -3628,7 +3628,7 @@ A dedicated `noreply@` sender (`DEFAULT_FROM_EMAIL`, set in Phase 17) with a rea
 
 Sending goes through `providers.email_sender()`. In Part A, `EMAIL_PROVIDER=file` writes each email as `.html` and `.txt` to `EMAIL_FILE_DIR` (default `var/emails/`), and each attachment as `<same prefix>-<filename>` (§4.3). `EMAIL_MOCK_FAIL=1` forces send failures for testing the retry path (§4.3).
 
-- [ ] **T11.5b — Design System 1.1.0**
+- [x] **T11.5b — Design System 1.1.0** (2026-10-31, 73a9b6a)
   - Release: R1 · Gate: task
   - REQs: REQ-050
   - Verifies: [no-test: `nuxt typecheck` passes; the pin is checked by P12-V27 (T12.14)]
