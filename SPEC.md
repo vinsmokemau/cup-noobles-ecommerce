@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.44 |
+| Spec version | 1.45 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -549,6 +549,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-64 | 2026-10-31 | G17: `send_outbox` does not claim rows, so two overlapping runs can send one email twice. How is it fixed? | Option A: the proposed resolution. Each row is claimed with `SELECT … FOR UPDATE SKIP LOCKED` for the length of its attempt, so a row another run holds is skipped. P11-V10 loses its `xfail`. ADR-0053. |
 | OA-65 | 2026-11-01 | C-15: T11.8 says the `cfdi_issued` dedupe key is `f"{order.id}:cfdi_issued"`; P11-V11 says one email per issued request, and T10.14 built `cfdi_issued:{request.pk}`. Which key? | Option A: the per-request key `f"cfdi_issued:{request.pk}"`, as built in T10.14. The T11.8 text is amended to match. No code change. ADR-0054. |
 | OA-66 | 2026-11-01 | Phase 12 task order: the tasks are listed in a valid, linear order, but their numbers do not follow it (T12.16 comes eighth, T12.12 last) and the phase has no execution-order note. Add one, or renumber? | Option A: add the note. Execution order: T12.1, T12.14, T12.2, T12.11, T12.6, T12.4, T12.5, T12.16, T12.10, T12.13, T12.7, T12.8, T12.9, T12.15, T12.12 (phase-close); then, in R2, T12.3 and T12.17. IDs keep their numbers. The note flags that T12.4 waits for DSR-01, DSR-02 and DSR-03. No ADR: cheap to reverse, spec text only. |
+| OA-67 | 2026-11-01 | T12.1 builds the G18 server-side route with a server-only target read from `NUXT_API_SERVER_TARGET`. Should §4.7 list it? | Yes: add the row to the §4.7 Core table. G18 itself stays open. No ADR: cheap to reverse, spec text only. |
 
 ---
 
@@ -1131,6 +1132,7 @@ Coverage never decreases (CR-44). `coverage-baseline.json` records each scope's 
 | `SITE_URL` | api | `http://localhost:8080` | The public URL | Used in emails, `back_urls` and mock URLs |
 | `SITE_ADDRESS` | proxy | `:8080` | The domain | Caddy site block |
 | `NUXT_PUBLIC_API_BASE` | web | `/api` | `/api` | See G18 for the SSR path |
+| `NUXT_API_SERVER_TARGET` | web | `http://api:8000` | The API container's address on the production network, set by the deploy (Phase 20) | Server-only target of the Nitro `routeRules` proxy for `/api/**` (G18). Read at build time, never exposed to the browser. Optional: the Part A value is the default. |
 | `OWNER_ALERT_EMAIL` | api | `owner@cupnoobles.test` | The owner's monitored inbox; no default, so `prod.py` fails to start without it | Recipient of `low_stock_report` and `daily_digest` (G38) |
 | `EMAIL_REPLY_TO` | api | `tienda@cupnoobles.test` | The monitored inbox on the domain (S3) | The `Reply-To` of every email (11.4) |
 
@@ -5517,6 +5519,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.42 | 2026-10-31 | G17 resolved as proposed: `send_outbox` claims each row with `SELECT … FOR UPDATE SKIP LOCKED`. T11.1 loses its open item; the ⚠️ marks of P11-V10 and REQ-022 are removed; §4.8 and §7.2 follow. No Verify ID, task or schema change. | OA-64; ADR-0053 |
 | 1.43 | 2026-11-01 | C-15 registered and resolved: the `cfdi_issued` dedupe key is per invoice request (`cfdi_issued:{request.pk}`), as T10.14 built it. The T11.8 text says so. No Verify ID, task, schema or code change. | OA-65; ADR-0054 |
 | 1.44 | 2026-11-01 | Phase 12 states its execution order under the release scope (foundation, catalog, pages, then R2), flags that T12.4 waits for DSR-01, DSR-02 and DSR-03, and that T12.7 and T12.8 can run in either order. No task, Verify ID, dependency or schema change. | OA-66 |
+| 1.45 | 2026-11-01 | §4.7 lists `NUXT_API_SERVER_TARGET` (web), the server-only API target of the G18 proxy rule that T12.1 built. G18 stays open. No task, Verify ID, dependency or schema change. | OA-67 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
