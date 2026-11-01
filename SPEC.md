@@ -3705,7 +3705,7 @@ Outbox pattern: business code writes an `email_outbox` row inside the same trans
 
 `dedupe_key` prevents duplicates when a webhook is delivered twice: `f"{order.id}:{template}"`. The partial unique index enforces it in the database.
 
-- [ ] **T11.8 — CFDI email**
+- [x] **T11.8 — CFDI email** (2026-11-01, b1c9e7e)
   - Release: R1 · Gate: phase-close
   - REQs: REQ-060
   - Verifies: P11-V11
