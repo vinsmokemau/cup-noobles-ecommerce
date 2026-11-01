@@ -3638,7 +3638,7 @@ Sending goes through `providers.email_sender()`. In Part A, `EMAIL_PROVIDER=file
 
 DS 1.1.0 adds the email rows component `rows.html` for order lines and totals (DSR-04) and the PNG logo `assets/logo-horizontal.png` (DSR-05), with no other change. Raise the three DS packages in `web/` to exactly `1.1.0` (A17). Refresh `pnpm-lock.yaml`. `nuxt typecheck` must pass. The vendored email HTML does not exist yet (T11.6 creates it), so there is nothing to refresh. The logo PNG is 232×72 px, shown at 116×36 px; the store hosts it at a public HTTPS address passed as `{{ logo_url }}`, so note in the report the stand-in address Part A uses and that the production address belongs to the Phase 22 launch checklist.
 
-- [ ] **T11.6 — Vendor the Design System email HTML**
+- [x] **T11.6 — Vendor the Design System email HTML** (2026-10-31, b9d0302)
   - Release: R1 · Gate: task
   - REQs: REQ-055
   - Verifies: P11-V12
