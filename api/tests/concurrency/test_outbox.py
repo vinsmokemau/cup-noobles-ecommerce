@@ -8,19 +8,18 @@ from apps.notifications.models import EmailOutbox
 from apps.notifications.outbox import enqueue_email
 from apps.notifications.sending import send_pending
 from tests.concurrency import run_concurrently  # type: ignore[attr-defined]  # tests/concurrency/ is also a directory
-from tests.factories.orders import OrderFactory
+from tests.factories.orders import STAND_IN_ADDRESS, OrderFactory
 
 pytestmark = [pytest.mark.concurrency, pytest.mark.django_db(transaction=True)]
 
 
-@pytest.mark.xfail(strict=True, reason="G17")
 def test_p11_v10_overlapping_send_outbox_runs(monkeypatch):
     for _ in range(3):
         enqueue_email(
             "cliente@example.test",
             "order_expired",
             {},
-            order=OrderFactory(state="expired"),
+            order=OrderFactory(state="paid", shipping_address=STAND_IN_ADDRESS),
         )
     sent_ids = []
 

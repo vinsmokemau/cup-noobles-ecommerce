@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.41 |
+| Spec version | 1.42 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -412,7 +412,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G14 | 9 | P9-V14 | A webhook and `reconcile_payments` processing one approval concurrently: the second `apply_event` raises `IllegalTransition` under the lock | Treat it as `webhook_no_op` when the order already reflects the status | R1 | Resolved (ADR-0047) |
 | G15 | 4 | P4-V16 | `commit_reservations` is not specified as idempotent | A second commit of committed reservations is a no-op | R1 | Resolved (ADR-0036) |
 | G16 | 10 | P10-V21 | T9 into `ready_for_pickup` doesn't set `pickup_deadline_at` | T9 sets it | R2 | Deferred (R2) |
-| G17 | 11 | P11-V10 | `send_outbox` doesn't claim rows; an overlapping run can send an email twice | Claim rows with `SELECT … FOR UPDATE SKIP LOCKED` | R1 | Open |
+| G17 | 11 | P11-V10 | `send_outbox` doesn't claim rows; an overlapping run can send an email twice | Claim rows with `SELECT … FOR UPDATE SKIP LOCKED` | R1 | Resolved (ADR-0053) |
 | G18 | 12 | P12-V01, P12-V22, P12-V25 | `nitro.devProxy` exists only in development, so a production build has no route from server rendering to Django | Nitro `routeRules` proxy `/api/**` to a server-only API target | R1 | Open |
 | G19 | 12 | P12-V09 | `$1,234.00 MXN` (12.4) against the `Intl` output (12.6) | Decided by DS:formatting.md (C-08, CR-30) | R1 | Decided; ADR in T1.15 |
 | G20 | 10 | P15-V05, demo step 9 | Receiving goods has no admin page, but it is daily work (GE:T30, GE:T35, GE:§5.2) | A "Recibir mercancía" admin action (variant, location, quantity) calling `receive_stock` in R1, and `receive_preorder_stock` for pre-order variants in R2 | R1 | Resolved (ADR-0035) |
@@ -545,6 +545,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-61 | 2026-10-28 | Phase 11 task order: the tasks are listed in a valid, linear order, but their numbers do not follow it (T11.3 comes fourth, T11.1 sixth) and the phase has no execution-order note. Add one, or renumber? | Option A: add the note. Execution order: T11.4, T11.5, T11.6, T11.3, T11.7, T11.1, T11.2, T11.8 (phase-close); then, in R2, T11.9. IDs keep their numbers. The note flags that T11.6 waits for DSR-04 and DSR-05. No ADR: cheap to reverse, spec text only. |
 | OA-62 | 2026-10-31 | DS 1.1.0 resolves DSR-04 and DSR-05. When is the pin raised? | Option Y: a new task T11.5b, after T11.5 and before T11.6, which depends on it. The citations of the pin in the spec read 1.1.0. No ADR: cheap to reverse, spec text only. |
 | OA-63 | 2026-10-31 | T11.5: the file sender names its files with the outbox id (§4.3), but `OutgoingEmail` carries no outbox id. How does the sender learn it? | Option A: `OutgoingEmail` gets an optional `outbox_id: int \| None = None`. `send_outbox` (T11.1) sets it from the row; `FileEmailSender` uses it in the file name, and a short random token when it is `None`; Resend and SES ignore it or send it as a tag. ADR-0052. |
+| OA-64 | 2026-10-31 | G17: `send_outbox` does not claim rows, so two overlapping runs can send one email twice. How is it fixed? | Option A: the proposed resolution. Each row is claimed with `SELECT … FOR UPDATE SKIP LOCKED` for the length of its attempt, so a row another run holds is skipped. P11-V10 loses its `xfail`. ADR-0053. |
 
 ---
 
@@ -576,7 +577,7 @@ The acceptance criteria of a requirement are Verify IDs. The assertion text live
 |---|---|---|---|---|
 | REQ-020 | Every order state change goes through `apply_event` under a row lock and writes exactly one `order_event`. Anything outside the 8.A table is rejected. | CR-09, CR-10 | P1-V05 · P8-V01 · P8-V02 · P8-V05 · P8-V07 · P8-V15 | R1 |
 | REQ-021 | Checkout is atomic and safe to repeat: one request, or many identical ones, creates at most one order and one set of reservations. | — | P8-V03 · P8-V08 · P8-V10 · P8-V18 · P9-V23 · P13-V02 · P13-V21 · P15-V08 | R1 |
-| REQ-022 | Every scheduled job is idempotent and safe to run concurrently with itself and with webhook processing. | §4.8 | P4-V05 · P8-V14 · P9-V14 · P10-V19 · P11-V10 ⚠️G17 | R1 |
+| REQ-022 | Every scheduled job is idempotent and safe to run concurrently with itself and with webhook processing. | §4.8 | P4-V05 · P8-V14 · P9-V14 · P10-V19 · P11-V10 | R1 |
 
 ### 3.4 Payments
 
@@ -1192,7 +1193,7 @@ The pre-launch switch (G32, ADR-0038) is not an environment variable: it is the 
 
 ### 4.8 Scheduled jobs
 
-All jobs are Django management commands. Every one must be idempotent and safe to run concurrently with itself (REQ-022); `send_outbox` doesn't meet that until G17 is resolved.
+All jobs are Django management commands. Every one must be idempotent and safe to run concurrently with itself (REQ-022). `send_outbox` claims each row with `SELECT … FOR UPDATE SKIP LOCKED` (G17, ADR-0053).
 
 - **Part A.** A `scheduler` service in `docker-compose.yml`, built from the `api` image, runs `supercronic infra/crontab`. The crontab is the single source for the table below. `docker-compose.e2e.yml` disables the scheduler, so E2E journeys drive time-dependent jobs through the command runner (15.3). The test suite calls the commands directly and never relies on the scheduler. `mock-webhooks` (9.11) is a separate dev service, not a job.
 - **Part B.** The same `infra/crontab`. The production topology has no scheduler yet (G23).
@@ -3690,9 +3691,8 @@ Every template has a `text/plain` part built from the same slot values as its HT
   - Verifies: P11-V02, P11-V05, P11-V06, P11-V10
   - Depends on: T11.7
   - Context: §4.8; T4.6
-  - Open items: G17 (tests xfail until decided)
 
-Outbox pattern: business code writes an `email_outbox` row inside the same transaction as the state change, through `enqueue_email()` (T4.6, G2). `manage.py send_outbox` (every minute; add its line to `infra/crontab`, §4.8) renders and sends pending rows (setting `OutgoingEmail.outbox_id` to the row's id, ADR-0052), sets `sent_at`, and increments `attempts` with exponential backoff on failure. Give up after 6 attempts and alert.
+Outbox pattern: business code writes an `email_outbox` row inside the same transaction as the state change, through `enqueue_email()` (T4.6, G2). `manage.py send_outbox` (every minute; add its line to `infra/crontab`, §4.8) renders and sends pending rows, claiming each with `SELECT … FOR UPDATE SKIP LOCKED` so overlapping runs never send one twice (G17, ADR-0053) (setting `OutgoingEmail.outbox_id` to the row's id, ADR-0052), sets `sent_at`, and increments `attempts` with exponential backoff on failure. Give up after 6 attempts and alert.
 
 - [ ] **T11.2 — Deduplication**
   - Release: R1 · Gate: task
@@ -3743,7 +3743,7 @@ The R2 rows of the T11.3 table: `verify_email`, `password_reset`, `preorder_arri
 | P11-V07 | integration | `api/tests/integration/notifications/test_outbox.py::test_p11_v07_dedupe_key_unique` | Enqueuing the same `dedupe_key` twice leaves one row, and the caller sees no exception. |
 | P11-V08 | unit | `api/tests/unit/notifications/test_file_sender.py::test_p11_v08_file_names_and_reply_to` | A message with `outbox_id=42` is written as `<ts>-<template>-42.html` and `.txt` (exact name asserted); with `outbox_id=None` the last part is a short random token; `OutgoingEmail.reply_to` is `EMAIL_REPLY_TO` (§4.7). |
 | P11-V09 | integration | `api/tests/integration/notifications/test_triggers.py::test_p11_v09_each_trigger_queues_its_template[trigger]` | Every R1 trigger in the T11.3 table queues exactly its template: T2, pending OXXO, T5, T10, T6/T16, and T17/T18. (`cfdi_issued` is P11-V11.) |
-| P11-V10 | concurrency | `api/tests/concurrency/test_outbox.py::test_p11_v10_overlapping_send_outbox_runs` | Two overlapping `send_outbox` runs send every row exactly once. ⚠️ G17 |
+| P11-V10 | concurrency | `api/tests/concurrency/test_outbox.py::test_p11_v10_overlapping_send_outbox_runs` | Two overlapping `send_outbox` runs send every row exactly once. |
 
 **Added in conversion:**
 
@@ -5441,7 +5441,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 6 | ~~G30~~, ~~G35~~ |
 | Phase 8 | ~~G3~~, ~~G4~~, ~~G5~~, ~~G25~~, ~~G26~~, ~~G27~~, ~~G31~~, ~~G33~~ |
 | Phase 9 | ~~G7~~, ~~G8~~, ~~G11~~, ~~G14~~, ~~G46~~ |
-| Phase 11 | G17; DSR-04, DSR-05 released |
+| Phase 11 | ~~G17~~; DSR-04, DSR-05 released |
 | Phase 12 | G18, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03, DSR-06, DSR-07 released; DSR-09 or its fallback |
 | Phase 13 | G21, G22 |
 | Phase 16 | S2, D6, D7, D13, G45 |
@@ -5503,6 +5503,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.39 | 2026-10-28 | Phase 11 states its execution order under the deliverable (sender and DS base, templates, sending, then R2), flags that T11.6 waits for DSR-04 and DSR-05, and notes that the `cfdi_issued` row of T10.14 is sent and tested by T11.8. No task, Verify ID, dependency or schema change. | OA-61 |
 | 1.40 | 2026-10-31 | Design System pin raised to 1.1.0 (DS release with DSR-04 and DSR-05). New task T11.5b, after T11.5; T11.6 depends on it instead of on the open DSR items. DSR-04, DSR-05 and C-09 resolved. A17 and the pin citations read 1.1.0. No requirement, Verify ID or schema change. | OA-62 |
 | 1.41 | 2026-10-31 | `OutgoingEmail` (§4.3) gets an optional `outbox_id`, so the file sender can name its files `<ts>-<template>-<outbox id>`; the §4.3 Email boundary row, P11-V08 and T11.1 say so. No task, dependency or schema change. | OA-63; ADR-0052 |
+| 1.42 | 2026-10-31 | G17 resolved as proposed: `send_outbox` claims each row with `SELECT … FOR UPDATE SKIP LOCKED`. T11.1 loses its open item; the ⚠️ marks of P11-V10 and REQ-022 are removed; §4.8 and §7.2 follow. No Verify ID, task or schema change. | OA-64; ADR-0053 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5604,6 +5605,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0050 | A reservation never expires before its order's payment deadline | `docs/decisions/0050-reservation-never-before-payment-deadline.md` | G48; OA-59 |
 | ADR-0051 | An order has at most one shipment | `docs/decisions/0051-one-shipment-per-order.md` | OA-60 |
 | ADR-0052 | `OutgoingEmail` carries the outbox id | `docs/decisions/0052-outgoing-email-outbox-id.md` | OA-63 |
+| ADR-0053 | `send_outbox` claims rows with `SKIP LOCKED` | `docs/decisions/0053-send-outbox-claims-rows.md` | G17; OA-64 |
 
 ## Appendix C — Dated market facts
 

@@ -4,15 +4,15 @@
 failed attempt increments `attempts` and keeps the row pending; the 6th failure leaves it for good
 and raises an alert. "Failed" needs no column: it is an unsent row with `attempts >= MAX_ATTEMPTS`.
 
-G17 is open: rows are not claimed, so two overlapping runs can send one row twice. P11-V10 is
-written against the proposed resolution (`SELECT … FOR UPDATE SKIP LOCKED`) and is `xfail` until
-the owner decides.
+Each attempt locks its row with `SELECT … FOR UPDATE SKIP LOCKED` and skips one another run holds,
+so two overlapping runs send a row once (G17, ADR-0053).
 """
 
 import logging
 from datetime import datetime, timedelta
 
 from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 
 from apps.core import providers
@@ -43,11 +43,26 @@ def send_pending(*, now: datetime | None = None) -> tuple[int, int]:
     for row in pending.select_related("order"):
         if now < next_attempt_at(row):
             continue
-        if _send_row(row):
+        outcome = _attempt(row.pk, now)
+        if outcome is True:
             sent += 1
-        else:
+        elif outcome is False:
             failed += 1
     return sent, failed
+
+
+def _attempt(pk: int, now: datetime) -> bool | None:
+    """One attempt at a row, holding its lock. None when another run holds it or it is no longer due."""
+    with transaction.atomic():
+        row = (
+            EmailOutbox.objects.select_for_update(skip_locked=True, of=("self",))
+            .select_related("order")
+            .filter(pk=pk, sent_at__isnull=True, attempts__lt=MAX_ATTEMPTS)
+            .first()
+        )
+        if row is None or now < next_attempt_at(row):
+            return None
+        return _send_row(row)
 
 
 def _send_row(row: EmailOutbox) -> bool:
