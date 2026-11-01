@@ -3619,7 +3619,7 @@ Some tasks are verified by a later one: the `cfdi_issued` row that T10.14 queues
 
 A dedicated `noreply@` sender (`DEFAULT_FROM_EMAIL`, set in Phase 17) with a real `Reply-To` from `EMAIL_REPLY_TO` (§4.7), the store's monitored inbox.
 
-- [ ] **T11.5 — File email sender**
+- [x] **T11.5 — File email sender** (2026-10-31, 5032e65)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P11-V08
