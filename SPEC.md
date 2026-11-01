@@ -3675,7 +3675,7 @@ Templates (Spanish, `es-MX`), each built on the vendored DS reference layout (§
 | `ready_for_pickup` | T8 — includes address, hours, and deadline | R2 |
 | `pickup_reminder` | 24 h before the pickup deadline | R2 |
 
-- [ ] **T11.7 — Plain-text counterparts**
+- [x] **T11.7 — Plain-text counterparts** (2026-10-31, 311c350)
   - Release: R1 · Gate: task
   - REQs: REQ-055
   - Verifies: P11-V01, P11-V13
