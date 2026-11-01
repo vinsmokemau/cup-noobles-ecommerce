@@ -3819,7 +3819,7 @@ While pre-launch mode is on (T5.7), every route above shows the "próximamente" 
 
 The scan runs early so every later task is checked as it goes.
 
-- [ ] **T12.2 — `useApi`**
+- [x] **T12.2 — `useApi`** (2026-11-01, 8f07383)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P12-V05, P12-V06, P12-V07
