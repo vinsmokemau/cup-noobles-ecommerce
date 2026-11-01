@@ -3805,7 +3805,7 @@ While pre-launch mode is on (T5.7), every route above shows the "próximamente" 
 
 `nuxt.config.ts`: `ssr: true`, `extends: ['@vinsmokemau/cup-noobles-nuxt']`, `modules: ['@nuxt/image', '@nuxtjs/sitemap']`. Do not register `@nuxt/ui`: the layer does (C-11). `runtimeConfig.public.apiBase = '/api'` — a relative path, because same-origin. `nitro.devProxy` points `/api` at the local Django container for development; the server-rendering route in a production build follows G18's proposed resolution (Nitro `routeRules` proxying `/api/**` to a server-only API target).
 
-- [ ] **T12.14 — Styling scan and Design System pin check**
+- [x] **T12.14 — Styling scan and Design System pin check** (2026-11-01, ddbe81d)
   - Release: R1 · Gate: task
   - REQs: REQ-050
   - Verifies: P12-V26, P12-V27
