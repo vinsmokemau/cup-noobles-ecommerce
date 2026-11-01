@@ -44,6 +44,12 @@ PURCHASE_LIMIT_WINDOW_DAYS = env.int("PURCHASE_LIMIT_WINDOW_DAYS", default=None)
 # default, so production fails to start until the owner's monitored inbox is set.
 OWNER_ALERT_EMAIL = env.str("OWNER_ALERT_EMAIL", default="owner@cupnoobles.test")
 
+# The sender and the Reply-To of every customer email (T11.4, §4.7). Mail goes out from a dedicated
+# `noreply@` address; a customer's reply lands in the store's monitored inbox. `.test` addresses
+# here; prod.py has no default, so production fails to start until Phase 17 sets the real ones.
+DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", default="noreply@cupnoobles.test")
+EMAIL_REPLY_TO = env.str("EMAIL_REPLY_TO", default="tienda@cupnoobles.test")
+
 # The public URL, used in mock URLs, emails and `back_urls` (§4.7), and the folder that holds the
 # mock providers' state (§4.3). Tests point the folder at a per-test directory.
 SITE_URL = env.str("SITE_URL", default="http://localhost:8080")

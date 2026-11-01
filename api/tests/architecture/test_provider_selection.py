@@ -144,6 +144,8 @@ _PROD_ENV = {
     "POSTAL_CODE_DATASET": "sepomex",
     "ERROR_TRACKING": "sentry",
     "OWNER_ALERT_EMAIL": "owner@cupnoobles.example",
+    "DEFAULT_FROM_EMAIL": "noreply@cupnoobles.example",
+    "EMAIL_REPLY_TO": "tienda@cupnoobles.example",
 }
 
 REGISTRY_SWITCHES = [

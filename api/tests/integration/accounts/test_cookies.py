@@ -39,6 +39,8 @@ def prod_cookie_settings(monkeypatch):
         "POSTAL_CODE_DATASET": "sepomex",
         "ERROR_TRACKING": "sentry",
         "OWNER_ALERT_EMAIL": "owner@cupnoobles.example",
+        "DEFAULT_FROM_EMAIL": "noreply@cupnoobles.example",
+        "EMAIL_REPLY_TO": "tienda@cupnoobles.example",
     }.items():
         monkeypatch.setenv(name, value)
     spec = importlib.util.spec_from_file_location("config.settings.prod", PROD_SETTINGS)

@@ -26,6 +26,8 @@ _SCRUBBED = (
     "ERROR_TRACKING",
     "INVOICE_PROVIDER",
     "OWNER_ALERT_EMAIL",
+    "DEFAULT_FROM_EMAIL",
+    "EMAIL_REPLY_TO",
 )
 
 _PROGRAM = """
@@ -52,6 +54,8 @@ _PROD_ENV = {
     "POSTAL_CODE_DATASET": "sepomex",
     "ERROR_TRACKING": "sentry",
     "OWNER_ALERT_EMAIL": "owner@cupnoobles.example",
+    "DEFAULT_FROM_EMAIL": "noreply@cupnoobles.example",
+    "EMAIL_REPLY_TO": "tienda@cupnoobles.example",
 }
 
 

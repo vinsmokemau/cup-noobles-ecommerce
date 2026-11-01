@@ -29,6 +29,10 @@ INVOICE_PROVIDER = env.str("INVOICE_PROVIDER", default="manual")  # not a mock (
 # No default: the owner's monitored inbox (G38).
 OWNER_ALERT_EMAIL = env.str("OWNER_ALERT_EMAIL")
 
+# No default: the `noreply@` sender on the domain and the store's monitored inbox (T11.4, S3).
+DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL")
+EMAIL_REPLY_TO = env.str("EMAIL_REPLY_TO")
+
 _MOCK_VALUES = {
     "PAYMENT_PROVIDER": "mock",
     "CARRIER_PROVIDER": "mock",
