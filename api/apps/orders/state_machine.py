@@ -208,9 +208,21 @@ def _effects_deadline_passed(order: Order, **kwargs: Any) -> None:
     )
 
 
+def _enqueue_cancelled(order: Order, *, refunded_cents: int) -> None:
+    """The `order_cancelled` email of T6 and T16. The staff's reason is internal and stays out."""
+    enqueue_email(
+        order.email,
+        "order_cancelled",
+        {"order_number": order.number, "refunded_cents": refunded_cents},
+        order=order,
+        dedupe_key=f"order_cancelled:{order.pk}",
+    )
+
+
 def _effects_cancelled_by_customer(order: Order, **kwargs: Any) -> None:
     inventory.release_reservations(order, reason="cancelled by customer")
     order.cancelled_at = timezone.now()
+    _enqueue_cancelled(order, refunded_cents=0)
 
 
 def _effects_shipment_created(order: Order, **kwargs: Any) -> None:
@@ -247,11 +259,14 @@ def _effects_cancelled_by_staff(order: Order, **kwargs: Any) -> None:
     inventory.return_stock(order, note="cancelled by staff")
     # Refund what was paid, in full (T16, ADR-0041). An order with no approved payment has
     # nothing to refund.
+    refunded_cents = 0
     for payment in order.payments.filter(status="approved").select_for_update():
         result = payment_provider().refund(payment, None)
         payment.refunded_cents += result.amount_cents
         payment.status = "refunded"
         payment.save(update_fields=["refunded_cents", "status", "updated_at"])
+        refunded_cents += result.amount_cents
+    _enqueue_cancelled(order, refunded_cents=refunded_cents)
 
 
 def _effects_refund(order: Order, **kwargs: Any) -> None:
@@ -261,6 +276,18 @@ def _effects_refund(order: Order, **kwargs: Any) -> None:
     refunded_now = kwargs["refunded_cents"] - payment.refunded_cents
     Payment.objects.filter(pk=payment.pk).update(
         refunded_cents=kwargs["refunded_cents"]
+    )
+    # One email per refund: the running total is distinct for each, a replay repeats it (G46).
+    enqueue_email(
+        order.email,
+        "refund_issued",
+        {
+            "order_number": order.number,
+            "refund_cents": refunded_now,
+            "refunded_total_cents": kwargs["refunded_cents"],
+        },
+        order=order,
+        dedupe_key=f"refund_issued:{payment.pk}:{kwargs['refunded_cents']}",
     )
     invoice = InvoiceRequest.objects.filter(
         order=order, status=InvoiceRequest.Status.ISSUED
