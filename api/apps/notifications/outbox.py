@@ -13,6 +13,11 @@ from apps.notifications.models import EmailOutbox
 from apps.orders.models import Order
 
 
+def order_dedupe_key(order: Order, template: str) -> str:
+    """The key of an email sent once per order, so a notification delivered twice queues one row."""
+    return f"{order.pk}:{template}"
+
+
 def enqueue_email(
     to_email: str,
     template: str,

@@ -19,7 +19,7 @@ from django.utils import timezone
 from apps.core.providers import payment_provider
 from apps.inventory import services as inventory
 from apps.invoicing.models import InvoiceRequest
-from apps.notifications.outbox import enqueue_email
+from apps.notifications.outbox import enqueue_email, order_dedupe_key
 from apps.orders.models import Order, OrderEvent, Shipment
 from apps.orders.pricing import compute_totals
 from apps.payments.models import Payment
@@ -193,7 +193,7 @@ def _effects_payment_approved(order: Order, **kwargs: Any) -> None:
         "order_confirmation",
         {"order_number": order.number},
         order=order,
-        dedupe_key=f"order_confirmation:{order.pk}",
+        dedupe_key=order_dedupe_key(order, "order_confirmation"),
     )
 
 
@@ -204,7 +204,7 @@ def _effects_deadline_passed(order: Order, **kwargs: Any) -> None:
         "order_expired",
         {"order_number": order.number},
         order=order,
-        dedupe_key=f"order_expired:{order.pk}",
+        dedupe_key=order_dedupe_key(order, "order_expired"),
     )
 
 
@@ -215,7 +215,7 @@ def _enqueue_cancelled(order: Order, *, refunded_cents: int) -> None:
         "order_cancelled",
         {"order_number": order.number, "refunded_cents": refunded_cents},
         order=order,
-        dedupe_key=f"order_cancelled:{order.pk}",
+        dedupe_key=order_dedupe_key(order, "order_cancelled"),
     )
 
 
@@ -239,7 +239,7 @@ def _effects_shipment_created(order: Order, **kwargs: Any) -> None:
             "tracking_url": shipment.tracking_url,
         },
         order=order,
-        dedupe_key=f"order_shipped:{order.pk}",
+        dedupe_key=order_dedupe_key(order, "order_shipped"),
     )
 
 

@@ -7,9 +7,11 @@ from django.utils import timezone
 
 from apps.core import providers
 from apps.notifications.models import EmailOutbox
-from apps.notifications.outbox import enqueue_email
+from apps.notifications.outbox import enqueue_email, order_dedupe_key
 from apps.notifications.sending import MAX_ATTEMPTS, next_attempt_at, send_pending
-from tests.factories.orders import DraftOrderFactory
+from apps.payments.webhooks import process_webhook_event
+from tests.factories.orders import DraftOrderFactory, order_in_state
+from tests.factories.payments import WebhookEventFactory, mock_payment_for
 
 pytestmark = pytest.mark.django_db
 
@@ -145,3 +147,67 @@ def test_send_pending_sets_outbox_id_and_reply_to(queued, settings, monkeypatch)
     assert message.outbox_id == row.pk
     assert (message.to, message.template) == ("cliente@example.test", "order_shipped")
     assert message.html and message.text and message.subject
+
+
+def test_p11_v07_dedupe_key_unique():
+    order = DraftOrderFactory()
+    key = order_dedupe_key(order, "order_confirmation")
+    assert key == f"{order.id}:order_confirmation"
+
+    with transaction.atomic():
+        first = enqueue_email(
+            "cliente@example.test", "order_confirmation", order=order, dedupe_key=key
+        )
+        second = enqueue_email(
+            "cliente@example.test", "order_confirmation", order=order, dedupe_key=key
+        )  # raises nothing
+
+    assert second.pk == first.pk
+    assert EmailOutbox.objects.filter(dedupe_key=key).count() == 1
+    # the same template for another order is not a duplicate
+    other = DraftOrderFactory()
+    enqueue_email(
+        "otro@example.test",
+        "order_confirmation",
+        order=other,
+        dedupe_key=order_dedupe_key(other, "order_confirmation"),
+    )
+    assert EmailOutbox.objects.count() == 2
+
+
+def test_p11_v03_duplicate_webhook_one_confirmation(settings, tmp_path):
+    settings.EMAIL_FILE_DIR = str(tmp_path)
+    order = order_in_state("pending_payment")
+    payment_id = mock_payment_for(order, status="approved")
+
+    # Two notifications for the same approved payment: the provider repeats itself under a new id.
+    for external_id in ("mock_ntf_a", "mock_ntf_b"):
+        event = WebhookEventFactory(
+            provider="mock",
+            external_id=external_id,
+            payload={
+                "ref": {
+                    "topic": "payment",
+                    "notification_id": external_id,
+                    "resource_id": payment_id,
+                },
+                "body": {
+                    "id": external_id,
+                    "type": "payment",
+                    "data": {"id": payment_id},
+                },
+            },
+        )
+        assert process_webhook_event(event.pk)
+
+    order.refresh_from_db()
+    assert order.state == "paid"
+    rows = EmailOutbox.objects.filter(order=order, template="order_confirmation")
+    assert rows.count() == 1
+    assert rows.get().dedupe_key == order_dedupe_key(order, "order_confirmation")
+
+    assert send_pending() == (1, 0)
+    assert send_pending() == (0, 0)
+    files = [p for p in tmp_path.iterdir() if p.is_file()]
+    assert sorted(p.suffix for p in files) == [".html", ".txt"]
+    assert all("order_confirmation" in p.name for p in files)
