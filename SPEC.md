@@ -3608,7 +3608,7 @@ Some tasks are verified by a later one: the `cfdi_issued` row that T10.14 queues
 
 #### Tasks
 
-- [ ] **T11.4 — Sender and Reply-To**
+- [x] **T11.4 — Sender and Reply-To** (2026-10-31, ddee447)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: P11-V08 (T11.5) asserts the `Reply-To`]
