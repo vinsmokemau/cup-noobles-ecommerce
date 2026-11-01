@@ -54,6 +54,7 @@ def _layout_source() -> str:
 class RenderedEmail:
     subject: str
     html: str
+    text: str
     content: EmailContent
 
 
@@ -65,9 +66,34 @@ def render_html(content: EmailContent) -> str:
     )
 
 
+def render_text(content: EmailContent) -> str:
+    """The plain-text counterpart of the reference layout (DS:email-layouts.md).
+
+    Eight blocks in the order of the parts, a blank line between blocks, from the same slot values
+    as the HTML. Values go in as they are: plain text has nothing to escape.
+    """
+    slots = content.slots
+    rows = [f"{i.name}  {i.quantity}  {i.amount}" for i in content.items]
+    rows += [f"{t.label}: {t.amount}" for t in content.totals]
+    blocks = [
+        f"{slots['logo_alt']}: {slots['home_url']}",
+        f"{slots['heading']}\n\n{slots['body']}",
+        f"{slots['card_title']}\n{slots['card_body']}",
+        "\n".join(rows),
+        slots["card_footer"],
+        f"{slots['button_label']}: {slots['button_url']}",
+        "---",
+        f"{slots['footer_text']}\n"
+        f"{slots['footer_link_label']}: {slots['footer_link_url']}",
+    ]
+    return "\n\n".join(block for block in blocks if block) + "\n"
+
+
 def render_email(
     template: str, context: dict[str, object], order: Order | None = None
 ) -> RenderedEmail:
-    """Build `template` from the outbox `context` and its `order`, and render its HTML."""
+    """Build `template` from the outbox `context` and its `order`, and render its HTML and text."""
     content = build_content(template, dict(context), order)
-    return RenderedEmail(content.subject, render_html(content), content)
+    return RenderedEmail(
+        content.subject, render_html(content), render_text(content), content
+    )

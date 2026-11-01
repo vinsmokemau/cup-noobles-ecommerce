@@ -12,6 +12,26 @@ def test_the_registry_holds_exactly_the_r1_templates():
 
 
 @pytest.mark.parametrize("template", R1_TEMPLATES)
+def test_p11_v01_every_template_renders(template, template_context, snapshot):
+    context, order = template_context(template)
+
+    email = render_email(template, context, order)
+
+    # The factory numbers orders in sequence; the snapshot must not depend on test order.
+    def stable(value):
+        return value.replace(order.number, "CN-2026-000000")
+
+    assert email.html.strip() and email.text.strip()
+    for leak in ("{{", "{%", "⟦MISSING"):
+        assert leak not in email.html + email.text + email.subject, leak
+    assert {
+        "subject": stable(email.subject),
+        "text": stable(email.text),
+        "html": stable(email.html),
+    } == snapshot
+
+
+@pytest.mark.parametrize("template", R1_TEMPLATES)
 def test_p11_v04_no_template_syntax_leaks(template, template_context):
     context, order = template_context(template)
 
