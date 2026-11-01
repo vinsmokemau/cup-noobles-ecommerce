@@ -3651,7 +3651,7 @@ Copy the compiled HTML of the pinned `@vinsmokemau/cup-noobles-email` version (i
 
 The DS placeholders use the same `{{ slot_name }}` syntax as Django variables, so each vendored file loads as a Django template as it is. Django escapes variables by default; a slot that needs markup, such as order lines, waits for DSR-04 and is never marked safe by hand (§4.5).
 
-- [ ] **T11.3 — Templates**
+- [x] **T11.3 — Templates** (2026-10-31, 02cddb3)
   - Release: R1 · Gate: task
   - REQs: REQ-052
   - Verifies: P11-V04, P11-V09
