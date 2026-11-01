@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.43 |
+| Spec version | 1.44 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -548,6 +548,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-63 | 2026-10-31 | T11.5: the file sender names its files with the outbox id (§4.3), but `OutgoingEmail` carries no outbox id. How does the sender learn it? | Option A: `OutgoingEmail` gets an optional `outbox_id: int \| None = None`. `send_outbox` (T11.1) sets it from the row; `FileEmailSender` uses it in the file name, and a short random token when it is `None`; Resend and SES ignore it or send it as a tag. ADR-0052. |
 | OA-64 | 2026-10-31 | G17: `send_outbox` does not claim rows, so two overlapping runs can send one email twice. How is it fixed? | Option A: the proposed resolution. Each row is claimed with `SELECT … FOR UPDATE SKIP LOCKED` for the length of its attempt, so a row another run holds is skipped. P11-V10 loses its `xfail`. ADR-0053. |
 | OA-65 | 2026-11-01 | C-15: T11.8 says the `cfdi_issued` dedupe key is `f"{order.id}:cfdi_issued"`; P11-V11 says one email per issued request, and T10.14 built `cfdi_issued:{request.pk}`. Which key? | Option A: the per-request key `f"cfdi_issued:{request.pk}"`, as built in T10.14. The T11.8 text is amended to match. No code change. ADR-0054. |
+| OA-66 | 2026-11-01 | Phase 12 task order: the tasks are listed in a valid, linear order, but their numbers do not follow it (T12.16 comes eighth, T12.12 last) and the phase has no execution-order note. Add one, or renumber? | Option A: add the note. Execution order: T12.1, T12.14, T12.2, T12.11, T12.6, T12.4, T12.5, T12.16, T12.10, T12.13, T12.7, T12.8, T12.9, T12.15, T12.12 (phase-close); then, in R2, T12.3 and T12.17. IDs keep their numbers. The note flags that T12.4 waits for DSR-01, DSR-02 and DSR-03. No ADR: cheap to reverse, spec text only. |
 
 ---
 
@@ -3769,6 +3770,14 @@ The R2 rows of the T11.3 table: `verify_email`, `password_reset`, `preorder_arri
 
 **Release 1 scope:** all tasks except `useAuth` and the home page's open pre-orders (R2), plus the "próximamente" page (G32), the styling scan and the DS pin check.
 
+**Execution order.** Task IDs do not follow the order of work. Run the tasks in the order they are listed below, which is also this one, and each depends only on tasks before it:
+
+- Foundation: T12.1 → T12.14 (styling scan and DS pin check), T12.2 → T12.11, T12.6. These need no Design System release and can start now.
+- Catalog: T12.4 → T12.5 → T12.16. T12.4 waits for DSR-01, DSR-02 and DSR-03, released in a Design System version the storefront pins (A17)
+- Pages: T12.10 → T12.13; T12.7 and T12.8 (either order, both after T12.16); then T12.9 → T12.15
+- Phase close: T12.12 (needs T12.15 and T12.14)
+- R2, after R1: T12.3, T12.17
+
 #### 12.A Pages
 
 | Route | File | Notes |
@@ -5507,6 +5516,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.41 | 2026-10-31 | `OutgoingEmail` (§4.3) gets an optional `outbox_id`, so the file sender can name its files `<ts>-<template>-<outbox id>`; the §4.3 Email boundary row, P11-V08 and T11.1 say so. No task, dependency or schema change. | OA-63; ADR-0052 |
 | 1.42 | 2026-10-31 | G17 resolved as proposed: `send_outbox` claims each row with `SELECT … FOR UPDATE SKIP LOCKED`. T11.1 loses its open item; the ⚠️ marks of P11-V10 and REQ-022 are removed; §4.8 and §7.2 follow. No Verify ID, task or schema change. | OA-64; ADR-0053 |
 | 1.43 | 2026-11-01 | C-15 registered and resolved: the `cfdi_issued` dedupe key is per invoice request (`cfdi_issued:{request.pk}`), as T10.14 built it. The T11.8 text says so. No Verify ID, task, schema or code change. | OA-65; ADR-0054 |
+| 1.44 | 2026-11-01 | Phase 12 states its execution order under the release scope (foundation, catalog, pages, then R2), flags that T12.4 waits for DSR-01, DSR-02 and DSR-03, and that T12.7 and T12.8 can run in either order. No task, Verify ID, dependency or schema change. | OA-66 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
