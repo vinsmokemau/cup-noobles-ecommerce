@@ -1,0 +1,20 @@
+<!-- Fixture for P12-V26: one violation of each kind. It lives outside app/ and is never built.
+     The .txt extension keeps ESLint, Prettier and vue-tsc away from it. -->
+<template>
+  <div class="flex gap-4 bg-red-500">
+    <p class="text-lg">Color and font size</p>
+    <p class="border-2 p-4">Border</p>
+    <p class="rounded-lg">Radius</p>
+    <p class="shadow-md">Shadow</p>
+    <p class="ring-2">Ring</p>
+    <p class="font-bold">Font</p>
+    <p class="w-[300px]">Arbitrary value</p>
+    <p style="color: red">Style attribute</p>
+  </div>
+</template>
+
+<style scoped>
+.card {
+  background: #123456;
+}
+</style>
