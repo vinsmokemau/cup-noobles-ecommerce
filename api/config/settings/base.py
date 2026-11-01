@@ -50,6 +50,11 @@ OWNER_ALERT_EMAIL = env.str("OWNER_ALERT_EMAIL", default="owner@cupnoobles.test"
 DEFAULT_FROM_EMAIL = env.str("DEFAULT_FROM_EMAIL", default="noreply@cupnoobles.test")
 EMAIL_REPLY_TO = env.str("EMAIL_REPLY_TO", default="tienda@cupnoobles.test")
 
+# `FileEmailSender` output folder, and the switch that makes every send fail so the outbox retry
+# path can be tested (T11.5, §4.3). Tests point the folder at a per-test directory.
+EMAIL_FILE_DIR = env.str("EMAIL_FILE_DIR", default=str(BASE_DIR / "var" / "emails"))
+EMAIL_MOCK_FAIL = env.bool("EMAIL_MOCK_FAIL", default=False)
+
 # The public URL, used in mock URLs, emails and `back_urls` (§4.7), and the folder that holds the
 # mock providers' state (§4.3). Tests point the folder at a per-test directory.
 SITE_URL = env.str("SITE_URL", default="http://localhost:8080")

@@ -20,6 +20,9 @@ class OutgoingEmail:
     template: str
     reply_to: str | None = None
     attachments: tuple[Attachment, ...] = ()  # the CFDI PDF and XML (REQ-060)
+    outbox_id: int | None = (
+        None  # the `email_outbox` row; names the file in Part A (ADR-0052)
+    )
 
 
 class EmailSendError(Exception):
