@@ -3867,7 +3867,7 @@ ESLint `no-restricted-syntax` rule: a call to `$fetch` anywhere except `app/comp
 
 DS 1.3.0 holds the `meta` slot of `CnMediaCard` (DSR-01), `CnKeyValueList` (DSR-02) and `CnImageGallery` (DSR-03). Raise the three DS packages in `web/` to exactly `1.3.0` (A17), in `package.json` and in `pnpm-workspace.yaml`, and refresh `pnpm-lock.yaml`. `nuxt typecheck` must pass. Unlike T11.5b, the vendored email HTML now exists (T11.6): refresh the files in `api/apps/notifications/templates/email/ds/` and `ds-email-manifest.json` from the 1.3.0 email package, and keep P11-V12 and P11-V13 green. Check the DS release notes of 1.2.0 and 1.3.0 for any other change that touches the storefront or an email, and for whether they also resolve DSR-06, DSR-07 or DSR-09; update the register rows only for what the release notes state, and list the rest in the report. Run `make test-all`, as §4.5 requires of a DS upgrade.
 
-- [ ] **T12.4 — Catalog components**
+- [x] **T12.4 — Catalog components** (2026-11-02, b25ef7b)
   - Release: R1 · Gate: task
   - REQs: REQ-051, REQ-052, REQ-054
   - Verifies: P12-V04, P12-V10, P12-V12
