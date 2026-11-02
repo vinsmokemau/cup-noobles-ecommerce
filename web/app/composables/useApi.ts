@@ -84,8 +84,8 @@ export function useApi() {
     const headers: Record<string, string> = { ...options.headers }
     if (incoming.cookie) headers.cookie = incoming.cookie
     if (UNSAFE_METHODS.has(method)) {
-      const cookies = import.meta.client ? document.cookie : incoming.cookie
-      const token = readCookie(cookies, 'csrftoken')
+      // Server: the incoming cookie. Browser: `incoming` is empty, so read `document`.
+      const token = readCookie(incoming.cookie ?? globalThis.document?.cookie, 'csrftoken')
       if (token) headers['X-CSRFToken'] = token
     }
     try {

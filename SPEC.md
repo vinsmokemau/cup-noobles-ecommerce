@@ -458,10 +458,10 @@ Each item is built in the DS repository under its own SPEC and released as a DS 
 | DSR-03 | An image gallery, for example Nuxt UI's carousel themed by the DS | Phase 12 (product page) | R1 | Resolved (DS 1.3.0, T12.18) |
 | DSR-04 | Rows inside the email card, for order lines and totals | Phase 11 | R1 | Resolved (DS 1.1.0, T11.5b) |
 | DSR-05 | A raster logo for the email `{{ logo_url }}` slot. The DS ships SVG only, and most email clients don't render SVG. | Phase 11 | R1 | Resolved (DS 1.1.0, T11.5b) |
-| DSR-06 | `color-scheme: dark` and a `theme-color` meta. The layer doesn't set them in its own files; if Nuxt UI doesn't either, the DS adds them. | Phase 12 | R1 | Open |
+| DSR-06 | `color-scheme: dark` and a `theme-color` meta. The layer doesn't set them in its own files; if Nuxt UI doesn't either, the DS adds them. | Phase 12 | R1 | Resolved (DS 1.3.0, T12.18) |
 | DSR-07 | The scope of the photo rule "no text inside the image" for product packaging (C-10) | Phase 12 | R1 | Open |
 | DSR-08 | An order timeline | Phase 14 | R2 | Deferred (R2) |
-| DSR-09 | Make the raw-value lint rule of DS:REQ-016 available to consuming apps, so the storefront runs the same check as the DS. Until then, P12-V26 is the storefront's check. | Phase 12 | R1 | Open |
+| DSR-09 | Make the raw-value lint rule of DS:REQ-016 available to consuming apps, so the storefront runs the same check as the DS. Until then, P12-V26 is the storefront's check. | Phase 12 | R1 | Resolved (DS 1.3.0, T12.18) |
 | DSR-10 | `CnMediaCard.vue` (DS 1.0.0, line 81) fails `vue-tsc` with TS2352: `EventTarget \| null` converted to `Picture`. Found in T1.5 with `nuxt typecheck`; `make test` runs `vue-tsc`. | Phase 1 (T1.17) | R1 | Resolved (DS 1.0.1, T1.17) |
 
 ### 2.5 Dev defaults
@@ -5556,7 +5556,7 @@ Generated from §3 and §6; from T1.14b on, `scripts/check_traceability.py` rege
 | REQ-040 | R1 | T1.11, T1.3, T9.12b, T9.9, T10.12, T15.3 | P1-V12 · P1-V14 · P1-V15 · P1-V16 · P1-V19 · P9-V03 · P9-V06 · P10-V04 · P15-V11 |
 | REQ-041 | R1 | T9.13b, T10.13, T16.7, T19.4 | P9-V01 · P10-V01 · P16-V01 · P19-V01 |
 | REQ-042 | R1 | T1.13b, T1.12a, T15.5 | P1-V08 · P1-V13 · P15-V13 · P15-V14 |
-| REQ-050 | R1 | T12.14, T12.18 | P12-V26 · P12-V27 |
+| REQ-050 | R1 | T12.14 | P12-V26 · P12-V27 |
 | REQ-051 | R1 | T1.13b, T12.4, T12.9, T13.7, T14.6, T15.6a, T15.6b | P1-V09 · P1-V20 · P12-V12 · P12-V19 · P12-V21 · P13-V16 · P14-V17 · P15-V01 · P15-V03 · P15-V04 · P15-V08 |
 | REQ-052 | R1 | T11.3, T12.6, T12.4, T13.7 | P11-V04 · P12-V09 · P12-V12 · P13-V14 |
 | REQ-053 | R1 | T12.16, T12.10, T12.13, T13.4 | P12-V01 · P12-V03 · P12-V20 · P12-V25 · P13-V20 |

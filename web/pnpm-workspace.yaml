@@ -3,7 +3,7 @@ allowBuilds:
   unrs-resolver: false
   vue-demi: false
 minimumReleaseAgeExclude:
-  - '@vinsmokemau/cup-noobles-email@1.1.0'
-  - '@vinsmokemau/cup-noobles-nuxt@1.1.0'
-  - '@vinsmokemau/cup-noobles-tokens@1.1.0'
+  - '@vinsmokemau/cup-noobles-email@1.3.0'
+  - '@vinsmokemau/cup-noobles-nuxt@1.3.0'
+  - '@vinsmokemau/cup-noobles-tokens@1.3.0'
   - markdownlint-cli2@0.24.0
