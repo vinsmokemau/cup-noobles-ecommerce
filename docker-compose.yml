@@ -55,6 +55,8 @@ services:
       CHOKIDAR_USEPOLLING: "true"
     volumes:
       - ./web:/app
+      # The type-drift test (P12-V04) reads the snapshot at ../api from the app directory.
+      - ./api/openapi.snapshot.yml:/api/openapi.snapshot.yml:ro
       - web_node_modules:/app/node_modules
       # Generated types differ between the container and the host (eslint, typecheck), so each keeps its own.
       - web_nuxt:/app/.nuxt

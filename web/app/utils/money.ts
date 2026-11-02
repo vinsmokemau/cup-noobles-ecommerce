@@ -13,3 +13,17 @@ export function formatMXN(cents: number): string {
   }
   return currencyFormat.format(cents / 100)
 }
+
+// Dates share the locale above. The store timezone is a constant, not a setting (G5, ADR-0030).
+const STORE_TIME_ZONE = 'America/Mexico_City'
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * Formats a date or an ISO timestamp, e.g. `2026-11-15` → `15 de noviembre de 2026` (CR-31).
+ * `long` goes in sentences, `medium` in cards and lists (DS:formatting.md). A date with no time is a
+ * calendar day, so it is read in UTC to stay on the same day; a timestamp is read in the store timezone.
+ */
+export function formatDate(value: string, dateStyle: 'long' | 'medium' = 'long'): string {
+  const timeZone = DATE_ONLY.test(value) ? 'UTC' : STORE_TIME_ZONE
+  return new Intl.DateTimeFormat(LOCALE, { dateStyle, timeZone }).format(new Date(value))
+}
