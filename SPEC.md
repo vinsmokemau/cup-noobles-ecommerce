@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.48 |
+| Spec version | 1.49 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
-| Design System | `@vinsmokemau/cup-noobles-tokens`, `-nuxt` and `-email`, pinned at exactly `1.4.0` (A17). Raised only by a DS upgrade task. |
+| Design System | `@vinsmokemau/cup-noobles-tokens`, `-nuxt` and `-email`, pinned at exactly `1.5.0` (A17). Raised only by a DS upgrade task. |
 | Normative files | `SPEC.md` and `spec/schema.sql` (the canonical schema, §4.4) |
 | Converted from | `cup-noobles-implementation-plan.md` (September 2026). Appendix E maps every old section to its new place. |
 
@@ -209,7 +209,7 @@ Tasks and Verify IDs tagged R2 keep their IDs and stay in §6. The traceability 
 
 ## 2. Rules, conflicts, assumptions and open items
 
-Source key: **plan** is `cup-noobles-implementation-plan.md`. **DS** is the Design System repository at version 1.4.0. **GE** is the owner's internal execution guide (v4), cited by ID only. **OA** is an owner answer in §2.6.
+Source key: **plan** is `cup-noobles-implementation-plan.md`. **DS** is the Design System repository at version 1.5.0. **GE** is the owner's internal execution guide (v4), cited by ID only. **OA** is an owner answer in §2.6.
 
 ### 2.1 Carried-forward rules
 
@@ -347,7 +347,7 @@ Each assumption is cheap to reverse unless its row says otherwise. A1–A14 keep
 | A14 | Each mock behaves exactly like its real provider at the interface level; the shared contract suites run against both | A mock easier than the real thing hides bugs until Part B | Medium | R1 |
 | A15 | One maintainer: the owner is the developer and the business owner. Governance is sized for one person, and decisions are recorded as owner answers and ADRs. | OA-04; DS:A-01 | n/a | R1 |
 | A16 | Guest checkout only in R1. A customer is identified by email, and also by phone and shipping address for purchase limits (G31). | OA-11 | Medium | R1 |
-| A17 | The three DS packages are pinned at an exact version, currently `1.4.0`. A DS upgrade is its own task. | OA-12; DS:R-01 | Low | R1 |
+| A17 | The three DS packages are pinned at an exact version, currently `1.5.0`. A DS upgrade is its own task. | OA-12; DS:R-01 | Low | R1 |
 | A18 | The repository is public on GitHub Free, created by the owner | OA-10 | Low | R1 |
 | A19 | The weekly dashboard and the monthly report are built by the owner from admin CSV exports. The store has no reporting screens. | GE:T34, GE:T43 | Low | R1 |
 
@@ -554,7 +554,8 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-67 | 2026-11-01 | T12.1 builds the G18 server-side route with a server-only target read from `NUXT_API_SERVER_TARGET`. Should §4.7 list it? | Yes: add the row to the §4.7 Core table. G18 itself stays open. No ADR: cheap to reverse, spec text only. |
 | OA-68 | 2026-11-01 | DSR-01, DSR-02 and DSR-03 are released in DS 1.3.0 (all three packages on GitHub Packages). When is the pin raised from 1.1.0? | Option A: a new task T12.18, after T12.6 and before T12.4, which depends on it. It raises the pin to 1.3.0, refreshes the vendored email HTML and its manifest, and runs `make test-all`. T12.4 depends on T12.18 instead of on the open DSR items. A17 and the pin citations read 1.3.0. Option B (rejected): raise the pin inside T12.4. No ADR: cheap to reverse, spec text only. |
 | OA-69 | 2026-11-02 | G50: the product detail response carries `product_type` as a code only, so the product page cannot label the attribute table or name the variant groups. Where does that data come from? | Option A: the proposed resolution. `GET /api/catalog/products/{slug}/` adds `attribute_schema` (the `properties` with their `title`) and `variant_axes` (resolved), and the snapshot and types are regenerated. Built in a new task T12.19, before T12.16. Option B (rejected): a separate product-types endpoint. Option C (rejected): titles hardcoded in the storefront. ADR-0055. |
-| OA-70 | 2026-11-02 | DS 1.4.0 is released (DSR-11: image attributes and `priority` on `CnMediaCard` and `CnImageGallery`). When is the pin raised from 1.3.0? | Option A: a new task T12.20, after T12.19 and before T12.16, which depends on it. It raises the pin to 1.4.0, refreshes the vendored email HTML and its manifest, and runs `make test-all`. A17 and the pin citations read 1.4.0. DSR-11 resolved. Option B (rejected): build T12.16 on 1.3.0 and raise the pin later. No ADR: cheap to reverse, spec text only. |
+| OA-70 | 2026-11-02 | DS 1.4.0 is released (DSR-11: image attributes and `priority` on `CnMediaCard` and `CnImageGallery`). When is the pin raised from 1.3.0? | Option A: a new task T12.20, after T12.19 and before T12.16, which depends on it. It raises the pin to 1.4.0, refreshes the vendored email HTML and its manifest, and runs `make test-all`. A17 and the pin citations read 1.4.0. Amended by OA-71: the target is 1.5.0. DSR-11 resolved. Option B (rejected): build T12.16 on 1.3.0 and raise the pin later. No ADR: cheap to reverse, spec text only. |
+| OA-71 | 2026-11-02 | DS 1.5.0 is released (docs only: the number-formatting rule; it includes 1.4.0, with no breaking change). Should T12.20 target 1.4.0 or 1.5.0? | Option A: T12.20 raises the pin to 1.5.0, so no second pin task is needed. A17 and the pin citations read 1.5.0. Option B (rejected): keep 1.4.0. No ADR: cheap to reverse, spec text only. |
 
 ---
 
@@ -962,7 +963,7 @@ The admin form, the storefront filters and the API validation all read `attribut
 
 ### 4.5 Storefront and the Design System
 
-**Packages.** `web/` consumes the three DS packages at one exact version, currently `1.4.0` (A17):
+**Packages.** `web/` consumes the three DS packages at one exact version, currently `1.5.0` (A17):
 
 | Package | What the storefront uses | Where |
 |---|---|---|
@@ -3780,7 +3781,7 @@ The R2 rows of the T11.3 table: `verify_email`, `password_reset`, `preorder_arri
 **Execution order.** Task IDs do not follow the order of work. Run the tasks in the order they are listed below, which is also this one, and each depends only on tasks before it:
 
 - Foundation: T12.1 → T12.14 (styling scan and DS pin check), T12.2 → T12.11, T12.6. These need no Design System release and can start now.
-- Catalog: T12.18 (raises the DS pin to 1.3.0, which holds DSR-01, DSR-02 and DSR-03) → T12.4 → T12.5 → T12.19 → T12.20 (raises the DS pin to 1.4.0, which holds DSR-11) → T12.16. T12.18 needs no other task of the phase and can run right after T12.6
+- Catalog: T12.18 (raises the DS pin to 1.3.0, which holds DSR-01, DSR-02 and DSR-03) → T12.4 → T12.5 → T12.19 → T12.20 (raises the DS pin to 1.5.0, which holds DSR-11) → T12.16. T12.18 needs no other task of the phase and can run right after T12.6
 - Pages: T12.10 → T12.13; T12.7 and T12.8 (either order, both after T12.16); then T12.9 → T12.15
 - Phase close: T12.12 (needs T12.15 and T12.14)
 - R2, after R1: T12.3, T12.17
@@ -3899,7 +3900,7 @@ Catalog components, built from DS parts per the §4.5 composition map (do not ha
 
 Add `attribute_schema` and `variant_axes` to the product detail serializer, as ADR-0055 decides, and regenerate the snapshot and types with `make schema-update`. `variant_axes` uses `resolve_variant_axes`. The list endpoint is unchanged.
 
-- [ ] **T12.20 — Design System 1.4.0**
+- [ ] **T12.20 — Design System 1.5.0**
   - Release: R1 · Gate: task
   - REQs: REQ-050
   - Verifies: [no-test: `nuxt typecheck` passes; the pin is checked by P12-V27 (T12.14); the vendored email HTML is checked by P11-V12]
@@ -3907,7 +3908,7 @@ Add `attribute_schema` and `variant_axes` to the product detail serializer, as A
   - Context: §4.5 (Packages, Email); A17; OA-70
   - Open items: DSR-11 resolved by this task
 
-DS 1.4.0 gives the `<img>` of `CnMediaCard` and `CnImageGallery` `width="4"` and `height="3"`, makes `CnMediaCard` load lazily, and adds the `priority` prop to both (DSR-11). Raise the three DS packages in `web/` to exactly `1.4.0` (A17), in `package.json` and in `pnpm-workspace.yaml`, and refresh `pnpm-lock.yaml`. `nuxt typecheck` must pass. Refresh the files in `api/apps/notifications/templates/email/ds/` and `ds-email-manifest.json` from the 1.4.0 email package, and keep P11-V12 and P11-V13 green. Check the DS release notes of 1.4.0 for any other change that touches the storefront or an email, and for whether it resolves another open DSR; update the register rows only for what the release notes state, and list the rest in the report. Drop any markup the storefront added around these images. Run `make test-all`, as §4.5 requires of a DS upgrade.
+DS 1.4.0 gives the `<img>` of `CnMediaCard` and `CnImageGallery` `width="4"` and `height="3"`, makes `CnMediaCard` load lazily, and adds the `priority` prop to both (DSR-11). Raise the three DS packages in `web/` to exactly `1.5.0` (which includes 1.4.0; 1.5.0 is docs only, with the number-formatting rule of `formatting.md`) (A17), in `package.json` and in `pnpm-workspace.yaml`, and refresh `pnpm-lock.yaml`. `nuxt typecheck` must pass. Refresh the files in `api/apps/notifications/templates/email/ds/` and `ds-email-manifest.json` from the 1.5.0 email package, and keep P11-V12 and P11-V13 green. Check the DS release notes of 1.4.0 and 1.5.0 for any other change that touches the storefront or an email, and for whether it resolves another open DSR; update the register rows only for what the release notes state, and list the rest in the report. Drop any markup the storefront added around these images. Run `make test-all`, as §4.5 requires of a DS upgrade.
 
 - [ ] **T12.16 — Catalog pages**
   - Release: R1 · Gate: task
@@ -5559,6 +5560,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.46 | 2026-11-01 | Design System pin raised to 1.3.0 (DS release with DSR-01, DSR-02 and DSR-03). New task T12.18, after T12.6 and before T12.4; T12.4 depends on it instead of on the open DSR items. DSR-01, DSR-02 and DSR-03 resolved. A17 and the pin citations read 1.3.0. No requirement, Verify ID or schema change. | OA-68 |
 | 1.47 | 2026-11-02 | G50 resolved: the product detail response carries the type's `attribute_schema` and `variant_axes`. New task T12.19 (after T12.5, before T12.16, which now depends on it), new Verify IDs P12-V30 and P12-V31, both under REQ-054. No schema change. | OA-69; ADR-0055 |
 | 1.48 | 2026-11-02 | Design System pin raised to 1.4.0 (DS release with DSR-11). New task T12.20, after T12.19 and before T12.16, which now depends on it. DSR-11 resolved. A17 and the pin citations read 1.4.0. No requirement, Verify ID or schema change. | OA-70 |
+| 1.49 | 2026-11-02 | T12.20 targets DS 1.5.0 instead of 1.4.0 (1.5.0 includes DSR-11's release and adds the number-formatting rule, docs only). A17 and the pin citations read 1.5.0; DSR-11 stays Resolved (DS 1.4.0, T12.20). No requirement, Verify ID or schema change. | OA-71 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -6037,7 +6039,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T12.2 | Cookie forwarding serves a staff session in R1 | §1.2; G32 |
 | T12.3 | Tagged R2 (owns P12-V08, P12-V22) | Accounts are R2 |
 | T12.18 | New: raise the DS pin to 1.3.0, which resolves DSR-01, DSR-02 and DSR-03 | OA-68; §4.5 |
-| T12.20 | New: raise the DS pin to 1.4.0, which resolves DSR-11 | OA-70; §4.5 |
+| T12.20 | New: raise the DS pin to 1.5.0, which resolves DSR-11 | OA-70, OA-71; §4.5 |
 | T12.4 | Built from DS parts per the §4.5 composition map; depends on T12.18 (DSR-01, DSR-02, DSR-03); `PriceDisplay` no longer formats "$1,234.00 MXN" | CR-26; OA-09; G19 decided (ADR-0024) |
 | T12.6 | Cites ADR-0024 and CR-30; locale and currency in one file | G19; DS:formatting.md |
 | T12.8 | Adds the DS photo standards and DSR-07; no test of its own | DS:ADR-0056, DS:ADR-0057 |
