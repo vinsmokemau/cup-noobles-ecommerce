@@ -59,3 +59,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0052](0052-outgoing-email-outbox-id.md) | `OutgoingEmail` carries the outbox id | accepted | OA-63 |
 | [ADR-0053](0053-send-outbox-claims-rows.md) | `send_outbox` claims rows with `SKIP LOCKED` | accepted | G17; OA-64 |
 | [ADR-0054](0054-cfdi-dedupe-key-per-request.md) | The `cfdi_issued` dedupe key is per invoice request | accepted | C-15; OA-65 |
+| [ADR-0055](0055-product-type-data-in-product-detail.md) | The product detail response carries the type's attribute schema and variant axes | accepted | G50; OA-69 |

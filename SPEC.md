@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.46 |
+| Spec version | 1.47 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -446,7 +446,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G47 | 13 | T6.7b, T8.6a, T8.5 | The Phase 8 review found three small defects, none of which breaks a Verify ID. (1) `OrderLookupView` compares the email exactly, so a guest who types it with other capitals than at checkout gets "No encontramos ese pedido", and the miss counts toward the 5-per-hour limit. (2) `advance_orders` catches only `IllegalTransition`, so one unexpected error on an order stops the run for the orders after it. (3) `partially_refunded` is still listed in `COUNTED_STATES` of `purchase_limits.py`, though G26 (ADR-0043) says no order is in that state. | Before the storefront lookup page is built (Phase 13): compare with `email__iexact`; catch and log any exception per order in `advance_orders`, as `expire_reservations` does; drop the dead entry. Add a test for each. A small fix task, or part of the next task that touches these files. | R1 | Open |
 | G48 | 9 | T8.6a, T9.5 | `expire_reservations` picks orders by the hold's expiry but T5 only passes when `payment_deadline_at` is in the past. Today both come from the same card window. T9.5 gives payment methods different deadlines; a hold that lapses before its order's deadline makes the job raise `GuardFailed` and log a stack trace for that order every 5 minutes, and the hold stays. | In T9.5, set the hold length so it never ends before the order's `payment_deadline_at`, and have `expire_reservations` log a `GuardFailed` as a one-line warning instead of an exception. Add a test with a method whose deadline is longer than the card window. | R1 | Resolved (ADR-0050) |
 | G49 | 21 | 10.11, T21.4 | `sync_shipments` must "add to the daily digest" a shipment the carrier reports as `EXCEPTION` (10.11), but nothing records it: `shipment` has no field for it and T21.4's digest list has no shipment line. T10.11 only logs an error. | Add `shipment.exception_at`, set by `sync_shipments` and cleared when the shipment is delivered, and a digest line for shipments with it set. The alternative is for the digest to ask the carrier for each undelivered shipment. | R1 | Open |
-| G50 | 12 | T12.4, T12.5, T12.16, P12-V10, P12-V11 | `GET /api/catalog/products/{slug}/` returns `product_type` as a code only. It carries neither the type's `attribute_schema` (which `AttributeTable` needs for titles and order) nor its variant axes (which `VariantSelector` can derive from the variants' `options` keys, but not label or order). The components take both as props and the product page cannot fill them yet. | Add `attribute_schema` (the `properties` with their `title`) and `variant_axes` to the product detail response, then regenerate the OpenAPI snapshot. A storefront-only alternative does not exist, because the schema is data. | R1 | Open |
+| G50 | 12 | T12.4, T12.5, T12.16, P12-V10, P12-V11 | `GET /api/catalog/products/{slug}/` returns `product_type` as a code only. It carries neither the type's `attribute_schema` (which `AttributeTable` needs for titles and order) nor its variant axes (which `VariantSelector` can derive from the variants' `options` keys, but not label or order). The components take both as props and the product page cannot fill them yet. | Add `attribute_schema` (the `properties` with their `title`) and `variant_axes` to the product detail response, then regenerate the OpenAPI snapshot. A storefront-only alternative does not exist, because the schema is data. | R1 | Resolved (ADR-0055) |
 
 #### Design System requests (DSR)
 
@@ -553,6 +553,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-66 | 2026-11-01 | Phase 12 task order: the tasks are listed in a valid, linear order, but their numbers do not follow it (T12.16 comes eighth, T12.12 last) and the phase has no execution-order note. Add one, or renumber? | Option A: add the note. Execution order: T12.1, T12.14, T12.2, T12.11, T12.6, T12.4, T12.5, T12.16, T12.10, T12.13, T12.7, T12.8, T12.9, T12.15, T12.12 (phase-close); then, in R2, T12.3 and T12.17. IDs keep their numbers. The note flags that T12.4 waits for DSR-01, DSR-02 and DSR-03. No ADR: cheap to reverse, spec text only. |
 | OA-67 | 2026-11-01 | T12.1 builds the G18 server-side route with a server-only target read from `NUXT_API_SERVER_TARGET`. Should §4.7 list it? | Yes: add the row to the §4.7 Core table. G18 itself stays open. No ADR: cheap to reverse, spec text only. |
 | OA-68 | 2026-11-01 | DSR-01, DSR-02 and DSR-03 are released in DS 1.3.0 (all three packages on GitHub Packages). When is the pin raised from 1.1.0? | Option A: a new task T12.18, after T12.6 and before T12.4, which depends on it. It raises the pin to 1.3.0, refreshes the vendored email HTML and its manifest, and runs `make test-all`. T12.4 depends on T12.18 instead of on the open DSR items. A17 and the pin citations read 1.3.0. Option B (rejected): raise the pin inside T12.4. No ADR: cheap to reverse, spec text only. |
+| OA-69 | 2026-11-02 | G50: the product detail response carries `product_type` as a code only, so the product page cannot label the attribute table or name the variant groups. Where does that data come from? | Option A: the proposed resolution. `GET /api/catalog/products/{slug}/` adds `attribute_schema` (the `properties` with their `title`) and `variant_axes` (resolved), and the snapshot and types are regenerated. Built in a new task T12.19, before T12.16. Option B (rejected): a separate product-types endpoint. Option C (rejected): titles hardcoded in the storefront. ADR-0055. |
 
 ---
 
@@ -610,7 +611,7 @@ The acceptance criteria of a requirement are Verify IDs. The assertion text live
 | REQ-051 | Every storefront page meets WCAG 2.2 AA, works at 360 px wide, and has tap targets of at least 44 px. | CR-33, CR-35, CR-36 | P1-V09 · P1-V20 · P12-V12 · P12-V19 · P12-V21 · P13-V16 · P14-V17 · P15-V01 · P15-V03 · P15-V04 · P15-V08 | R1 |
 | REQ-052 | Customer-facing text, money and dates are es-MX and follow the DS voice, microcopy and formatting rules. | CR-30, CR-31, CR-32 | P11-V04 · P12-V09 · P12-V12 · P13-V14 ⚠️G21 | R1 |
 | REQ-053 | The storefront renders on the server and never shows a blank page: a failed call offers a retry, and an unknown URL is a real 404. | — | P12-V01 ⚠️G18 · P12-V03 · P12-V20 · P12-V25 ⚠️G18 · P13-V20 | R1 |
-| REQ-054 | A change to the API contract fails the build until the generated client and the code that uses it are updated. | CR-25, CR-29 | P1-V07 · P5-V04 · P12-V04 · P12-V24 | R1 |
+| REQ-054 | A change to the API contract fails the build until the generated client and the code that uses it are updated. | CR-25, CR-29 | P1-V07 · P5-V04 · P12-V04 · P12-V24 · P12-V30 · P12-V31 | R1 |
 | REQ-055 | Transactional emails are built only from the DS email components at the pinned version, each with a complete plain-text part. | CR-32, CR-46 | P11-V01 · P11-V12 · P11-V13 | R1 |
 
 ### 3.7 Release 1 operations
@@ -3778,7 +3779,7 @@ The R2 rows of the T11.3 table: `verify_email`, `password_reset`, `preorder_arri
 **Execution order.** Task IDs do not follow the order of work. Run the tasks in the order they are listed below, which is also this one, and each depends only on tasks before it:
 
 - Foundation: T12.1 → T12.14 (styling scan and DS pin check), T12.2 → T12.11, T12.6. These need no Design System release and can start now.
-- Catalog: T12.18 (raises the DS pin to 1.3.0, which holds DSR-01, DSR-02 and DSR-03) → T12.4 → T12.5 → T12.16. T12.18 needs no other task of the phase and can run right after T12.6
+- Catalog: T12.18 (raises the DS pin to 1.3.0, which holds DSR-01, DSR-02 and DSR-03) → T12.4 → T12.5 → T12.19 → T12.16. T12.18 needs no other task of the phase and can run right after T12.6
 - Pages: T12.10 → T12.13; T12.7 and T12.8 (either order, both after T12.16); then T12.9 → T12.15
 - Phase close: T12.12 (needs T12.15 and T12.14)
 - R2, after R1: T12.3, T12.17
@@ -3888,11 +3889,20 @@ Catalog components, built from DS parts per the §4.5 composition map (do not ha
 
 `AttributeTable` is what makes the attribute-agnostic model pay off visually: it reads the type's schema for labels and ordering, so a new category renders a correct spec table with zero frontend work.
 
+- [ ] **T12.19 — Product type data in the product detail**
+  - Release: R1 · Gate: task
+  - REQs: REQ-054
+  - Verifies: P12-V30, P12-V31
+  - Depends on: T12.4
+  - Context: §4.4 (attribute-agnostic catalog); G50; ADR-0055; T5.5
+
+Add `attribute_schema` and `variant_axes` to the product detail serializer, as ADR-0055 decides, and regenerate the snapshot and types with `make schema-update`. `variant_axes` uses `resolve_variant_axes`. The list endpoint is unchanged.
+
 - [ ] **T12.16 — Catalog pages**
   - Release: R1 · Gate: task
   - REQs: REQ-053
   - Verifies: P12-V01, P12-V13, P12-V14, P12-V15, P12-V16, P12-V17, P12-V18
-  - Depends on: T12.5
+  - Depends on: T12.5, T12.19
   - Context: 12.A; §4.5
   - Open items: G18 (tests xfail until decided); D2 (stand-in §2.4: placeholder pages)
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
@@ -4057,6 +4067,8 @@ The home page's open pre-orders section: seeded pre-order products with their re
 | P12-V27 | architecture | `web/tests/architecture/ds-pin.test.ts` › `p12_v27 ds packages pinned and layer extended` | `web/package.json` pins the three DS packages at one exact version and lists no direct `@nuxt/ui` or `tailwindcss` dependency; `nuxt.config.ts` extends `@vinsmokemau/cup-noobles-nuxt`. |
 | P12-V28 | E2E | `web/e2e/p12_prelaunch.spec.ts` › `p12_v28 prelaunch page for anonymous visitors` | With pre-launch mode on, an anonymous visit to `/`, `/catalogo` and a product URL shows the "próximamente" page with status 200 and `noindex`; a staff session sees the catalog. |
 | P12-V29 [R2] | E2E | `web/e2e/p12_catalog.spec.ts` › `p12_v29 home shows open preorders` | The seeded open pre-order appears on the home page with its release date and a working link. |
+| P12-V30 | API | `api/tests/api/catalog/test_product_detail.py` › `test_p12_v30_detail_has_attribute_schema_and_axes` | For a figure, the detail response carries `attribute_schema` with the `properties` of its type and `variant_axes: []`. For the hoodie, `variant_axes` is `["talla", "color"]`. A product whose own `variant_axes` overrides the type's returns the override. |
+| P12-V31 | contract | `api/tests/contract/openapi/test_snapshot.py` › `test_p12_v31_snapshot_has_detail_fields` | `ProductDetail` in the snapshot lists `attribute_schema` and `variant_axes`, and `ProductCard` lists neither. |
 
 **Fixtures and factories introduced** (reused by later phases)
 
@@ -5534,6 +5546,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.44 | 2026-11-01 | Phase 12 states its execution order under the release scope (foundation, catalog, pages, then R2), flags that T12.4 waits for DSR-01, DSR-02 and DSR-03, and that T12.7 and T12.8 can run in either order. No task, Verify ID, dependency or schema change. | OA-66 |
 | 1.45 | 2026-11-01 | §4.7 lists `NUXT_API_SERVER_TARGET` (web), the server-only API target of the G18 proxy rule that T12.1 built. G18 stays open. No task, Verify ID, dependency or schema change. | OA-67 |
 | 1.46 | 2026-11-01 | Design System pin raised to 1.3.0 (DS release with DSR-01, DSR-02 and DSR-03). New task T12.18, after T12.6 and before T12.4; T12.4 depends on it instead of on the open DSR items. DSR-01, DSR-02 and DSR-03 resolved. A17 and the pin citations read 1.3.0. No requirement, Verify ID or schema change. | OA-68 |
+| 1.47 | 2026-11-02 | G50 resolved: the product detail response carries the type's `attribute_schema` and `variant_axes`. New task T12.19 (after T12.5, before T12.16, which now depends on it), new Verify IDs P12-V30 and P12-V31, both under REQ-054. No schema change. | OA-69; ADR-0055 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5562,7 +5575,7 @@ Generated from §3 and §6; from T1.14b on, `scripts/check_traceability.py` rege
 | REQ-051 | R1 | T1.13b, T12.4, T12.9, T13.7, T14.6, T15.6a, T15.6b | P1-V09 · P1-V20 · P12-V12 · P12-V19 · P12-V21 · P13-V16 · P14-V17 · P15-V01 · P15-V03 · P15-V04 · P15-V08 |
 | REQ-052 | R1 | T11.3, T12.6, T12.4, T13.7 | P11-V04 · P12-V09 · P12-V12 · P13-V14 |
 | REQ-053 | R1 | T12.16, T12.10, T12.13, T13.4 | P12-V01 · P12-V03 · P12-V20 · P12-V25 · P13-V20 |
-| REQ-054 | R1 | T1.12c, T5.5, T12.4, T12.11 | P1-V07 · P5-V04 · P12-V04 · P12-V24 |
+| REQ-054 | R1 | T1.12c, T5.5, T12.4, T12.11, T12.19 | P1-V07 · P5-V04 · P12-V04 · P12-V24 · P12-V30 · P12-V31 |
 | REQ-055 | R1 | T11.7, T11.6 | P11-V01 · P11-V12 · P11-V13 |
 | REQ-060 | R1 | T2.1c, T8.7, T9.14, T10.14, T10.15, T11.8, T13.11, T15.6b | P2-V17 · P8-V19 · P9-V22 · P10-V23 · P10-V24 · P11-V11 · P13-V23 · P15-V15 |
 | REQ-061 | R1 | T8.8, T13.12 | P8-V20 · P13-V24 |
@@ -5575,7 +5588,7 @@ Generated from §3 and §6; from T1.14b on, `scripts/check_traceability.py` rege
 | REQ-072 | R1 | T1.12a, T2.1c | P1-V04 · P2-V01 · P2-V07 |
 | REQ-073 | R1 | T1.14a, T1.9, T15.5 | P1-V03 · P1-V23 · P15-V14 |
 
-363 Verify IDs in §6; 139 are acceptance criteria of a §3 requirement. The others are feature-level checks of their phase (OA-02).
+365 Verify IDs in §6; 141 are acceptance criteria of a §3 requirement. The others are feature-level checks of their phase (OA-02).
 
 ## Appendix B — ADR index
 
@@ -5637,6 +5650,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0052 | `OutgoingEmail` carries the outbox id | `docs/decisions/0052-outgoing-email-outbox-id.md` | OA-63 |
 | ADR-0053 | `send_outbox` claims rows with `SKIP LOCKED` | `docs/decisions/0053-send-outbox-claims-rows.md` | G17; OA-64 |
 | ADR-0054 | The `cfdi_issued` dedupe key is per invoice request | `docs/decisions/0054-cfdi-dedupe-key-per-request.md` | C-15; OA-65 |
+| ADR-0055 | The product detail response carries the type's attribute schema and variant axes | `docs/decisions/0055-product-type-data-in-product-detail.md` | G50; OA-69 |
 
 ## Appendix C — Dated market facts
 
