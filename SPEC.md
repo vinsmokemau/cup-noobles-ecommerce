@@ -3889,7 +3889,7 @@ Catalog components, built from DS parts per the §4.5 composition map (do not ha
 
 `AttributeTable` is what makes the attribute-agnostic model pay off visually: it reads the type's schema for labels and ordering, so a new category renders a correct spec table with zero frontend work.
 
-- [ ] **T12.19 — Product type data in the product detail**
+- [x] **T12.19 — Product type data in the product detail** (2026-11-02, 1051e0e)
   - Release: R1 · Gate: task
   - REQs: REQ-054
   - Verifies: P12-V30, P12-V31
