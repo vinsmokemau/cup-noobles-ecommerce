@@ -3855,7 +3855,7 @@ ESLint `no-restricted-syntax` rule: a call to `$fetch` anywhere except `app/comp
 
 `PriceDisplay` and the `formatMXN` helper in `app/utils/money.ts` are the **only** places money is formatted: `new Intl.NumberFormat('es-MX', {style:'currency', currency:'MXN'}).format(cents / 100)`, with no suffix (ADR-0024, CR-30). The locale and the currency code live in `app/utils/money.ts` and nowhere else (§4.5).
 
-- [ ] **T12.18 — Design System 1.3.0**
+- [x] **T12.18 — Design System 1.3.0** (2026-11-02, ce5f43a)
   - Release: R1 · Gate: task
   - REQs: REQ-050
   - Verifies: [no-test: `nuxt typecheck` passes; the pin is checked by P12-V27 (T12.14); the vendored email HTML is checked by P11-V12]
