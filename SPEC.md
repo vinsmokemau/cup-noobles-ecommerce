@@ -3879,7 +3879,7 @@ DS 1.3.0 holds the `meta` slot of `CnMediaCard` (DSR-01), `CnKeyValueList` (DSR-
 
 Catalog components, built from DS parts per the §4.5 composition map (do not hand-roll these, CR-26): `ProductCard`, `ProductGallery`, `VariantSelector`, `AttributeTable` (renders `product_type.attribute_schema` titles against `product.attributes`), `AvailabilityBadge`, `PriceDisplay` (the single place that formats centavos, through `formatMXN` — T12.6), `FilterSidebar`. The components add no visual styling of their own (CR-27); text arrives through props and slots (CR-32).
 
-- [ ] **T12.5 — Attribute table**
+- [x] **T12.5 — Attribute table** (2026-11-02, ea56e41)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P12-V11
