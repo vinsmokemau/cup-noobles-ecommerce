@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.45 |
+| Spec version | 1.46 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
-| Design System | `@vinsmokemau/cup-noobles-tokens`, `-nuxt` and `-email`, pinned at exactly `1.1.0` (A17). Raised only by a DS upgrade task. |
+| Design System | `@vinsmokemau/cup-noobles-tokens`, `-nuxt` and `-email`, pinned at exactly `1.3.0` (A17). Raised only by a DS upgrade task. |
 | Normative files | `SPEC.md` and `spec/schema.sql` (the canonical schema, §4.4) |
 | Converted from | `cup-noobles-implementation-plan.md` (September 2026). Appendix E maps every old section to its new place. |
 
@@ -209,7 +209,7 @@ Tasks and Verify IDs tagged R2 keep their IDs and stay in §6. The traceability 
 
 ## 2. Rules, conflicts, assumptions and open items
 
-Source key: **plan** is `cup-noobles-implementation-plan.md`. **DS** is the Design System repository at version 1.1.0. **GE** is the owner's internal execution guide (v4), cited by ID only. **OA** is an owner answer in §2.6.
+Source key: **plan** is `cup-noobles-implementation-plan.md`. **DS** is the Design System repository at version 1.3.0. **GE** is the owner's internal execution guide (v4), cited by ID only. **OA** is an owner answer in §2.6.
 
 ### 2.1 Carried-forward rules
 
@@ -347,7 +347,7 @@ Each assumption is cheap to reverse unless its row says otherwise. A1–A14 keep
 | A14 | Each mock behaves exactly like its real provider at the interface level; the shared contract suites run against both | A mock easier than the real thing hides bugs until Part B | Medium | R1 |
 | A15 | One maintainer: the owner is the developer and the business owner. Governance is sized for one person, and decisions are recorded as owner answers and ADRs. | OA-04; DS:A-01 | n/a | R1 |
 | A16 | Guest checkout only in R1. A customer is identified by email, and also by phone and shipping address for purchase limits (G31). | OA-11 | Medium | R1 |
-| A17 | The three DS packages are pinned at an exact version, currently `1.1.0`. A DS upgrade is its own task. | OA-12; DS:R-01 | Low | R1 |
+| A17 | The three DS packages are pinned at an exact version, currently `1.3.0`. A DS upgrade is its own task. | OA-12; DS:R-01 | Low | R1 |
 | A18 | The repository is public on GitHub Free, created by the owner | OA-10 | Low | R1 |
 | A19 | The weekly dashboard and the monthly report are built by the owner from admin CSV exports. The store has no reporting screens. | GE:T34, GE:T43 | Low | R1 |
 
@@ -453,9 +453,9 @@ Each item is built in the DS repository under its own SPEC and released as a DS 
 
 | ID | Request | Needed by | Release | Status |
 |---|---|---|---|---|
-| DSR-01 | A generic slot in `CnMediaCard`, under the title, for a price and an availability badge | Phase 12 (product card) | R1 | Open |
-| DSR-02 | A key-value list for attributes | Phase 12 (product page) | R1 | Open |
-| DSR-03 | An image gallery, for example Nuxt UI's carousel themed by the DS | Phase 12 (product page) | R1 | Open |
+| DSR-01 | A generic slot in `CnMediaCard`, under the title, for a price and an availability badge | Phase 12 (product card) | R1 | Resolved (DS 1.3.0, T12.18) |
+| DSR-02 | A key-value list for attributes | Phase 12 (product page) | R1 | Resolved (DS 1.3.0, T12.18) |
+| DSR-03 | An image gallery, for example Nuxt UI's carousel themed by the DS | Phase 12 (product page) | R1 | Resolved (DS 1.3.0, T12.18) |
 | DSR-04 | Rows inside the email card, for order lines and totals | Phase 11 | R1 | Resolved (DS 1.1.0, T11.5b) |
 | DSR-05 | A raster logo for the email `{{ logo_url }}` slot. The DS ships SVG only, and most email clients don't render SVG. | Phase 11 | R1 | Resolved (DS 1.1.0, T11.5b) |
 | DSR-06 | `color-scheme: dark` and a `theme-color` meta. The layer doesn't set them in its own files; if Nuxt UI doesn't either, the DS adds them. | Phase 12 | R1 | Open |
@@ -550,6 +550,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-65 | 2026-11-01 | C-15: T11.8 says the `cfdi_issued` dedupe key is `f"{order.id}:cfdi_issued"`; P11-V11 says one email per issued request, and T10.14 built `cfdi_issued:{request.pk}`. Which key? | Option A: the per-request key `f"cfdi_issued:{request.pk}"`, as built in T10.14. The T11.8 text is amended to match. No code change. ADR-0054. |
 | OA-66 | 2026-11-01 | Phase 12 task order: the tasks are listed in a valid, linear order, but their numbers do not follow it (T12.16 comes eighth, T12.12 last) and the phase has no execution-order note. Add one, or renumber? | Option A: add the note. Execution order: T12.1, T12.14, T12.2, T12.11, T12.6, T12.4, T12.5, T12.16, T12.10, T12.13, T12.7, T12.8, T12.9, T12.15, T12.12 (phase-close); then, in R2, T12.3 and T12.17. IDs keep their numbers. The note flags that T12.4 waits for DSR-01, DSR-02 and DSR-03. No ADR: cheap to reverse, spec text only. |
 | OA-67 | 2026-11-01 | T12.1 builds the G18 server-side route with a server-only target read from `NUXT_API_SERVER_TARGET`. Should §4.7 list it? | Yes: add the row to the §4.7 Core table. G18 itself stays open. No ADR: cheap to reverse, spec text only. |
+| OA-68 | 2026-11-01 | DSR-01, DSR-02 and DSR-03 are released in DS 1.3.0 (all three packages on GitHub Packages). When is the pin raised from 1.1.0? | Option A: a new task T12.18, after T12.6 and before T12.4, which depends on it. It raises the pin to 1.3.0, refreshes the vendored email HTML and its manifest, and runs `make test-all`. T12.4 depends on T12.18 instead of on the open DSR items. A17 and the pin citations read 1.3.0. Option B (rejected): raise the pin inside T12.4. No ADR: cheap to reverse, spec text only. |
 
 ---
 
@@ -957,7 +958,7 @@ The admin form, the storefront filters and the API validation all read `attribut
 
 ### 4.5 Storefront and the Design System
 
-**Packages.** `web/` consumes the three DS packages at one exact version, currently `1.1.0` (A17):
+**Packages.** `web/` consumes the three DS packages at one exact version, currently `1.3.0` (A17):
 
 | Package | What the storefront uses | Where |
 |---|---|---|
@@ -988,12 +989,12 @@ The storefront pins Nuxt to the version of the DS consumer fixture (4.5.2) and a
 
 | Storefront component (task) | DS parts | DS request |
 |---|---|---|
-| ProductCard (12.4) | `CnMediaCard`, badge | DSR-01: a slot for price and availability |
+| ProductCard (12.4) | `CnMediaCard`, badge | DSR-01 (the `meta` slot) |
 | AvailabilityBadge (12.4) | badge; the status is in the text, not the color (P12-V12) | — |
 | VariantSelector (12.4) | radio group | — |
 | FilterSidebar (12.4) | checkbox, form field; slideover on mobile | — |
-| AttributeTable (12.4) | — | DSR-02 |
-| ProductGallery (12.4) | — | DSR-03 |
+| AttributeTable (12.4) | `CnKeyValueList` | DSR-02 |
+| ProductGallery (12.4) | `CnImageGallery` | DSR-03 |
 | PriceDisplay, `formatMXN` (12.6) | DS:formatting.md | — |
 | AddressForm, invoice section (13.2) | form field, input, select; `UForm` with Zod (CR-28) | — |
 | CartLine (13.2) | card, input, button | — |
@@ -3775,7 +3776,7 @@ The R2 rows of the T11.3 table: `verify_email`, `password_reset`, `preorder_arri
 **Execution order.** Task IDs do not follow the order of work. Run the tasks in the order they are listed below, which is also this one, and each depends only on tasks before it:
 
 - Foundation: T12.1 → T12.14 (styling scan and DS pin check), T12.2 → T12.11, T12.6. These need no Design System release and can start now.
-- Catalog: T12.4 → T12.5 → T12.16. T12.4 waits for DSR-01, DSR-02 and DSR-03, released in a Design System version the storefront pins (A17)
+- Catalog: T12.18 (raises the DS pin to 1.3.0, which holds DSR-01, DSR-02 and DSR-03) → T12.4 → T12.5 → T12.16. T12.18 needs no other task of the phase and can run right after T12.6
 - Pages: T12.10 → T12.13; T12.7 and T12.8 (either order, both after T12.16); then T12.9 → T12.15
 - Phase close: T12.12 (needs T12.15 and T12.14)
 - R2, after R1: T12.3, T12.17
@@ -3854,13 +3855,23 @@ ESLint `no-restricted-syntax` rule: a call to `$fetch` anywhere except `app/comp
 
 `PriceDisplay` and the `formatMXN` helper in `app/utils/money.ts` are the **only** places money is formatted: `new Intl.NumberFormat('es-MX', {style:'currency', currency:'MXN'}).format(cents / 100)`, with no suffix (ADR-0024, CR-30). The locale and the currency code live in `app/utils/money.ts` and nowhere else (§4.5).
 
+- [ ] **T12.18 — Design System 1.3.0**
+  - Release: R1 · Gate: task
+  - REQs: REQ-050
+  - Verifies: [no-test: `nuxt typecheck` passes; the pin is checked by P12-V27 (T12.14); the vendored email HTML is checked by P11-V12]
+  - Depends on: T12.6
+  - Context: §4.5 (Packages, Email); A17
+  - Open items: DSR-01, DSR-02, DSR-03 resolved by this task
+
+DS 1.3.0 holds the `meta` slot of `CnMediaCard` (DSR-01), `CnKeyValueList` (DSR-02) and `CnImageGallery` (DSR-03). Raise the three DS packages in `web/` to exactly `1.3.0` (A17), in `package.json` and in `pnpm-workspace.yaml`, and refresh `pnpm-lock.yaml`. `nuxt typecheck` must pass. Unlike T11.5b, the vendored email HTML now exists (T11.6): refresh the files in `api/apps/notifications/templates/email/ds/` and `ds-email-manifest.json` from the 1.3.0 email package, and keep P11-V12 and P11-V13 green. Check the DS release notes of 1.2.0 and 1.3.0 for any other change that touches the storefront or an email, and for whether they also resolve DSR-06, DSR-07 or DSR-09; update the register rows only for what the release notes state, and list the rest in the report. Run `make test-all`, as §4.5 requires of a DS upgrade.
+
 - [ ] **T12.4 — Catalog components**
   - Release: R1 · Gate: task
   - REQs: REQ-051, REQ-052, REQ-054
   - Verifies: P12-V04, P12-V10, P12-V12
-  - Depends on: T12.6, DSR-01 released, DSR-02 released, DSR-03 released
+  - Depends on: T12.6, T12.18
   - Context: §4.5 (Composition map, Consumption rules); CR-26, CR-27
-  - Open items: DSR-01, DSR-02, DSR-03 (blocking)
+  - Open items: DSR-01, DSR-02, DSR-03 resolved by DS 1.3.0 (T12.18)
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
 
 Catalog components, built from DS parts per the §4.5 composition map (do not hand-roll these, CR-26): `ProductCard`, `ProductGallery`, `VariantSelector`, `AttributeTable` (renders `product_type.attribute_schema` titles against `product.attributes`), `AvailabilityBadge`, `PriceDisplay` (the single place that formats centavos, through `formatMXN` — T12.6), `FilterSidebar`. The components add no visual styling of their own (CR-27); text arrives through props and slots (CR-32).
@@ -5455,7 +5466,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 8 | ~~G3~~, ~~G4~~, ~~G5~~, ~~G25~~, ~~G26~~, ~~G27~~, ~~G31~~, ~~G33~~ |
 | Phase 9 | ~~G7~~, ~~G8~~, ~~G11~~, ~~G14~~, ~~G46~~ |
 | Phase 11 | ~~G17~~; DSR-04, DSR-05 released |
-| Phase 12 | G18, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03, DSR-06, DSR-07 released; DSR-09 or its fallback |
+| Phase 12 | G18, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03 released (DS 1.3.0, T12.18), DSR-06, DSR-07 released; DSR-09 or its fallback |
 | Phase 13 | G21, G22 |
 | Phase 16 | S2, D6, D7, D13, G45 |
 | Phase 17 | S3, S4 |
@@ -5520,6 +5531,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.43 | 2026-11-01 | C-15 registered and resolved: the `cfdi_issued` dedupe key is per invoice request (`cfdi_issued:{request.pk}`), as T10.14 built it. The T11.8 text says so. No Verify ID, task, schema or code change. | OA-65; ADR-0054 |
 | 1.44 | 2026-11-01 | Phase 12 states its execution order under the release scope (foundation, catalog, pages, then R2), flags that T12.4 waits for DSR-01, DSR-02 and DSR-03, and that T12.7 and T12.8 can run in either order. No task, Verify ID, dependency or schema change. | OA-66 |
 | 1.45 | 2026-11-01 | §4.7 lists `NUXT_API_SERVER_TARGET` (web), the server-only API target of the G18 proxy rule that T12.1 built. G18 stays open. No task, Verify ID, dependency or schema change. | OA-67 |
+| 1.46 | 2026-11-01 | Design System pin raised to 1.3.0 (DS release with DSR-01, DSR-02 and DSR-03). New task T12.18, after T12.6 and before T12.4; T12.4 depends on it instead of on the open DSR items. DSR-01, DSR-02 and DSR-03 resolved. A17 and the pin citations read 1.3.0. No requirement, Verify ID or schema change. | OA-68 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5544,7 +5556,7 @@ Generated from §3 and §6; from T1.14b on, `scripts/check_traceability.py` rege
 | REQ-040 | R1 | T1.11, T1.3, T9.12b, T9.9, T10.12, T15.3 | P1-V12 · P1-V14 · P1-V15 · P1-V16 · P1-V19 · P9-V03 · P9-V06 · P10-V04 · P15-V11 |
 | REQ-041 | R1 | T9.13b, T10.13, T16.7, T19.4 | P9-V01 · P10-V01 · P16-V01 · P19-V01 |
 | REQ-042 | R1 | T1.13b, T1.12a, T15.5 | P1-V08 · P1-V13 · P15-V13 · P15-V14 |
-| REQ-050 | R1 | T12.14 | P12-V26 · P12-V27 |
+| REQ-050 | R1 | T12.14, T12.18 | P12-V26 · P12-V27 |
 | REQ-051 | R1 | T1.13b, T12.4, T12.9, T13.7, T14.6, T15.6a, T15.6b | P1-V09 · P1-V20 · P12-V12 · P12-V19 · P12-V21 · P13-V16 · P14-V17 · P15-V01 · P15-V03 · P15-V04 · P15-V08 |
 | REQ-052 | R1 | T11.3, T12.6, T12.4, T13.7 | P11-V04 · P12-V09 · P12-V12 · P13-V14 |
 | REQ-053 | R1 | T12.16, T12.10, T12.13, T13.4 | P12-V01 · P12-V03 · P12-V20 · P12-V25 · P13-V20 |
@@ -5992,11 +6004,12 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 |---|---|---|
 | Phase 12 | Deliverable adds the pre-launch page and "assembled from the Design System layer"; `useAuth` leaves the deliverable (R2) | §1.2; §4.5; G32 |
 | 12.A | Home: "pre-orders open" marked R2 (T12.17), "featured" marked G28; a note that every route shows the pre-launch page while the mode is on | §1.2; G28; G32 |
-| Tasks | Listed in execution order: T12.1, T12.14, T12.2, T12.11, T12.6, T12.4, T12.5, T12.16, T12.10, T12.13, T12.7, T12.8, T12.9, T12.15, T12.12 (R1), then T12.3, T12.17 (R2) | Execution order; the styling scan runs early |
+| Tasks | Listed in execution order: T12.1, T12.14, T12.2, T12.11, T12.6, T12.18, T12.4, T12.5, T12.16, T12.10, T12.13, T12.7, T12.8, T12.9, T12.15, T12.12 (R1), then T12.3, T12.17 (R2) | Execution order; the styling scan runs early |
 | T12.1 | `extends` the DS layer; modules drop `@nuxt/ui`; the production SSR route follows G18 | C-11; §4.5; G18 |
 | T12.2 | Cookie forwarding serves a staff session in R1 | §1.2; G32 |
 | T12.3 | Tagged R2 (owns P12-V08, P12-V22) | Accounts are R2 |
-| T12.4 | Built from DS parts per the §4.5 composition map; depends on DSR-01, DSR-02, DSR-03; `PriceDisplay` no longer formats "$1,234.00 MXN" | CR-26; OA-09; G19 decided (ADR-0024) |
+| T12.18 | New: raise the DS pin to 1.3.0, which resolves DSR-01, DSR-02 and DSR-03 | OA-68; §4.5 |
+| T12.4 | Built from DS parts per the §4.5 composition map; depends on T12.18 (DSR-01, DSR-02, DSR-03); `PriceDisplay` no longer formats "$1,234.00 MXN" | CR-26; OA-09; G19 decided (ADR-0024) |
 | T12.6 | Cites ADR-0024 and CR-30; locale and currency in one file | G19; DS:formatting.md |
 | T12.8 | Adds the DS photo standards and DSR-07; no test of its own | DS:ADR-0056, DS:ADR-0057 |
 | T12.9 | Focus ring from the DS; tap targets through DS size props | DS:ADR-0009; CR-36 |
