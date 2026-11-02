@@ -250,6 +250,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description One attribute of the product type's schema; the title is its label. */
+        AttributeProperty: {
+            title?: string;
+            type?: string;
+        };
+        /** @description The part of `product_type.attribute_schema` the storefront reads (ADR-0055). */
+        AttributeSchema: {
+            properties: {
+                [key: string]: components["schemas"]["AttributeProperty"];
+            };
+        };
         /** @description `{"status": "in_stock" | "low_stock" | "out_of_stock"}`; no raw counts (D10 stand-in). */
         Availability: {
             status: components["schemas"]["StatusEnum"];
@@ -546,6 +557,8 @@ export interface components {
             readonly image: components["schemas"]["PublicImage"] | null;
             description_md?: string;
             attributes?: unknown;
+            readonly attribute_schema: components["schemas"]["AttributeSchema"];
+            readonly variant_axes: string[];
             categories: components["schemas"]["Reference"][];
             variants: components["schemas"]["PublicVariant"][];
             images: components["schemas"]["DetailImage"][];

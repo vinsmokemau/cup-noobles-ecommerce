@@ -2,7 +2,12 @@
 
 import pytest
 
-from tests.factories.catalog import CategoryFactory, ProductFactory, ProductImageFactory
+from tests.factories.catalog import (
+    CategoryFactory,
+    ProductFactory,
+    ProductImageFactory,
+    ProductTypeFactory,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -49,6 +54,30 @@ def test_detail_payload(api_client, catalog_dataset):
     ]
     assert body["variants"][1]["options"] == {"edicion": "basica"}
     assert body["availability"] == {"status": "low_stock"}
+
+
+def test_p12_v30_detail_has_attribute_schema_and_axes(api_client, catalog_dataset):
+    figure = detail(api_client, "figma-zelda").json()
+    assert figure["attribute_schema"] == {
+        "properties": {"linea": {"type": "string", "title": "Línea"}}
+    }
+    assert figure["variant_axes"] == []
+
+    apparel = ProductTypeFactory(
+        code="apparel",
+        attribute_schema={"type": "object"},
+        variant_axes=["talla", "color"],
+    )
+    hoodie = ProductFactory(published=True, product_type=apparel)
+    assert detail(api_client, hoodie.slug).json()["variant_axes"] == ["talla", "color"]
+    assert detail(api_client, hoodie.slug).json()["attribute_schema"] == {
+        "properties": {}
+    }
+
+    override = ProductFactory(
+        published=True, product_type=apparel, variant_axes=["talla"]
+    )
+    assert detail(api_client, override.slug).json()["variant_axes"] == ["talla"]
 
 
 def test_detail_has_no_costs_counts_or_original_images(api_client, catalog_dataset):

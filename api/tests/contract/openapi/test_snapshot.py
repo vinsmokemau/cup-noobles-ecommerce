@@ -3,6 +3,7 @@
 import gc
 
 import pytest
+import yaml
 from rest_framework import serializers
 
 from apps.catalog.serializers import ProductCardSerializer
@@ -76,3 +77,14 @@ def test_p5_v04_serializer_rename_breaks_snapshot(monkeypatch):
         _drop_cached_fields()
     assert any(line.startswith("+") and "title:" in line for line in diff)
     assert any(line.startswith("-") and "name:" in line for line in diff)
+
+
+def test_p12_v31_snapshot_has_detail_fields():
+    schemas = yaml.safe_load(generate_schema_text())["components"]["schemas"]
+
+    assert {"attribute_schema", "variant_axes"} <= set(
+        schemas["ProductDetail"]["properties"]
+    )
+    assert not {"attribute_schema", "variant_axes"} & set(
+        schemas["ProductCard"]["properties"]
+    )

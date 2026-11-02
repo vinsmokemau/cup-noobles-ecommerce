@@ -582,6 +582,25 @@ paths:
           description: The postal code is not in the dataset.
 components:
   schemas:
+    AttributeProperty:
+      type: object
+      description: One attribute of the product type's schema; the title is its label.
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+    AttributeSchema:
+      type: object
+      description: The part of `product_type.attribute_schema` the storefront reads
+        (ADR-0055).
+      properties:
+        properties:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/AttributeProperty'
+      required:
+      - properties
     Availability:
       type: object
       description: '`{"status": "in_stock" | "low_stock" | "out_of_stock"}`; no raw
@@ -1345,6 +1364,15 @@ components:
         description_md:
           type: string
         attributes: {}
+        attribute_schema:
+          allOf:
+          - $ref: '#/components/schemas/AttributeSchema'
+          readOnly: true
+        variant_axes:
+          type: array
+          items:
+            type: string
+          readOnly: true
         categories:
           type: array
           items:
@@ -1363,6 +1391,7 @@ components:
             $ref: '#/components/schemas/ProductCard'
           readOnly: true
       required:
+      - attribute_schema
       - availability
       - brand
       - categories
@@ -1376,6 +1405,7 @@ components:
       - public_id
       - related
       - slug
+      - variant_axes
       - variants
     PublicImage:
       type: object

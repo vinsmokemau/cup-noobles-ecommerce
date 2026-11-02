@@ -21,6 +21,7 @@ from apps.catalog.models import (
     ProductType,
     Variant,
 )
+from apps.catalog.services import resolve_variant_axes
 from apps.catalog.validation import ATTRIBUTES_FIELD, validate_attributes
 
 
@@ -201,7 +202,22 @@ class ProductCardSerializer(serializers.ModelSerializer):
         return PublicImageSerializer(images[0]).data if images else None
 
 
+class AttributePropertySerializer(serializers.Serializer):
+    """One attribute of the product type's schema; the title is its label."""
+
+    title = serializers.CharField(required=False)
+    type = serializers.CharField(required=False)
+
+
+class AttributeSchemaSerializer(serializers.Serializer):
+    """The part of `product_type.attribute_schema` the storefront reads (ADR-0055)."""
+
+    properties = serializers.DictField(child=AttributePropertySerializer())
+
+
 class ProductDetailSerializer(ProductCardSerializer):
+    attribute_schema = serializers.SerializerMethodField()
+    variant_axes = serializers.SerializerMethodField()
     categories = ReferenceSerializer(many=True, source="public_categories")
     variants = PublicVariantSerializer(many=True, source="public_variants")
     images = DetailImageSerializer(many=True)
@@ -212,11 +228,23 @@ class ProductDetailSerializer(ProductCardSerializer):
             *ProductCardSerializer.Meta.fields,
             "description_md",
             "attributes",
+            "attribute_schema",
+            "variant_axes",
             "categories",
             "variants",
             "images",
             "related",
         ]
+
+    @extend_schema_field(AttributeSchemaSerializer)
+    def get_attribute_schema(self, product: Product) -> dict[str, Any]:
+        return {
+            "properties": product.product_type.attribute_schema.get("properties", {})
+        }
+
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
+    def get_variant_axes(self, product: Product) -> list[str]:
+        return resolve_variant_axes(product)
 
     @extend_schema_field(ProductCardSerializer(many=True))
     def get_related(self, product: Product) -> list[dict]:
