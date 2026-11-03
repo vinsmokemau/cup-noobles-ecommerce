@@ -3967,7 +3967,7 @@ Build the 12.A routes from the T12.4 components, fetching through `useApi` with 
 
 The product page calls `createError({ statusCode: 404 })` when the API returns 404, so unknown slugs render `error.vue` with a real 404 status and `noindex`.
 
-- [ ] **T12.7 — SEO**
+- [x] **T12.7 — SEO** (2026-11-02, a247e3a)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P12-V23
