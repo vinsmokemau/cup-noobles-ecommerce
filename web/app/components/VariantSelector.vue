@@ -51,7 +51,8 @@ const groups = computed(() =>
         matches.length > 0 && matches.every((v) => v.availability.status === 'out_of_stock')
       return {
         value,
-        label: soldOut ? `${value} · ${props.outOfStockLabel}` : value,
+        label: value,
+        soldOut,
         disabled: soldOut || matches.length === 0,
       }
     })
@@ -80,6 +81,13 @@ function choose(axis: string, value: string) {
       orientation="horizontal"
       size="xl"
       @update:model-value="choose(group.axis, $event as string)"
-    />
+    >
+      <template #label="{ item }">
+        {{ item.label
+        }}<template v-if="(item as (typeof group.items)[number]).soldOut">
+          · {{ outOfStockLabel }}</template
+        >
+      </template>
+    </URadioGroup>
   </div>
 </template>

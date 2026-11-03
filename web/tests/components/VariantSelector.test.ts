@@ -57,6 +57,15 @@ describe('VariantSelector', () => {
     await wrapper.setProps({ modelValue: 'v-l-negro' })
     expect(radio(wrapper, 'blanco').attributes('disabled')).toBeUndefined()
     expect(wrapper.text()).not.toContain('Agotado')
+    // The accessible name of a radio is its label (label[for]); it follows the choice (G52).
+    expect(labelOf(wrapper, 'blanco')).toBe('blanco')
+    expect(radio(wrapper, 'blanco').attributes('aria-label')).toBeUndefined()
+
+    // Back to M: the sold-out text returns to the visible label, and L stays plain.
+    await wrapper.setProps({ modelValue: 'v-m-negro' })
+    expect(labelOf(wrapper, 'blanco')).toBe('blanco · Agotado')
+    expect(labelOf(wrapper, 'L')).toBe('L')
+    expect(wrapper.text().match(/Agotado/g)).toHaveLength(1)
   })
 
   it('p12_v10 single-variant product renders no selector', async () => {
