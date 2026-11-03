@@ -3900,7 +3900,7 @@ Catalog components, built from DS parts per the §4.5 composition map (do not ha
 
 Add `attribute_schema` and `variant_axes` to the product detail serializer, as ADR-0055 decides, and regenerate the snapshot and types with `make schema-update`. `variant_axes` uses `resolve_variant_axes`. The list endpoint is unchanged.
 
-- [ ] **T12.20 — Design System 1.5.0**
+- [x] **T12.20 — Design System 1.5.0** (2026-11-02, 88c28d4)
   - Release: R1 · Gate: task
   - REQs: REQ-050
   - Verifies: [no-test: `nuxt typecheck` passes; the pin is checked by P12-V27 (T12.14); the vendored email HTML is checked by P11-V12]
