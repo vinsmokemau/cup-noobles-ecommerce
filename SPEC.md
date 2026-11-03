@@ -3978,7 +3978,7 @@ The product page calls `createError({ statusCode: 404 })` when the API returns 4
 
 SEO: `useSeoMeta` on every page; `Product` JSON-LD with `offers.availability` and `priceCurrency: "MXN"` on product pages; `@nuxtjs/sitemap` generating from the catalog API; canonical URLs; OG images from the primary product image.
 
-- [ ] **T12.8 — Images**
+- [x] **T12.8 — Images** (2026-11-02, d8fab28)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: the Lighthouse budgets (P12-V02, T12.12) catch layout shift; P12-V01 checks the product page's server render]
