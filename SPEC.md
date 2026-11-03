@@ -1146,6 +1146,7 @@ Coverage never decreases (CR-44). `coverage-baseline.json` records each scope's 
 | `SITE_ADDRESS` | proxy | `:8080` | The domain | Caddy site block |
 | `NUXT_PUBLIC_API_BASE` | web | `/api` | `/api` | See G18 for the SSR path |
 | `NUXT_API_SERVER_TARGET` | web | `http://api:8000` | The API container's address on the production network, set by the deploy (Phase 20) | Server-only target of the Nitro `routeRules` proxy for `/api/**` (G18). Read at build time, never exposed to the browser. Optional: the Part A value is the default. |
+| `NUXT_PUBLIC_SITE_URL` | web | `http://localhost:8080` | The public address of the storefront, set by the deploy (T22.4) | Base of canonical URLs, `og:url` and the sitemap (T12.7). Optional: the Part A value is the default. |
 | `OWNER_ALERT_EMAIL` | api | `owner@cupnoobles.test` | The owner's monitored inbox; no default, so `prod.py` fails to start without it | Recipient of `low_stock_report` and `daily_digest` (G38) |
 | `EMAIL_REPLY_TO` | api | `tienda@cupnoobles.test` | The monitored inbox on the domain (S3) | The `Reply-To` of every email (11.4) |
 
@@ -5583,7 +5584,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.51 | 2026-11-02 | G51 resolved: `GET /api/catalog/products/` takes `featured=true`, built inside T12.16 (snapshot and types regenerated, an API test, and the E2E catalog seed). No new task, Verify ID or schema change. | OA-73; ADR-0057 |
 | 1.52 | 2026-11-02 | G52 decided: the sold-out text of a variant option goes in its visible label and its accessible name stays correct. New task T12.21 (after T12.16, before T12.9, which now depends on it); P12-V10 gains the assertions. No new Verify ID or schema change. | OA-74; ADR-0058 |
 | 1.53 | 2026-11-02 | G53 resolved: product descriptions are plain text for the first launch; the product page shows paragraphs and renders no Markdown or HTML. No task, Verify ID or schema change. | OA-75; ADR-0059 |
-| 1.54 | 2026-11-02 | T22.4 adds a step: set `NUXT_PUBLIC_SITE_URL` to the storefront's public address, because canonical URLs, `og:url` and the sitemap (T12.7) are built from it. No requirement, Verify ID or schema change. | Owner request in chat, 2026-11-02 |
+| 1.54 | 2026-11-02 | §4.7 lists `NUXT_PUBLIC_SITE_URL` (web). T22.4 adds a step: set `NUXT_PUBLIC_SITE_URL` to the storefront's public address, because canonical URLs, `og:url` and the sitemap (T12.7) are built from it. No requirement, Verify ID or schema change. | Owner request in chat, 2026-11-02 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
