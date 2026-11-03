@@ -3946,7 +3946,7 @@ Build the 12.A routes from the T12.4 components, fetching through `useApi` with 
 
 `VariantSelector` shows "Agotado" in the visible label of a sold-out option, through the radio group's label slot, and each option's accessible name stays correct as the choice changes (G52, ADR-0058). Extend the `p12_v10` component test with the new assertions; the existing ones stay. Add no styling (CR-27). If the label slot cannot do it, stop: add a DSR item to §2.4 for a sold-out state on the choice control, and report it to the owner.
 
-- [ ] **T12.10 — Error page**
+- [x] **T12.10 — Error page** (2026-11-02, 575d9c6)
   - Release: R1 · Gate: task
   - REQs: REQ-053
   - Verifies: P12-V03, P12-V25
