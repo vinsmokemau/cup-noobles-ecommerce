@@ -49,6 +49,12 @@ class ProductQuerySerializer(serializers.Serializer):
     in_stock = serializers.BooleanField(
         required=False, help_text="`true` keeps products with a unit available."
     )
+    featured = serializers.BooleanField(
+        required=False,
+        help_text=(
+            "`true` keeps the featured products, in `featured_position` order (G28, G51)."
+        ),
+    )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         low, high = attrs.get("min_price"), attrs.get("max_price")
@@ -202,6 +208,9 @@ def filter_products(
             **{f"{ANNOTATION}__gt": 0}
         )
         queryset = queryset.filter(Exists(stocked))
+
+    if params.get("featured"):
+        queryset = queryset.filter(is_featured=True)
 
     if params.get("q"):
         queryset = search.matching(queryset, params["q"])

@@ -224,6 +224,12 @@ paths:
           minLength: 1
         description: Category slug; includes its descendants.
       - in: query
+        name: featured
+        schema:
+          type: boolean
+        description: '`true` keeps the featured products, in `featured_position` order
+          (G28, G51).'
+      - in: query
         name: franchise
         schema:
           type: string
@@ -310,6 +316,12 @@ paths:
         description: El valor del cursor de paginación.
         schema:
           type: string
+      - in: query
+        name: featured
+        schema:
+          type: boolean
+        description: '`true` keeps the featured products, in `featured_position` order
+          (G28, G51).'
       - in: query
         name: franchise
         schema:

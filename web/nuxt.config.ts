@@ -11,6 +11,8 @@ export default defineNuxtConfig({
   // `@nuxt/ui` is not registered here: the DS layer does (C-11).
   modules: ['@nuxtjs/sitemap', '@nuxt/image', '@nuxt/eslint'],
   eslint: { checker: false, config: { stylistic: false } },
+  // Icons are bundled into the client, so a page never asks the Iconify API for one (Part A is offline).
+  icon: { clientBundle: { scan: true } },
   runtimeConfig: {
     public: {
       // Relative, because the storefront and the API share one origin (ADR-0010).

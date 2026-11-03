@@ -860,6 +860,8 @@ export interface operations {
                 brand?: string;
                 /** @description Category slug; includes its descendants. */
                 category?: string;
+                /** @description `true` keeps the featured products, in `featured_position` order (G28, G51). */
+                featured?: boolean;
                 franchise?: string;
                 /** @description `true` keeps products with a unit available. */
                 in_stock?: boolean;
@@ -913,6 +915,8 @@ export interface operations {
                 category?: string;
                 /** @description El valor del cursor de paginación. */
                 cursor?: string;
+                /** @description `true` keeps the featured products, in `featured_position` order (G28, G51). */
+                featured?: boolean;
                 franchise?: string;
                 /** @description `true` keeps products with a unit available. */
                 in_stock?: boolean;

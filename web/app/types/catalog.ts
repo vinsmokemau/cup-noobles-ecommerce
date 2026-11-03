@@ -15,3 +15,6 @@ export type AvailabilityStatus = Schemas['StatusEnum'] | 'preorder'
 export interface AttributeSchema {
   properties?: Record<string, { title?: string; type?: string }>
 }
+
+export type ProductPage = Schemas['PaginatedProductCardList']
+export type CategoryNode = Schemas['CategoryNode']

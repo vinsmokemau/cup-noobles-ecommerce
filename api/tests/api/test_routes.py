@@ -24,10 +24,15 @@ def test_admin_login_page_renders(api_client):
     assert b'name="username"' in response.content
 
 
+@pytest.mark.django_db
 def test_seed_e2e_writes_manifest(settings, tmp_path):
     settings.BASE_DIR = tmp_path
+    path = tmp_path / "var" / "e2e" / "manifest.json"
 
     call_command("seed_e2e")
+    first = json.loads(path.read_text())
     call_command("seed_e2e")
 
-    assert json.loads((tmp_path / "var" / "e2e" / "manifest.json").read_text()) == {}
+    # Idempotent, and each phase adds its own part (Phase 12: the catalog).
+    assert json.loads(path.read_text()) == first
+    assert set(first) == {"catalog"}

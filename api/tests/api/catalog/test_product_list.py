@@ -293,3 +293,25 @@ def test_p5_v03_query_count_bounded(api_client, django_assert_max_num_queries):
             response = api_client.get(f"{URL}?page_size={page_size}")
         assert response.status_code == 200
         assert len(response.json()["results"]) == page_size
+
+
+def test_g51_featured_filter_lists_featured_in_position_order(
+    api_client, catalog_dataset
+):
+    link = catalog_dataset.nendoroid
+    zelda = catalog_dataset.figma
+    link.is_featured, link.featured_position = True, 2
+    zelda.is_featured, zelda.featured_position = True, 1
+    link.save()
+    zelda.save()
+    catalog_dataset.draft.is_featured = True  # a draft is never listed, featured or not
+    catalog_dataset.draft.save()
+
+    featured = api_client.get(URL, {"featured": "true"})
+
+    assert featured.status_code == 200
+    assert slugs(featured) == ["figma-zelda", "nendoroid-link"]
+    assert "public" in featured["Cache-Control"]
+    # Without the filter, or with `false`, the list is the same as before.
+    assert len(slugs(api_client.get(URL))) == 3
+    assert len(slugs(api_client.get(URL, {"featured": "false"}))) == 3
