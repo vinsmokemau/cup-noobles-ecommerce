@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.54 |
+| Spec version | 1.55 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
-| Design System | `@vinsmokemau/cup-noobles-tokens`, `-nuxt` and `-email`, pinned at exactly `1.5.0` (A17). Raised only by a DS upgrade task. |
+| Design System | `@vinsmokemau/cup-noobles-tokens`, `-nuxt` and `-email`, pinned at exactly `1.6.0` (A17). Raised only by a DS upgrade task. |
 | Normative files | `SPEC.md` and `spec/schema.sql` (the canonical schema, §4.4) |
 | Converted from | `cup-noobles-implementation-plan.md` (September 2026). Appendix E maps every old section to its new place. |
 
@@ -209,7 +209,7 @@ Tasks and Verify IDs tagged R2 keep their IDs and stay in §6. The traceability 
 
 ## 2. Rules, conflicts, assumptions and open items
 
-Source key: **plan** is `cup-noobles-implementation-plan.md`. **DS** is the Design System repository at version 1.5.0. **GE** is the owner's internal execution guide (v4), cited by ID only. **OA** is an owner answer in §2.6.
+Source key: **plan** is `cup-noobles-implementation-plan.md`. **DS** is the Design System repository at version 1.6.0. **GE** is the owner's internal execution guide (v4), cited by ID only. **OA** is an owner answer in §2.6.
 
 ### 2.1 Carried-forward rules
 
@@ -318,7 +318,7 @@ Each rule is binding. "Enforced by" names the check that fails when the rule is 
 | C-07 | Plan §6 runs the whole suite on every task. The owner wants a light suite per task and the full suite per phase and in CI. | §0.2 and CR-37 | Resolved (OA-03) |
 | C-08 | Plan 12.4 formats prices as `$1,234.00 MXN`; plan 12.6 gives the `Intl` output with no suffix (G19). | DS:formatting.md decides: the `Intl` output, with no symbol by hand and no suffix (CR-30) | Resolved (DS:formatting.md); ADR in T1.15 |
 | C-09 | The DS email layout has six fixed parts and is built only from DS components. The plan has 11 templates and commerce rows such as order lines. | The seven R1 templates fit the six-part layout. Rows inside the card are a DS request (DSR-04). | Resolved (OA-09; DSR-04, DS 1.1.0) |
-| C-10 | The DS photo standard says "no text inside the image" (DS:ADR-0057). Product packaging photos always carry printed text. | The DS clarifies the rule's scope for product photos (DSR-07) | Open |
+| C-10 | The DS photo standard says "no text inside the image" (DS:ADR-0057). Product packaging photos always carry printed text. | The DS clarifies the rule's scope for product photos (DSR-07): text printed on the product itself may show; text added to a photo may not (DS:ADR-0064) | Resolved (OA-76; ADR-0060) |
 | C-11 | Plan 1.5 installs `@nuxt/ui` on its own and uses npm. The DS layer brings Nuxt UI 4.11.2 and Tailwind 4.3.3, and its install path is verified with pnpm. | `web/` uses pnpm, gets Nuxt UI only through the layer, and pins Nuxt to the version of the DS consumer fixture (4.5.2) | Resolved (OA-12) |
 | C-12 | Plan S5 wants a private repository with branch protection. On GitHub Free, branch protection is available only to public repositories (DS:OD-14). | The repository is public (OA-10), and CR-48 keeps internal data out | Resolved (OA-10) |
 | C-13 | DS rules ER-01 to ER-06 cite plan sections (§3.3, §6, Phases 11–12) that this spec renumbers | Appendix E keeps every old section findable. A DS amendment that updates those citations is optional. | Open (low) |
@@ -347,7 +347,7 @@ Each assumption is cheap to reverse unless its row says otherwise. A1–A14 keep
 | A14 | Each mock behaves exactly like its real provider at the interface level; the shared contract suites run against both | A mock easier than the real thing hides bugs until Part B | Medium | R1 |
 | A15 | One maintainer: the owner is the developer and the business owner. Governance is sized for one person, and decisions are recorded as owner answers and ADRs. | OA-04; DS:A-01 | n/a | R1 |
 | A16 | Guest checkout only in R1. A customer is identified by email, and also by phone and shipping address for purchase limits (G31). | OA-11 | Medium | R1 |
-| A17 | The three DS packages are pinned at an exact version, currently `1.5.0`. A DS upgrade is its own task. | OA-12; DS:R-01 | Low | R1 |
+| A17 | The three DS packages are pinned at an exact version, currently `1.6.0`. A DS upgrade is its own task. | OA-12; DS:R-01 | Low | R1 |
 | A18 | The repository is public on GitHub Free, created by the owner | OA-10 | Low | R1 |
 | A19 | The weekly dashboard and the monthly report are built by the owner from admin CSV exports. The store has no reporting screens. | GE:T34, GE:T43 | Low | R1 |
 
@@ -463,7 +463,7 @@ Each item is built in the DS repository under its own SPEC and released as a DS 
 | DSR-04 | Rows inside the email card, for order lines and totals | Phase 11 | R1 | Resolved (DS 1.1.0, T11.5b) |
 | DSR-05 | A raster logo for the email `{{ logo_url }}` slot. The DS ships SVG only, and most email clients don't render SVG. | Phase 11 | R1 | Resolved (DS 1.1.0, T11.5b) |
 | DSR-06 | `color-scheme: dark` and a `theme-color` meta. The layer doesn't set them in its own files; if Nuxt UI doesn't either, the DS adds them. | Phase 12 | R1 | Resolved (DS 1.3.0, T12.18) |
-| DSR-07 | The scope of the photo rule "no text inside the image" for product packaging (C-10) | Phase 12 | R1 | Open |
+| DSR-07 | The scope of the photo rule "no text inside the image" for product packaging (C-10) | Phase 12 | R1 | Resolved (DS 1.6.0, ADR-0060; pin in T12.22) |
 | DSR-08 | An order timeline | Phase 14 | R2 | Deferred (R2) |
 | DSR-09 | Make the raw-value lint rule of DS:REQ-016 available to consuming apps, so the storefront runs the same check as the DS. Until then, P12-V26 is the storefront's check. | Phase 12 | R1 | Resolved (DS 1.3.0, T12.18) |
 | DSR-10 | `CnMediaCard.vue` (DS 1.0.0, line 81) fails `vue-tsc` with TS2352: `EventTarget \| null` converted to `Picture`. Found in T1.5 with `nuxt typecheck`; `make test` runs `vue-tsc`. | Phase 1 (T1.17) | R1 | Resolved (DS 1.0.1, T1.17) |
@@ -563,6 +563,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-73 | 2026-11-02 | G51: no public API exposes featured products, so the home page cannot list them. How does the storefront get them? | Option A: the proposed resolution. `GET /api/catalog/products/` takes `featured=true` and returns active featured products in `featured_position` order, with the same pagination and cache headers; the list is unchanged without it. Built inside T12.16. Option B (rejected): a separate `/api/catalog/featured/` endpoint. Option C (rejected): a separate task before T12.16. ADR-0057. |
 | OA-74 | 2026-11-02 | G52: the "Agotado" text of a sold-out variant option is in its accessible name only, and the name goes stale after the selection changes. How is it fixed? | Option A: the proposed resolution. Show the text in the option's visible label through the radio group's label slot and keep each accessible name correct; if the slot cannot do it, register a DS request for a sold-out state on the choice control and report it. Built in a new task T12.21, after T12.16 and before T12.9. Option B (rejected): ask the DS first. ADR-0058. |
 | OA-75 | 2026-11-02 | G53: `product.description_md` is Markdown, but the spec defines no renderer or allowed subset. How does the product page show it? | Option A: the proposed resolution, for the first launch. Descriptions are plain text; the product page shows them as paragraphs split on blank lines, and no Markdown or HTML is rendered. The column keeps its name. Option B (not chosen): a sanitised Markdown renderer with an allowed subset. A later amendment can add it. ADR-0059. |
+| OA-76 | 2026-11-02 | DSR-07 / C-10: does the DS photo rule "no text inside the image" apply to product packaging photos? The owner decided it in the DS repository on 2026-11-01 (DS:OD-15, DS:ADR-0064); DS 1.6.0 publishes the wording. | Option B of the DS, adopted here: text printed on the product itself (its box or label) may show in a product photo; text added to a photo (banners, price stickers, flashes such as "NEW", watermarks, captions) is not allowed. The title, the tag and the alt text carry the words. "Added text" is judged when a photo is uploaded; no test can detect it. DSR-07 and C-10 resolved; new task T12.22 raises the pin to 1.6.0. ADR-0060. |
 
 ---
 
@@ -970,7 +971,7 @@ The admin form, the storefront filters and the API validation all read `attribut
 
 ### 4.5 Storefront and the Design System
 
-**Packages.** `web/` consumes the three DS packages at one exact version, currently `1.5.0` (A17):
+**Packages.** `web/` consumes the three DS packages at one exact version, currently `1.6.0` (A17):
 
 | Package | What the storefront uses | Where |
 |---|---|---|
@@ -3790,7 +3791,7 @@ The R2 rows of the T11.3 table: `verify_email`, `password_reset`, `preorder_arri
 
 - Foundation: T12.1 → T12.14 (styling scan and DS pin check), T12.2 → T12.11, T12.6. These need no Design System release and can start now.
 - Catalog: T12.18 (raises the DS pin to 1.3.0, which holds DSR-01, DSR-02 and DSR-03) → T12.4 → T12.5 → T12.19 → T12.20 (raises the DS pin to 1.5.0, which holds DSR-11) → T12.16. T12.18 needs no other task of the phase and can run right after T12.6
-- Pages: T12.10 → T12.13; T12.7 and T12.8 (either order, both after T12.16); T12.21 (after T12.16); then T12.9 → T12.15
+- Pages: T12.10 → T12.13; T12.7 and T12.8 (either order, both after T12.16); T12.21 (after T12.16); T12.22 (any time after T12.20); then T12.9 → T12.15
 - Phase close: T12.12 (needs T12.15 and T12.14)
 - R2, after R1: T12.3, T12.17
 
@@ -3984,10 +3985,20 @@ SEO: `useSeoMeta` on every page; `Product` JSON-LD with `offers.availability` an
   - Verifies: [no-test: the Lighthouse budgets (P12-V02, T12.12) catch layout shift; P12-V01 checks the product page's server render]
   - Depends on: T12.16
   - Context: §4.3 (Boundaries: Media storage); DS:ADR-0056, DS:ADR-0057
-  - Open items: DSR-07
+  - Open items: DSR-07 resolved (ADR-0060, DS 1.6.0)
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
 
-Images: `@nuxt/image` (`none` provider in Part A, since derivatives are pre-generated — §4.3), `loading="lazy"` below the fold, explicit `width`/`height` to prevent layout shift. Product photos follow the DS photo standards (DS:ADR-0056, DS:ADR-0057; DSR-07 for packaging photos): `CnMediaCard` shows the whole picture in a 4:3 frame, and the brand d20 when a picture is missing.
+Images: `@nuxt/image` (`none` provider in Part A, since derivatives are pre-generated — §4.3), `loading="lazy"` below the fold, explicit `width`/`height` to prevent layout shift. Product photos follow the DS photo standards (DS:ADR-0056, DS:ADR-0057; DSR-07 for packaging photos, ADR-0060): `CnMediaCard` shows the whole picture in a 4:3 frame, and the brand d20 when a picture is missing.
+
+- [ ] **T12.22 — Design System 1.6.0**
+  - Release: R1 · Gate: task
+  - REQs: REQ-050
+  - Verifies: [no-test: `nuxt typecheck` passes; the pin is checked by P12-V27 (T12.14); the vendored email HTML is checked by P11-V12]
+  - Depends on: T12.20
+  - Context: §4.5 (Packages, Email); A17; OA-76
+  - Open items: DSR-07 resolved by DS 1.6.0 (ADR-0060)
+
+DS 1.6.0 changes the docs only: the photo rule now reads "Put no text you add inside the image. Words printed on the product itself, such as its box or label, may show. The title, the tag, and the alt text carry the text, so no one needs the picture to read it." (DSR-07, DS:ADR-0064). Raise the three DS packages in `web/` to exactly `1.6.0` (A17), in `package.json` and in `pnpm-workspace.yaml`, and refresh `pnpm-lock.yaml`. `nuxt typecheck` must pass. Refresh the files in `api/apps/notifications/templates/email/ds/` and `ds-email-manifest.json` from the 1.6.0 email package, and keep P11-V12 and P11-V13 green. Check the DS release notes of 1.6.0 for any other change that touches the storefront or an email; list what you find in the report. Run `make test-all`, as §4.5 requires of a DS upgrade. It can run at any time after T12.20 and before T12.12.
 
 - [ ] **T12.9 — Accessibility and mobile**
   - Release: R1 · Gate: task
@@ -5511,7 +5522,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 8 | ~~G3~~, ~~G4~~, ~~G5~~, ~~G25~~, ~~G26~~, ~~G27~~, ~~G31~~, ~~G33~~ |
 | Phase 9 | ~~G7~~, ~~G8~~, ~~G11~~, ~~G14~~, ~~G46~~ |
 | Phase 11 | ~~G17~~; DSR-04, DSR-05 released |
-| Phase 12 | ~~G18~~, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03 released (DS 1.3.0, T12.18), DSR-06, DSR-07 released; DSR-09 or its fallback |
+| Phase 12 | ~~G18~~, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03 released (DS 1.3.0, T12.18), DSR-06, DSR-07 released (DS 1.6.0, T12.22); DSR-09 or its fallback |
 | Phase 13 | G21, G22 |
 | Phase 16 | S2, D6, D7, D13, G45 |
 | Phase 17 | S3, S4 |
@@ -5585,6 +5596,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.52 | 2026-11-02 | G52 decided: the sold-out text of a variant option goes in its visible label and its accessible name stays correct. New task T12.21 (after T12.16, before T12.9, which now depends on it); P12-V10 gains the assertions. No new Verify ID or schema change. | OA-74; ADR-0058 |
 | 1.53 | 2026-11-02 | G53 resolved: product descriptions are plain text for the first launch; the product page shows paragraphs and renders no Markdown or HTML. No task, Verify ID or schema change. | OA-75; ADR-0059 |
 | 1.54 | 2026-11-02 | §4.7 lists `NUXT_PUBLIC_SITE_URL` (web). T22.4 adds a step: set `NUXT_PUBLIC_SITE_URL` to the storefront's public address, because canonical URLs, `og:url` and the sitemap (T12.7) are built from it. No requirement, Verify ID or schema change. | Owner request in chat, 2026-11-02 |
+| 1.55 | 2026-11-02 | DSR-07 and C-10 resolved: text printed on the product itself may show in a product photo, added text may not (DS:ADR-0064, DS 1.6.0). New task T12.22 raises the DS pin to 1.6.0 (docs only). A17 and the pin citations read 1.6.0. No requirement, Verify ID or schema change. | OA-76; ADR-0060 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5693,6 +5705,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0057 | The product list takes a `featured` filter | `docs/decisions/0057-featured-products-filter.md` | G51; OA-73 |
 | ADR-0058 | The sold-out text of a variant option is in its visible label | `docs/decisions/0058-sold-out-text-in-variant-label.md` | G52; OA-74 |
 | ADR-0059 | Product descriptions are plain text for the first launch | `docs/decisions/0059-plain-text-product-descriptions.md` | G53; OA-75 |
+| ADR-0060 | Text printed on a product may show in its photo | `docs/decisions/0060-packaging-text-in-photos.md` | C-10; DSR-07; OA-76 |
 
 ## Appendix C — Dated market facts
 
@@ -6069,6 +6082,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T12.18 | New: raise the DS pin to 1.3.0, which resolves DSR-01, DSR-02 and DSR-03 | OA-68; §4.5 |
 | T12.20 | New: raise the DS pin to 1.5.0, which resolves DSR-11 | OA-70, OA-71; §4.5 |
 | T12.21 | New: show the sold-out text in the variant selector's visible label | OA-74; G52 |
+| T12.22 | New: raise the DS pin to 1.6.0, which resolves DSR-07 | OA-76; §4.5 |
 | T12.4 | Built from DS parts per the §4.5 composition map; depends on T12.18 (DSR-01, DSR-02, DSR-03); `PriceDisplay` no longer formats "$1,234.00 MXN" | CR-26; OA-09; G19 decided (ADR-0024) |
 | T12.6 | Cites ADR-0024 and CR-30; locale and currency in one file | G19; DS:formatting.md |
 | T12.8 | Adds the DS photo standards and DSR-07; no test of its own | DS:ADR-0056, DS:ADR-0057 |

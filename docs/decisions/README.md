@@ -64,3 +64,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0057](0057-featured-products-filter.md) | The product list takes a `featured` filter | accepted | G51; OA-73 |
 | [ADR-0058](0058-sold-out-text-in-variant-label.md) | The sold-out text of a variant option is in its visible label | accepted | G52; OA-74 |
 | [ADR-0059](0059-plain-text-product-descriptions.md) | Product descriptions are plain text for the first launch | accepted | G53; OA-75 |
+| [ADR-0060](0060-packaging-text-in-photos.md) | Text printed on a product may show in its photo | accepted | C-10; DSR-07; OA-76 |
