@@ -51,6 +51,38 @@ services:
       retries: 60
       start_period: 30s
 
+  # The storefront with its API target unreachable, for P12-V25 (T12.10). It is off unless the
+  # `api-down` profile is asked for; the spec starts and stops it. Nitro bakes the proxy target at
+  # start, so this needs its own server. It does not depend on `api`.
+  web-api-down:
+    profiles: [api-down]
+    build:
+      context: ./web
+      secrets:
+        - node_auth_token
+    command: ["pnpm", "dev", "--host", "0.0.0.0", "--port", "3001"]
+    environment:
+      NUXT_API_SERVER_TARGET: http://api-unreachable.invalid:8000
+      NUXT_PUBLIC_API_BASE: /api
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - ./web:/app
+      - ./api/openapi.snapshot.yml:/api/openapi.snapshot.yml:ro
+      - web_node_modules:/app/node_modules
+      - web_nuxt_api_down:/app/.nuxt
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3001/').then(() => process.exit(0)).catch(() => process.exit(1))"
+      interval: 5s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
+
   proxy:
     depends_on:
       api:
@@ -62,3 +94,6 @@ services:
       interval: 3s
       timeout: 5s
       retries: 20
+
+volumes:
+  web_nuxt_api_down:

@@ -10,6 +10,7 @@ const { data, error, refresh } = await useAsyncData('home', async () => {
   ])
   return { featured: featured.results, categories }
 })
+failOnServer(error)
 
 useSeoMeta({ title: 'Cup Noobles' })
 </script>

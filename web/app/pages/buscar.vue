@@ -17,6 +17,7 @@ const { data, error, refresh, status } = await useAsyncData(
       : Promise.resolve([] as ProductCardData[]),
   { watch: [term] },
 )
+failOnServer(error)
 
 function submit() {
   const q = draft.value.trim()

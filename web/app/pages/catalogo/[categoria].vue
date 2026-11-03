@@ -23,6 +23,7 @@ const category = computed(() => (tree.value ? find(tree.value) : undefined))
 if (tree.value && !category.value) {
   throw createError({ statusCode: 404, statusMessage: 'Categoría no encontrada', fatal: true })
 }
+failOnServer(error)
 </script>
 
 <template>

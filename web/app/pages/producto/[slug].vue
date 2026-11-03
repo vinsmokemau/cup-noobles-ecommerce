@@ -16,6 +16,7 @@ const {
 if (error.value instanceof ApiError && error.value.status === 404) {
   throw createError({ statusCode: 404, statusMessage: 'Producto no encontrado', fatal: true })
 }
+failOnServer(error)
 
 // Opens on the first variant that can be bought, else the first one.
 const selectedId = ref<string | null>(null)

@@ -35,6 +35,7 @@ const { data, error, refresh, status } = await useAsyncData(
   },
   { watch: [key] },
 )
+failOnServer(error)
 
 function setFilters(next: Record<string, string[]>) {
   router.push({

@@ -8,6 +8,8 @@ export default defineNuxtConfig({
   // The DS layer sets `srcDir: '.'`, which the app would inherit; its source lives in app/.
   srcDir: 'app',
   ssr: true,
+  // The dev server's floating toolbar covers controls on small screens and intercepts clicks in the e2e specs.
+  devtools: { enabled: false },
   // `@nuxt/ui` is not registered here: the DS layer does (C-11).
   modules: ['@nuxtjs/sitemap', '@nuxt/image', '@nuxt/eslint'],
   eslint: { checker: false, config: { stylistic: false } },
