@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { AttributeSchema, ProductDetailData } from '~/types/catalog'
-import { ApiError } from '~/composables/useApi'
 
 const api = useApi()
 const slug = String(useRoute().params.slug)
@@ -13,7 +12,7 @@ const {
   api<ProductDetailData>(`/catalog/products/${encodeURIComponent(slug)}/`),
 )
 // A product that is not published (or never existed) is a real 404 (REQ-053).
-if (error.value instanceof ApiError && error.value.status === 404) {
+if (apiErrorOf(error.value)?.status === 404) {
   throw createError({ statusCode: 404, statusMessage: 'Producto no encontrado', fatal: true })
 }
 failOnServer(error)

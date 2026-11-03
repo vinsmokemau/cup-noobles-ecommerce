@@ -36,3 +36,12 @@ test('p12_v16 variant selection updates price and availability', async ({ page, 
   // The loop ends on L + blanco. M + blanco is sold out, so M is disabled while blanco is chosen.
   await expect(option(page, hoodie.variants[1]!.options.talla!)).toBeDisabled()
 })
+
+test('p12_v20 unknown product is a real 404', async ({ page, request }) => {
+  const response = await request.get('/producto/no-existe', { headers: { accept: 'text/html' } })
+  expect(response.status()).toBe(404)
+
+  await page.goto('/producto/no-existe')
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/)
+  await expect(page.locator('a[href="/catalogo"]').first()).toBeVisible()
+})
