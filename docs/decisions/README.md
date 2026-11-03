@@ -62,3 +62,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0055](0055-product-type-data-in-product-detail.md) | The product detail response carries the type's attribute schema and variant axes | accepted | G50; OA-69 |
 | [ADR-0056](0056-ssr-api-route.md) | Server rendering reaches Django through a Nitro proxy rule | accepted | G18; OA-72 |
 | [ADR-0057](0057-featured-products-filter.md) | The product list takes a `featured` filter | accepted | G51; OA-73 |
+| [ADR-0058](0058-sold-out-text-in-variant-label.md) | The sold-out text of a variant option is in its visible label | accepted | G52; OA-74 |
