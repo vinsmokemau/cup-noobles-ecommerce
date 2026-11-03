@@ -12,7 +12,7 @@ const { data, error, refresh } = await useAsyncData('home', async () => {
 })
 failOnServer(error)
 
-useSeoMeta({ title: 'Cup Noobles' })
+usePageSeo({ title: 'Cup Noobles' })
 </script>
 
 <template>

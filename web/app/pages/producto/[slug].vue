@@ -68,7 +68,10 @@ const jsonLd = computed(() => {
   }).replace(/</g, '\\u003c')
 })
 
-useSeoMeta({ title: () => product.value?.name })
+usePageSeo({
+  title: () => product.value?.name,
+  image: () => pickImageSrc(product.value?.images[0] ?? product.value?.image, 1200),
+})
 useHead({
   script: computed(() =>
     jsonLd.value ? [{ type: 'application/ld+json', innerHTML: jsonLd.value }] : [],

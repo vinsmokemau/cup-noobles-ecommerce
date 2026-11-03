@@ -24,7 +24,8 @@ function submit() {
   router.push({ query: q ? { q } : {} })
 }
 
-useSeoMeta({ title: 'Buscar' })
+// Search results are not worth indexing; the products they list are in the sitemap.
+usePageSeo({ title: 'Buscar', noindex: true })
 </script>
 
 <template>

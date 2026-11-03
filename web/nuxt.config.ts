@@ -1,6 +1,9 @@
 // Server-side route to Django (G18). Server rendering has no browser to resolve a same-origin
 // `/api`, so Nitro proxies it to the API container. Nitro bakes `routeRules` at build time, so
 // the target is read here; it is never exposed to the browser (it is not in `runtimeConfig.public`).
+// The public address of the storefront, for canonical URLs, `og:url` and the sitemap. Set
+// `NUXT_PUBLIC_SITE_URL` in production; the default is the local proxy (T12.7).
+const siteUrl = process.env.NUXT_PUBLIC_SITE_URL ?? 'http://localhost:8080'
 const apiServerTarget = process.env.NUXT_API_SERVER_TARGET ?? 'http://api:8000'
 
 export default defineNuxtConfig({
@@ -15,8 +18,12 @@ export default defineNuxtConfig({
   eslint: { checker: false, config: { stylistic: false } },
   // Icons are bundled into the client, so a page never asks the Iconify API for one (Part A is offline).
   icon: { clientBundle: { scan: true } },
+  site: { url: siteUrl, name: 'Cup Noobles', defaultLocale: 'es-MX' },
+  // The sitemap lists the catalog: the source route reads the API (server/routes/_sitemap-source/urls.ts).
+  sitemap: { sources: ['/_sitemap-source/urls'], exclude: ['/buscar'] },
   runtimeConfig: {
     public: {
+      siteUrl,
       // Relative, because the storefront and the API share one origin (ADR-0010).
       apiBase: '/api',
     },

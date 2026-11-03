@@ -15,6 +15,7 @@ type Ref = { slug: string; name: string }
 // SKUs. Each phase adds its own part.
 export interface SeedManifest {
   catalog: {
+    hidden: { draft: Ref; archived: Ref }
     featured: Ref[]
     linea: { key: string; value: string; matching: Ref[]; other: Ref[] }
     category: { slug: string; products: Ref[]; outside: Ref }

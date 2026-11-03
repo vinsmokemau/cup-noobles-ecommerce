@@ -46,7 +46,7 @@ const nextCursor = computed(() => cursorOf(data.value?.page.next))
 const previousCursor = computed(() => cursorOf(data.value?.page.previous))
 const pageLink = (value: string) => ({ query: { ...route.query, cursor: value } })
 
-useSeoMeta({ title: () => props.title })
+usePageSeo({ title: () => props.title })
 </script>
 
 <template>

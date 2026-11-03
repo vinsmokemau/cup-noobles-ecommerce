@@ -5,8 +5,13 @@ inventory services, so they pass the same validation and leave a ledger row for 
 Idempotent: a product whose name already exists is left alone.
 """
 
+from io import BytesIO
 from typing import Any
 
+from django.core.files.base import ContentFile
+from PIL import Image
+
+from apps.catalog.images import add_product_image
 from apps.catalog.models import (
     Category,
     Franchise,
@@ -15,13 +20,20 @@ from apps.catalog.models import (
     ProductType,
 )
 from apps.catalog.seeds import seed_product_types
-from apps.catalog.services import add_variant, create_product, publish_product
+from apps.catalog.services import (
+    add_variant,
+    archive_product,
+    create_product,
+    publish_product,
+)
 from apps.inventory.models import Location, StockItem
 from apps.inventory.services import receive_stock
 
 FRANCHISE_SLUG = "franquicia-e2e"
 CATEGORY_SLUG = "figuras-e2e"
 HOODIE = "Sudadera Nube E2E"
+DRAFT = "Figura Borrador E2E"
+ARCHIVED = "Figura Archivada E2E"
 # (name, linea, featured position or None)
 FIGURES = (
     ("Figura Aurora E2E", "Nendoroid", 1),
@@ -45,6 +57,13 @@ def _stock(variant: Any, units: int) -> None:
     StockItem.objects.get_or_create(variant=variant, location=location)
     if units:
         receive_stock(variant, location, units, note="seed_e2e")
+
+
+def _test_picture() -> ContentFile:
+    """A plain grey rectangle: test data, so the product page has a picture to share (P12-V23)."""
+    buffer = BytesIO()
+    Image.new("RGB", (1200, 900), (128, 128, 128)).save(buffer, "PNG")
+    return ContentFile(buffer.getvalue(), name="e2e.png")
 
 
 def _manifest(product: Product) -> dict[str, str]:
@@ -97,7 +116,21 @@ def seed_catalog() -> dict[str, Any]:
             _stock(add_variant(hoodie, options, price, sku, position=position), units)
         publish_product(hoodie)
 
+    if not hoodie.images.exists():
+        add_product_image(hoodie, _test_picture())
+
+    hidden: dict[str, dict[str, str]] = {}
+    for key, name in (("draft", DRAFT), ("archived", ARCHIVED)):
+        product = Product.objects.filter(name=name).first()
+        if product is None:
+            product = create_product("figure", name, {"linea": "Figma"})
+            _stock(add_variant(product, {}, 52900, f"E2E-{key.upper()}"), 3)
+            if key == "archived":
+                archive_product(publish_product(product))
+        hidden[key] = _manifest(product)
+
     return {
+        "hidden": hidden,
         "featured": [_manifest(p) for p, _ in figures if p.is_featured],
         "linea": {
             "key": "linea",

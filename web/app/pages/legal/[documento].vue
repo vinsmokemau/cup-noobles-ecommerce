@@ -11,7 +11,7 @@ const title = TITLES[String(useRoute().params.documento)]
 if (!title) {
   throw createError({ statusCode: 404, statusMessage: 'Página no encontrada', fatal: true })
 }
-useSeoMeta({ title })
+usePageSeo({ title })
 </script>
 
 <template>
