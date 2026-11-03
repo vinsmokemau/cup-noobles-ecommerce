@@ -3937,7 +3937,7 @@ Build the 12.A routes from the T12.4 components, fetching through `useApi` with 
 - search
 - the four legal pages, rendering the D2 placeholder
 
-- [ ] **T12.21 — Sold-out text in the variant selector**
+- [x] **T12.21 — Sold-out text in the variant selector** (2026-11-03, 998fced)
   - Release: R1 · Gate: task
   - REQs: REQ-051
   - Verifies: P12-V10
