@@ -3913,7 +3913,7 @@ Add `attribute_schema` and `variant_axes` to the product detail serializer, as A
 
 DS 1.4.0 gives the `<img>` of `CnMediaCard` and `CnImageGallery` `width="4"` and `height="3"`, makes `CnMediaCard` load lazily, and adds the `priority` prop to both (DSR-11). Raise the three DS packages in `web/` to exactly `1.5.0` (which includes 1.4.0; 1.5.0 is docs only, with the number-formatting rule of `formatting.md`) (A17), in `package.json` and in `pnpm-workspace.yaml`, and refresh `pnpm-lock.yaml`. `nuxt typecheck` must pass. Refresh the files in `api/apps/notifications/templates/email/ds/` and `ds-email-manifest.json` from the 1.5.0 email package, and keep P11-V12 and P11-V13 green. Check the DS release notes of 1.4.0 and 1.5.0 for any other change that touches the storefront or an email, and for whether it resolves another open DSR; update the register rows only for what the release notes state, and list the rest in the report. Drop any markup the storefront added around these images. Run `make test-all`, as §4.5 requires of a DS upgrade.
 
-- [ ] **T12.16 — Catalog pages**
+- [x] **T12.16 — Catalog pages** (2026-11-02, e8344ed)
   - Release: R1 · Gate: task
   - REQs: REQ-053
   - Verifies: P12-V01, P12-V13, P12-V14, P12-V15, P12-V16, P12-V17, P12-V18
