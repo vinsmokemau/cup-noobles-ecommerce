@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.50 |
+| Spec version | 1.51 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -447,7 +447,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G48 | 9 | T8.6a, T9.5 | `expire_reservations` picks orders by the hold's expiry but T5 only passes when `payment_deadline_at` is in the past. Today both come from the same card window. T9.5 gives payment methods different deadlines; a hold that lapses before its order's deadline makes the job raise `GuardFailed` and log a stack trace for that order every 5 minutes, and the hold stays. | In T9.5, set the hold length so it never ends before the order's `payment_deadline_at`, and have `expire_reservations` log a `GuardFailed` as a one-line warning instead of an exception. Add a test with a method whose deadline is longer than the card window. | R1 | Resolved (ADR-0050) |
 | G49 | 21 | 10.11, T21.4 | `sync_shipments` must "add to the daily digest" a shipment the carrier reports as `EXCEPTION` (10.11), but nothing records it: `shipment` has no field for it and T21.4's digest list has no shipment line. T10.11 only logs an error. | Add `shipment.exception_at`, set by `sync_shipments` and cleared when the shipment is delivered, and a digest line for shipments with it set. The alternative is for the digest to ask the carrier for each undelivered shipment. | R1 | Open |
 | G50 | 12 | T12.4, T12.5, T12.16, P12-V10, P12-V11 | `GET /api/catalog/products/{slug}/` returns `product_type` as a code only. It carries neither the type's `attribute_schema` (which `AttributeTable` needs for titles and order) nor its variant axes (which `VariantSelector` can derive from the variants' `options` keys, but not label or order). The components take both as props and the product page cannot fill them yet. | Add `attribute_schema` (the `properties` with their `title`) and `variant_axes` to the product detail response, then regenerate the OpenAPI snapshot. A storefront-only alternative does not exist, because the schema is data. | R1 | Resolved (ADR-0055) |
-| G51 | 12 | T12.16, P12-V13, G28 | No public API exposes featured products: the `is_featured` and `featured_position` columns (ADR-0030) are not in the product card, the product list has no `featured` filter, and there is no featured endpoint, so the home page cannot list them. | Add a `featured=true` filter to `GET /api/catalog/products/`: active featured products in `featured_position` order, same pagination and cache headers; the list is unchanged without it. Built inside T12.16, with the snapshot and types regenerated. | R1 | Decided (owner chose this resolution in chat on 2026-11-02; record with `/decide`) |
+| G51 | 12 | T12.16, P12-V13, G28 | No public API exposes featured products: the `is_featured` and `featured_position` columns (ADR-0030) are not in the product card, the product list has no `featured` filter, and there is no featured endpoint, so the home page cannot list them. | Add a `featured=true` filter to `GET /api/catalog/products/`: active featured products in `featured_position` order, same pagination and cache headers; the list is unchanged without it. Built inside T12.16, with the snapshot and types regenerated. | R1 | Resolved (ADR-0057) |
 | G52 | 12 | T12.4, T12.16, P12-V10 | In `VariantSelector`, the sold-out text ("· Agotado") reaches only the radio's accessible name, which Nuxt UI sets once at mount. After the visitor changes a choice the name goes stale (an available option is still announced as sold out), and the visible label never shows the text. | Show the sold-out text in the visible label through the radio group's label slot, or ask the DS for a sold-out state on its choice control (a DS request if the slot cannot do it). | R1 | Open |
 | G53 | 12 | T12.16 | `product.description_md` is Markdown, but the spec defines no renderer or allowed subset, so the product page shows it as plain paragraphs. | Agree a renderer and an allowed subset (paragraphs, lists, emphasis, links), sanitised; or store plain text. | R1 | Open |
 
@@ -560,6 +560,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-70 | 2026-11-02 | DS 1.4.0 is released (DSR-11: image attributes and `priority` on `CnMediaCard` and `CnImageGallery`). When is the pin raised from 1.3.0? | Option A: a new task T12.20, after T12.19 and before T12.16, which depends on it. It raises the pin to 1.4.0, refreshes the vendored email HTML and its manifest, and runs `make test-all`. A17 and the pin citations read 1.4.0. Amended by OA-71: the target is 1.5.0. DSR-11 resolved. Option B (rejected): build T12.16 on 1.3.0 and raise the pin later. No ADR: cheap to reverse, spec text only. |
 | OA-71 | 2026-11-02 | DS 1.5.0 is released (docs only: the number-formatting rule; it includes 1.4.0, with no breaking change). Should T12.20 target 1.4.0 or 1.5.0? | Option A: T12.20 raises the pin to 1.5.0, so no second pin task is needed. A17 and the pin citations read 1.5.0. Option B (rejected): keep 1.4.0. No ADR: cheap to reverse, spec text only. |
 | OA-72 | 2026-11-02 | G18: `nitro.devProxy` exists only in development, so a production build has no route from server rendering to Django. Accept the proposed resolution? | Option A: the proposed resolution. Nitro `routeRules` proxy `/api/**` to a server-only API target (`NUXT_API_SERVER_TARGET`), as T12.1 built it. Option B (not chosen): a second public API origin the browser and the server both call. ADR-0056. |
+| OA-73 | 2026-11-02 | G51: no public API exposes featured products, so the home page cannot list them. How does the storefront get them? | Option A: the proposed resolution. `GET /api/catalog/products/` takes `featured=true` and returns active featured products in `featured_position` order, with the same pagination and cache headers; the list is unchanged without it. Built inside T12.16. Option B (rejected): a separate `/api/catalog/featured/` endpoint. Option C (rejected): a separate task before T12.16. ADR-0057. |
 
 ---
 
@@ -3925,7 +3926,7 @@ DS 1.4.0 gives the `<img>` of `CnMediaCard` and `CnImageGallery` `width="4"` and
 
 Build the 12.A routes from the T12.4 components, fetching through `useApi` with `useFetch` or `useAsyncData` so the first render happens on the server:
 
-- home: featured products (G28, ADR-0030) and categories
+- home: featured products (G28, ADR-0030), read with `featured=true` on the product list (G51, ADR-0057), and categories
 - catalog grid with the facet sidebar driven by `/api/catalog/facets/`, with filters reflected in the URL
 - the category page, the same component scoped to a category
 - the product page: gallery, variant selector, attribute table and availability (add to cart arrives in Phase 13)
@@ -5566,6 +5567,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.48 | 2026-11-02 | Design System pin raised to 1.4.0 (DS release with DSR-11). New task T12.20, after T12.19 and before T12.16, which now depends on it. DSR-11 resolved. A17 and the pin citations read 1.4.0. No requirement, Verify ID or schema change. | OA-70 |
 | 1.49 | 2026-11-02 | T12.20 targets DS 1.5.0 instead of 1.4.0 (1.5.0 includes DSR-11's release and adds the number-formatting rule, docs only). A17 and the pin citations read 1.5.0; DSR-11 stays Resolved (DS 1.4.0, T12.20). No requirement, Verify ID or schema change. | OA-71 |
 | 1.50 | 2026-11-02 | G18 resolved: Nitro `routeRules` proxy `/api/**` to a server-only API target. The ⚠️ G18 markers on REQ-053, P12-V01, P12-V22 and P12-V25 and the "tests xfail until decided" open items on T12.1, T12.10, T12.16 and T12.3 are removed. No task, Verify ID, dependency or schema change. | OA-72; ADR-0056 |
+| 1.51 | 2026-11-02 | G51 resolved: `GET /api/catalog/products/` takes `featured=true`, built inside T12.16 (snapshot and types regenerated, an API test, and the E2E catalog seed). No new task, Verify ID or schema change. | OA-73; ADR-0057 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5671,6 +5673,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0054 | The `cfdi_issued` dedupe key is per invoice request | `docs/decisions/0054-cfdi-dedupe-key-per-request.md` | C-15; OA-65 |
 | ADR-0055 | The product detail response carries the type's attribute schema and variant axes | `docs/decisions/0055-product-type-data-in-product-detail.md` | G50; OA-69 |
 | ADR-0056 | Server rendering reaches Django through a Nitro proxy rule | `docs/decisions/0056-ssr-api-route.md` | G18; OA-72 |
+| ADR-0057 | The product list takes a `featured` filter | `docs/decisions/0057-featured-products-filter.md` | G51; OA-73 |
 
 ## Appendix C — Dated market facts
 
