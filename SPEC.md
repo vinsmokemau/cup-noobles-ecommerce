@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.52 |
+| Spec version | 1.53 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -449,7 +449,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G50 | 12 | T12.4, T12.5, T12.16, P12-V10, P12-V11 | `GET /api/catalog/products/{slug}/` returns `product_type` as a code only. It carries neither the type's `attribute_schema` (which `AttributeTable` needs for titles and order) nor its variant axes (which `VariantSelector` can derive from the variants' `options` keys, but not label or order). The components take both as props and the product page cannot fill them yet. | Add `attribute_schema` (the `properties` with their `title`) and `variant_axes` to the product detail response, then regenerate the OpenAPI snapshot. A storefront-only alternative does not exist, because the schema is data. | R1 | Resolved (ADR-0055) |
 | G51 | 12 | T12.16, P12-V13, G28 | No public API exposes featured products: the `is_featured` and `featured_position` columns (ADR-0030) are not in the product card, the product list has no `featured` filter, and there is no featured endpoint, so the home page cannot list them. | Add a `featured=true` filter to `GET /api/catalog/products/`: active featured products in `featured_position` order, same pagination and cache headers; the list is unchanged without it. Built inside T12.16, with the snapshot and types regenerated. | R1 | Resolved (ADR-0057) |
 | G52 | 12 | T12.4, T12.16, T12.21, P12-V10 | In `VariantSelector`, the sold-out text ("· Agotado") reaches only the radio's accessible name, which Nuxt UI sets once at mount. After the visitor changes a choice the name goes stale (an available option is still announced as sold out), and the visible label never shows the text. | Show the sold-out text in the visible label through the radio group's label slot, or ask the DS for a sold-out state on its choice control (a DS request if the slot cannot do it). | R1 | Decided (ADR-0058); T12.21 resolves it |
-| G53 | 12 | T12.16 | `product.description_md` is Markdown, but the spec defines no renderer or allowed subset, so the product page shows it as plain paragraphs. | Agree a renderer and an allowed subset (paragraphs, lists, emphasis, links), sanitised; or store plain text. | R1 | Open |
+| G53 | 12 | T12.16 | `product.description_md` is Markdown, but the spec defines no renderer or allowed subset, so the product page shows it as plain paragraphs. | Agree a renderer and an allowed subset (paragraphs, lists, emphasis, links), sanitised; or store plain text. | R1 | Resolved (ADR-0059) |
 
 #### Design System requests (DSR)
 
@@ -562,6 +562,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-72 | 2026-11-02 | G18: `nitro.devProxy` exists only in development, so a production build has no route from server rendering to Django. Accept the proposed resolution? | Option A: the proposed resolution. Nitro `routeRules` proxy `/api/**` to a server-only API target (`NUXT_API_SERVER_TARGET`), as T12.1 built it. Option B (not chosen): a second public API origin the browser and the server both call. ADR-0056. |
 | OA-73 | 2026-11-02 | G51: no public API exposes featured products, so the home page cannot list them. How does the storefront get them? | Option A: the proposed resolution. `GET /api/catalog/products/` takes `featured=true` and returns active featured products in `featured_position` order, with the same pagination and cache headers; the list is unchanged without it. Built inside T12.16. Option B (rejected): a separate `/api/catalog/featured/` endpoint. Option C (rejected): a separate task before T12.16. ADR-0057. |
 | OA-74 | 2026-11-02 | G52: the "Agotado" text of a sold-out variant option is in its accessible name only, and the name goes stale after the selection changes. How is it fixed? | Option A: the proposed resolution. Show the text in the option's visible label through the radio group's label slot and keep each accessible name correct; if the slot cannot do it, register a DS request for a sold-out state on the choice control and report it. Built in a new task T12.21, after T12.16 and before T12.9. Option B (rejected): ask the DS first. ADR-0058. |
+| OA-75 | 2026-11-02 | G53: `product.description_md` is Markdown, but the spec defines no renderer or allowed subset. How does the product page show it? | Option A: the proposed resolution, for the first launch. Descriptions are plain text; the product page shows them as paragraphs split on blank lines, and no Markdown or HTML is rendered. The column keeps its name. Option B (not chosen): a sanitised Markdown renderer with an allowed subset. A later amendment can add it. ADR-0059. |
 
 ---
 
@@ -3930,7 +3931,7 @@ Build the 12.A routes from the T12.4 components, fetching through `useApi` with 
 - home: featured products (G28, ADR-0030), read with `featured=true` on the product list (G51, ADR-0057), and categories
 - catalog grid with the facet sidebar driven by `/api/catalog/facets/`, with filters reflected in the URL
 - the category page, the same component scoped to a category
-- the product page: gallery, variant selector, attribute table and availability (add to cart arrives in Phase 13)
+- the product page: gallery, variant selector, attribute table, the description as plain-text paragraphs (G53, ADR-0059) and availability (add to cart arrives in Phase 13)
 - search
 - the four legal pages, rendering the D2 placeholder
 
@@ -5581,6 +5582,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.50 | 2026-11-02 | G18 resolved: Nitro `routeRules` proxy `/api/**` to a server-only API target. The ⚠️ G18 markers on REQ-053, P12-V01, P12-V22 and P12-V25 and the "tests xfail until decided" open items on T12.1, T12.10, T12.16 and T12.3 are removed. No task, Verify ID, dependency or schema change. | OA-72; ADR-0056 |
 | 1.51 | 2026-11-02 | G51 resolved: `GET /api/catalog/products/` takes `featured=true`, built inside T12.16 (snapshot and types regenerated, an API test, and the E2E catalog seed). No new task, Verify ID or schema change. | OA-73; ADR-0057 |
 | 1.52 | 2026-11-02 | G52 decided: the sold-out text of a variant option goes in its visible label and its accessible name stays correct. New task T12.21 (after T12.16, before T12.9, which now depends on it); P12-V10 gains the assertions. No new Verify ID or schema change. | OA-74; ADR-0058 |
+| 1.53 | 2026-11-02 | G53 resolved: product descriptions are plain text for the first launch; the product page shows paragraphs and renders no Markdown or HTML. No task, Verify ID or schema change. | OA-75; ADR-0059 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5688,6 +5690,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0056 | Server rendering reaches Django through a Nitro proxy rule | `docs/decisions/0056-ssr-api-route.md` | G18; OA-72 |
 | ADR-0057 | The product list takes a `featured` filter | `docs/decisions/0057-featured-products-filter.md` | G51; OA-73 |
 | ADR-0058 | The sold-out text of a variant option is in its visible label | `docs/decisions/0058-sold-out-text-in-variant-label.md` | G52; OA-74 |
+| ADR-0059 | Product descriptions are plain text for the first launch | `docs/decisions/0059-plain-text-product-descriptions.md` | G53; OA-75 |
 
 ## Appendix C — Dated market facts
 
