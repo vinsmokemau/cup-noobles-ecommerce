@@ -3991,7 +3991,7 @@ SEO: `useSeoMeta` on every page; `Product` JSON-LD with `offers.availability` an
 
 Images: `@nuxt/image` (`none` provider in Part A, since derivatives are pre-generated — §4.3), `loading="lazy"` below the fold, explicit `width`/`height` to prevent layout shift. Product photos follow the DS photo standards (DS:ADR-0056, DS:ADR-0057; DSR-07 for packaging photos, ADR-0060): `CnMediaCard` shows the whole picture in a 4:3 frame, and the brand d20 when a picture is missing.
 
-- [ ] **T12.22 — Design System 1.6.0**
+- [x] **T12.22 — Design System 1.6.0** (2026-11-03, fdeec4f)
   - Release: R1 · Gate: task
   - REQs: REQ-050
   - Verifies: [no-test: `nuxt typecheck` passes; the pin is checked by P12-V27 (T12.14); the vendored email HTML is checked by P11-V12]
