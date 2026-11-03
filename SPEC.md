@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.53 |
+| Spec version | 1.54 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -5386,7 +5386,7 @@ Load the production data, replacing every §2.5 dev default:
   - Open items: D18 (blocking)
   - Done when: `/ui-review` ran on the changed storefront files (§0.5); findings fixed or registered.
 
-Confirm every Release 1 phase-close report is complete, and `check_stock_integrity` is clean on the opening stock. Serve a `robots.txt` that allows crawling and names the sitemap (pre-launch mode keeps `noindex` on the pages, P12-V28), and submit the sitemap to Google Search Console. Install the analytics the owner chooses, if any (D18), and update the aviso de privacidad to match. The branded 404 and 500 pages are already covered by P12-V20 and P12-V25.
+Confirm every Release 1 phase-close report is complete, and `check_stock_integrity` is clean on the opening stock. Serve a `robots.txt` that allows crawling and names the sitemap (pre-launch mode keeps `noindex` on the pages, P12-V28), and submit the sitemap to Google Search Console. Install the analytics the owner chooses, if any (D18), and update the aviso de privacidad to match. The branded 404 and 500 pages are already covered by P12-V20 and P12-V25. Set `NUXT_PUBLIC_SITE_URL` to the public address of the storefront (T12.7): canonical URLs, `og:url` and the sitemap are built from it, and without it they point to `http://localhost:8080`.
 
 - [ ] **T22.5 — Soft launch**
   - Release: R1 · Gate: phase-close
@@ -5583,6 +5583,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.51 | 2026-11-02 | G51 resolved: `GET /api/catalog/products/` takes `featured=true`, built inside T12.16 (snapshot and types regenerated, an API test, and the E2E catalog seed). No new task, Verify ID or schema change. | OA-73; ADR-0057 |
 | 1.52 | 2026-11-02 | G52 decided: the sold-out text of a variant option goes in its visible label and its accessible name stays correct. New task T12.21 (after T12.16, before T12.9, which now depends on it); P12-V10 gains the assertions. No new Verify ID or schema change. | OA-74; ADR-0058 |
 | 1.53 | 2026-11-02 | G53 resolved: product descriptions are plain text for the first launch; the product page shows paragraphs and renders no Markdown or HTML. No task, Verify ID or schema change. | OA-75; ADR-0059 |
+| 1.54 | 2026-11-02 | T22.4 adds a step: set `NUXT_PUBLIC_SITE_URL` to the storefront's public address, because canonical URLs, `og:url` and the sitemap (T12.7) are built from it. No requirement, Verify ID or schema change. | Owner request in chat, 2026-11-02 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
