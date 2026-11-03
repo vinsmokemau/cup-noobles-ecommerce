@@ -47,7 +47,7 @@ usePageSeo({ title: 'Buscar', noindex: true })
     </form>
     <LoadError v-if="error" @retry="refresh()" />
     <div v-else-if="term && data" class="flex flex-col gap-6" :aria-busy="status === 'pending'">
-      <ProductGrid v-if="data.length" :products="data" as="h2" />
+      <ProductGrid v-if="data.length" :products="data" as="h2" :priority-count="1" />
       <p v-else>No encontramos resultados para «{{ term }}».</p>
     </div>
   </main>

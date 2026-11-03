@@ -61,7 +61,12 @@ usePageSeo({ title: () => props.title })
         @update:model-value="setFilters"
       />
       <div class="flex min-w-0 flex-1 flex-col gap-6" :aria-busy="status === 'pending'">
-        <ProductGrid v-if="data.page.results.length" :products="data.page.results" as="h2" />
+        <ProductGrid
+          v-if="data.page.results.length"
+          :products="data.page.results"
+          as="h2"
+          :priority-count="1"
+        />
         <p v-else>No encontramos productos con estos filtros.</p>
         <nav
           v-if="nextCursor || previousCursor"

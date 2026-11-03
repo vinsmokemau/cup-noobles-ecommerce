@@ -15,6 +15,9 @@ export default defineNuxtConfig({
   devtools: { enabled: false },
   // `@nuxt/ui` is not registered here: the DS layer does (C-11).
   modules: ['@nuxtjs/sitemap', '@nuxt/image', '@nuxt/eslint'],
+  // Derivatives are pre-generated at 400/800/1600 px (§4.3), so no image is transformed at request time: the `none` provider.
+  // Phase 18 swaps in the CDN provider (T18.3).
+  image: { provider: 'none' },
   eslint: { checker: false, config: { stylistic: false } },
   // Icons are bundled into the client, so a page never asks the Iconify API for one (Part A is offline).
   icon: { clientBundle: { scan: true } },

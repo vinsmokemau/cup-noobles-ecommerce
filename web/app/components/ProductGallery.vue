@@ -39,5 +39,6 @@ const labels = {
     :label="`Imágenes de ${name}`"
     :start-index="startIndex"
     :labels="labels"
+    priority
   />
 </template>

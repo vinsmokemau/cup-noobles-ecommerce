@@ -6,6 +6,8 @@ const props = defineProps<{
   product: ProductCardData
   /** Heading level of the title. */
   as?: 'h2' | 'h3' | 'h4'
+  /** The card is above the fold: its picture loads at once instead of lazily. */
+  priority?: boolean
 }>()
 
 const src = computed(() => pickImageSrc(props.product.image, 480))
@@ -19,6 +21,7 @@ const tags = computed(() => (props.product.franchise ? [props.product.franchise.
     :to="`/producto/${product.slug}`"
     :as="as"
     :src="src"
+    :priority="priority"
     :alt="product.image?.alt || product.name"
     :tags="tags"
   >
