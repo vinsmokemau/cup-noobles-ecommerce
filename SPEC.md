@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.49 |
+| Spec version | 1.50 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -414,7 +414,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G15 | 4 | P4-V16 | `commit_reservations` is not specified as idempotent | A second commit of committed reservations is a no-op | R1 | Resolved (ADR-0036) |
 | G16 | 10 | P10-V21 | T9 into `ready_for_pickup` doesn't set `pickup_deadline_at` | T9 sets it | R2 | Deferred (R2) |
 | G17 | 11 | P11-V10 | `send_outbox` doesn't claim rows; an overlapping run can send an email twice | Claim rows with `SELECT … FOR UPDATE SKIP LOCKED` | R1 | Resolved (ADR-0053) |
-| G18 | 12 | P12-V01, P12-V22, P12-V25 | `nitro.devProxy` exists only in development, so a production build has no route from server rendering to Django | Nitro `routeRules` proxy `/api/**` to a server-only API target | R1 | Open |
+| G18 | 12 | P12-V01, P12-V22, P12-V25 | `nitro.devProxy` exists only in development, so a production build has no route from server rendering to Django | Nitro `routeRules` proxy `/api/**` to a server-only API target | R1 | Resolved (ADR-0056) |
 | G19 | 12 | P12-V09 | `$1,234.00 MXN` (12.4) against the `Intl` output (12.6) | Decided by DS:formatting.md (C-08, CR-30) | R1 | Decided; ADR in T1.15 |
 | G20 | 10 | P15-V05, demo step 9 | Receiving goods has no admin page, but it is daily work (GE:T30, GE:T35, GE:§5.2) | A "Recibir mercancía" admin action (variant, location, quantity) calling `receive_stock` in R1, and `receive_preorder_stock` for pre-order variants in R2 | R1 | Resolved (ADR-0035) |
 | G21 | 13 | P13-V13, P13-V14 | Guest landing pages must poll the order, but the guest endpoint needs number and email and allows 5 calls an hour | A short-lived signed order-status token, carried in `back_urls`, for a read-only status endpoint | R1 | Open |
@@ -559,6 +559,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-69 | 2026-11-02 | G50: the product detail response carries `product_type` as a code only, so the product page cannot label the attribute table or name the variant groups. Where does that data come from? | Option A: the proposed resolution. `GET /api/catalog/products/{slug}/` adds `attribute_schema` (the `properties` with their `title`) and `variant_axes` (resolved), and the snapshot and types are regenerated. Built in a new task T12.19, before T12.16. Option B (rejected): a separate product-types endpoint. Option C (rejected): titles hardcoded in the storefront. ADR-0055. |
 | OA-70 | 2026-11-02 | DS 1.4.0 is released (DSR-11: image attributes and `priority` on `CnMediaCard` and `CnImageGallery`). When is the pin raised from 1.3.0? | Option A: a new task T12.20, after T12.19 and before T12.16, which depends on it. It raises the pin to 1.4.0, refreshes the vendored email HTML and its manifest, and runs `make test-all`. A17 and the pin citations read 1.4.0. Amended by OA-71: the target is 1.5.0. DSR-11 resolved. Option B (rejected): build T12.16 on 1.3.0 and raise the pin later. No ADR: cheap to reverse, spec text only. |
 | OA-71 | 2026-11-02 | DS 1.5.0 is released (docs only: the number-formatting rule; it includes 1.4.0, with no breaking change). Should T12.20 target 1.4.0 or 1.5.0? | Option A: T12.20 raises the pin to 1.5.0, so no second pin task is needed. A17 and the pin citations read 1.5.0. Option B (rejected): keep 1.4.0. No ADR: cheap to reverse, spec text only. |
+| OA-72 | 2026-11-02 | G18: `nitro.devProxy` exists only in development, so a production build has no route from server rendering to Django. Accept the proposed resolution? | Option A: the proposed resolution. Nitro `routeRules` proxy `/api/**` to a server-only API target (`NUXT_API_SERVER_TARGET`), as T12.1 built it. Option B (not chosen): a second public API origin the browser and the server both call. ADR-0056. |
 
 ---
 
@@ -615,7 +616,7 @@ The acceptance criteria of a requirement are Verify IDs. The assertion text live
 | REQ-050 | The storefront is assembled from the Design System layer at a pinned version, and adds no visual styling of its own. | CR-26, CR-27, CR-34, CR-46 | P12-V26 · P12-V27 | R1 |
 | REQ-051 | Every storefront page meets WCAG 2.2 AA, works at 360 px wide, and has tap targets of at least 44 px. | CR-33, CR-35, CR-36 | P1-V09 · P1-V20 · P12-V12 · P12-V19 · P12-V21 · P13-V16 · P14-V17 · P15-V01 · P15-V03 · P15-V04 · P15-V08 | R1 |
 | REQ-052 | Customer-facing text, money and dates are es-MX and follow the DS voice, microcopy and formatting rules. | CR-30, CR-31, CR-32 | P11-V04 · P12-V09 · P12-V12 · P13-V14 ⚠️G21 | R1 |
-| REQ-053 | The storefront renders on the server and never shows a blank page: a failed call offers a retry, and an unknown URL is a real 404. | — | P12-V01 ⚠️G18 · P12-V03 · P12-V20 · P12-V25 ⚠️G18 · P13-V20 | R1 |
+| REQ-053 | The storefront renders on the server and never shows a blank page: a failed call offers a retry, and an unknown URL is a real 404. | — | P12-V01 · P12-V03 · P12-V20 · P12-V25 · P13-V20 | R1 |
 | REQ-054 | A change to the API contract fails the build until the generated client and the code that uses it are updated. | CR-25, CR-29 | P1-V07 · P5-V04 · P12-V04 · P12-V24 · P12-V30 · P12-V31 | R1 |
 | REQ-055 | Transactional emails are built only from the DS email components at the pinned version, each with a complete plain-text part. | CR-32, CR-46 | P11-V01 · P11-V12 · P11-V13 | R1 |
 
@@ -3810,7 +3811,7 @@ While pre-launch mode is on (T5.7), every route above shows the "próximamente" 
   - Verifies: [no-test: P12-V01 (T12.16) and P12-V25 (T12.10) prove the server-rendering path]
   - Depends on: Phase 11 closed
   - Context: §4.1, §4.5 (Packages); G18
-  - Open items: G18 (tests xfail until decided)
+  - Open items: G18 resolved (ADR-0056)
 
 `nuxt.config.ts`: `ssr: true`, `extends: ['@vinsmokemau/cup-noobles-nuxt']`, `modules: ['@nuxt/image', '@nuxtjs/sitemap']`. Do not register `@nuxt/ui`: the layer does (C-11). `runtimeConfig.public.apiBase = '/api'` — a relative path, because same-origin. `nitro.devProxy` points `/api` at the local Django container for development; the server-rendering route in a production build follows G18's proposed resolution (Nitro `routeRules` proxying `/api/**` to a server-only API target).
 
@@ -3919,7 +3920,7 @@ DS 1.4.0 gives the `<img>` of `CnMediaCard` and `CnImageGallery` `width="4"` and
   - Verifies: P12-V01, P12-V13, P12-V14, P12-V15, P12-V16, P12-V17, P12-V18
   - Depends on: T12.5, T12.19, T12.20
   - Context: 12.A; §4.5
-  - Open items: G18 (tests xfail until decided); D2 (stand-in §2.4: placeholder pages)
+  - Open items: G18 resolved (ADR-0056); D2 (stand-in §2.4: placeholder pages)
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
 
 Build the 12.A routes from the T12.4 components, fetching through `useApi` with `useFetch` or `useAsyncData` so the first render happens on the server:
@@ -3937,7 +3938,7 @@ Build the 12.A routes from the T12.4 components, fetching through `useApi` with 
   - Verifies: P12-V03, P12-V25
   - Depends on: T12.16
   - Context: §4.5 (Composition map); G18
-  - Open items: G18 (tests xfail until decided)
+  - Open items: G18 resolved (ADR-0056)
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
 
 `error.vue`, built from the DS error-page pattern (§4.5). A failed API call must show a retry affordance, never a blank page.
@@ -4011,7 +4012,7 @@ Lighthouse CI: `web/lighthouserc.json` with the mobile preset against `/`, `/cat
   - Verifies: P12-V08, P12-V22
   - Depends on: T12.12; the R2 work of Phase 6
   - Context: §4.1
-  - Open items: G18 (tests xfail until decided)
+  - Open items: G18 resolved (ADR-0056)
 
 `app/composables/useAuth.ts` — `useState('me')` populated by `/api/auth/me/` in a plugin during SSR.
 
@@ -4033,7 +4034,7 @@ The home page's open pre-orders section: seeded pre-order products with their re
 
 | Test ID | Layer | File | Assertion |
 |---|---|---|---|
-| P12-V01 | SSR | `web/e2e/p12_ssr.spec.ts` › `p12_v01 product HTML contains name and price` | `request.get('/producto/<seeded slug>')` returns raw HTML (no JavaScript executed) that contains the product name, the `formatMXN` price, and JSON-LD with `offers.price` and `priceCurrency: "MXN"`. ⚠️ G18 |
+| P12-V01 | SSR | `web/e2e/p12_ssr.spec.ts` › `p12_v01 product HTML contains name and price` | `request.get('/producto/<seeded slug>')` returns raw HTML (no JavaScript executed) that contains the product name, the `formatMXN` price, and JSON-LD with `offers.price` and `priceCurrency: "MXN"`. |
 | P12-V02 | performance | `web/tests/perf/lighthouse.test.ts` › `p12_v02 lighthouse budgets` | Runs `lhci collect` and `lhci assert` against the compose stack; every budget in T12.12 holds on all three pages. |
 | P12-V03 | E2E | `web/e2e/p12_errors.spec.ts` › `p12_v03 api failure shows retry not blank` | During client-side navigation with `page.route('/api/**')` returning 500, the page shows an error state with "Reintentar"; after `unroute`, pressing it recovers the content. |
 | P12-V04 | contract | `web/tests/contract/type-drift.test.ts` › `p12_v04 renamed field fails vue-tsc` | Renaming a product field in a temporary copy of `openapi.snapshot.yml`, regenerating types into a temporary directory, and running `vue-tsc --noEmit` against them exits non-zero at the component that uses the field. |
@@ -4069,10 +4070,10 @@ The home page's open pre-orders section: seeded pre-order products with their re
 |---|---|---|---|
 | P12-V20 | E2E | `web/e2e/p12_product.spec.ts` › `p12_v20 unknown product is a real 404` | The response status is 404; `error.vue` links back to the catalog; the page carries `noindex`. |
 | P12-V21 | E2E | `web/e2e/p12_mobile.spec.ts` › `p12_v21 no horizontal scroll at 360px` | On every 12.A route, `documentElement.scrollWidth <= 360`, and header and product-page controls are at least 44px tall. |
-| P12-V22 [R2] | SSR | `web/e2e/p12_ssr.spec.ts` › `p12_v22 ssr sees the logged-in customer` | A raw-HTML request carrying a session cookie renders the customer's name in the header, which proves cookie forwarding end to end. ⚠️ G18 |
+| P12-V22 [R2] | SSR | `web/e2e/p12_ssr.spec.ts` › `p12_v22 ssr sees the logged-in customer` | A raw-HTML request carrying a session cookie renders the customer's name in the header, which proves cookie forwarding end to end. |
 | P12-V23 | E2E | `web/e2e/p12_seo.spec.ts` › `p12_v23 sitemap canonical and json-ld` | `/sitemap.xml` lists active products and excludes draft and archived ones; product pages carry a canonical URL, `og:image`, and JSON-LD that parses. |
 | P12-V24 | unit | `web/tests/unit/lint-rules.test.ts` › `p12_v24 bare $fetch forbidden` | The T12.11 ESLint rule flags a fixture file calling `$fetch` and passes `useApi.ts`. |
-| P12-V25 | E2E | `web/e2e/p12_errors.spec.ts` › `p12_v25 ssr with api down renders error page` | With the stack's API target pointed at an unreachable address, a raw request renders `error.vue` with a 5xx status — never an empty body. ⚠️ G18 |
+| P12-V25 | E2E | `web/e2e/p12_errors.spec.ts` › `p12_v25 ssr with api down renders error page` | With the stack's API target pointed at an unreachable address, a raw request renders `error.vue` with a 5xx status — never an empty body. |
 
 **Added in conversion:**
 
@@ -5495,7 +5496,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 8 | ~~G3~~, ~~G4~~, ~~G5~~, ~~G25~~, ~~G26~~, ~~G27~~, ~~G31~~, ~~G33~~ |
 | Phase 9 | ~~G7~~, ~~G8~~, ~~G11~~, ~~G14~~, ~~G46~~ |
 | Phase 11 | ~~G17~~; DSR-04, DSR-05 released |
-| Phase 12 | G18, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03 released (DS 1.3.0, T12.18), DSR-06, DSR-07 released; DSR-09 or its fallback |
+| Phase 12 | ~~G18~~, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03 released (DS 1.3.0, T12.18), DSR-06, DSR-07 released; DSR-09 or its fallback |
 | Phase 13 | G21, G22 |
 | Phase 16 | S2, D6, D7, D13, G45 |
 | Phase 17 | S3, S4 |
@@ -5564,6 +5565,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.47 | 2026-11-02 | G50 resolved: the product detail response carries the type's `attribute_schema` and `variant_axes`. New task T12.19 (after T12.5, before T12.16, which now depends on it), new Verify IDs P12-V30 and P12-V31, both under REQ-054. No schema change. | OA-69; ADR-0055 |
 | 1.48 | 2026-11-02 | Design System pin raised to 1.4.0 (DS release with DSR-11). New task T12.20, after T12.19 and before T12.16, which now depends on it. DSR-11 resolved. A17 and the pin citations read 1.4.0. No requirement, Verify ID or schema change. | OA-70 |
 | 1.49 | 2026-11-02 | T12.20 targets DS 1.5.0 instead of 1.4.0 (1.5.0 includes DSR-11's release and adds the number-formatting rule, docs only). A17 and the pin citations read 1.5.0; DSR-11 stays Resolved (DS 1.4.0, T12.20). No requirement, Verify ID or schema change. | OA-71 |
+| 1.50 | 2026-11-02 | G18 resolved: Nitro `routeRules` proxy `/api/**` to a server-only API target. The ⚠️ G18 markers on REQ-053, P12-V01, P12-V22 and P12-V25 and the "tests xfail until decided" open items on T12.1, T12.10, T12.16 and T12.3 are removed. No task, Verify ID, dependency or schema change. | OA-72; ADR-0056 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5668,6 +5670,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0053 | `send_outbox` claims rows with `SKIP LOCKED` | `docs/decisions/0053-send-outbox-claims-rows.md` | G17; OA-64 |
 | ADR-0054 | The `cfdi_issued` dedupe key is per invoice request | `docs/decisions/0054-cfdi-dedupe-key-per-request.md` | C-15; OA-65 |
 | ADR-0055 | The product detail response carries the type's attribute schema and variant axes | `docs/decisions/0055-product-type-data-in-product-detail.md` | G50; OA-69 |
+| ADR-0056 | Server rendering reaches Django through a Nitro proxy rule | `docs/decisions/0056-ssr-api-route.md` | G18; OA-72 |
 
 ## Appendix C — Dated market facts
 
