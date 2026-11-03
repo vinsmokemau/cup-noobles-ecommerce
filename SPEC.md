@@ -3957,7 +3957,7 @@ Build the 12.A routes from the T12.4 components, fetching through `useApi` with 
 
 `error.vue`, built from the DS error-page pattern (§4.5). A failed API call must show a retry affordance, never a blank page.
 
-- [ ] **T12.13 — Real 404 for unknown products**
+- [x] **T12.13 — Real 404 for unknown products** (2026-11-02, 54e78a1)
   - Release: R1 · Gate: task
   - REQs: REQ-053
   - Verifies: P12-V20
