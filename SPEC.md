@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.55 |
+| Spec version | 1.56 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
-| Design System | `@vinsmokemau/cup-noobles-tokens`, `-nuxt` and `-email`, pinned at exactly `1.6.0` (A17). Raised only by a DS upgrade task. |
+| Design System | `@vinsmokemau/cup-noobles-tokens`, `-nuxt` and `-email`, pinned at exactly `1.7.0` (A17). Raised only by a DS upgrade task. |
 | Normative files | `SPEC.md` and `spec/schema.sql` (the canonical schema, §4.4) |
 | Converted from | `cup-noobles-implementation-plan.md` (September 2026). Appendix E maps every old section to its new place. |
 
@@ -209,7 +209,7 @@ Tasks and Verify IDs tagged R2 keep their IDs and stay in §6. The traceability 
 
 ## 2. Rules, conflicts, assumptions and open items
 
-Source key: **plan** is `cup-noobles-implementation-plan.md`. **DS** is the Design System repository at version 1.6.0. **GE** is the owner's internal execution guide (v4), cited by ID only. **OA** is an owner answer in §2.6.
+Source key: **plan** is `cup-noobles-implementation-plan.md`. **DS** is the Design System repository at version 1.7.0. **GE** is the owner's internal execution guide (v4), cited by ID only. **OA** is an owner answer in §2.6.
 
 ### 2.1 Carried-forward rules
 
@@ -347,7 +347,7 @@ Each assumption is cheap to reverse unless its row says otherwise. A1–A14 keep
 | A14 | Each mock behaves exactly like its real provider at the interface level; the shared contract suites run against both | A mock easier than the real thing hides bugs until Part B | Medium | R1 |
 | A15 | One maintainer: the owner is the developer and the business owner. Governance is sized for one person, and decisions are recorded as owner answers and ADRs. | OA-04; DS:A-01 | n/a | R1 |
 | A16 | Guest checkout only in R1. A customer is identified by email, and also by phone and shipping address for purchase limits (G31). | OA-11 | Medium | R1 |
-| A17 | The three DS packages are pinned at an exact version, currently `1.6.0`. A DS upgrade is its own task. | OA-12; DS:R-01 | Low | R1 |
+| A17 | The three DS packages are pinned at an exact version, currently `1.7.0`. A DS upgrade is its own task. | OA-12; DS:R-01 | Low | R1 |
 | A18 | The repository is public on GitHub Free, created by the owner | OA-10 | Low | R1 |
 | A19 | The weekly dashboard and the monthly report are built by the owner from admin CSV exports. The store has no reporting screens. | GE:T34, GE:T43 | Low | R1 |
 
@@ -469,6 +469,7 @@ Each item is built in the DS repository under its own SPEC and released as a DS 
 | DSR-09 | Make the raw-value lint rule of DS:REQ-016 available to consuming apps, so the storefront runs the same check as the DS. Until then, P12-V26 is the storefront's check. | Phase 12 | R1 | Resolved (DS 1.3.0, T12.18) |
 | DSR-10 | `CnMediaCard.vue` (DS 1.0.0, line 81) fails `vue-tsc` with TS2352: `EventTarget \| null` converted to `Picture`. Found in T1.5 with `nuxt typecheck`; `make test` runs `vue-tsc`. | Phase 1 (T1.17) | R1 | Resolved (DS 1.0.1, T1.17) |
 | DSR-11 | `CnMediaCard` and `CnImageGallery` render their `<img>` with no `width` and `height` and no `loading` attribute (ui-review of T12.4, Web Interface Guidelines, Images). A catalog grid then shifts while it loads and loads every picture at once. | Phase 12 (T12.4) | R1 | Resolved (DS 1.4.0, T12.20) |
+| DSR-12 | The choice controls (`UCheckbox`, `URadioGroup`) reached only 24 px tall at their largest size, `xl` (T12.9, P12-V21). CR-36 asks for 44 px through DS size props, and no size prop did it. The variant selector (radios) and the filter facets (checkboxes) are affected. | Phase 12 (T12.9) | R1 | Resolved (DS 1.7.0, ADR-0061; pin in T12.23) |
 
 ### 2.5 Dev defaults
 
@@ -565,6 +566,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-74 | 2026-11-02 | G52: the "Agotado" text of a sold-out variant option is in its accessible name only, and the name goes stale after the selection changes. How is it fixed? | Option A: the proposed resolution. Show the text in the option's visible label through the radio group's label slot and keep each accessible name correct; if the slot cannot do it, register a DS request for a sold-out state on the choice control and report it. Built in a new task T12.21, after T12.16 and before T12.9. Option B (rejected): ask the DS first. ADR-0058. |
 | OA-75 | 2026-11-02 | G53: `product.description_md` is Markdown, but the spec defines no renderer or allowed subset. How does the product page show it? | Option A: the proposed resolution, for the first launch. Descriptions are plain text; the product page shows them as paragraphs split on blank lines, and no Markdown or HTML is rendered. The column keeps its name. Option B (not chosen): a sanitised Markdown renderer with an allowed subset. A later amendment can add it. ADR-0059. |
 | OA-76 | 2026-11-02 | DSR-07 / C-10: does the DS photo rule "no text inside the image" apply to product packaging photos? The owner decided it in the DS repository on 2026-11-01 (DS:OD-15, DS:ADR-0064); DS 1.6.0 publishes the wording. | Option B of the DS, adopted here: text printed on the product itself (its box or label) may show in a product photo; text added to a photo (banners, price stickers, flashes such as "NEW", watermarks, captions) is not allowed. The title, the tag and the alt text carry the words. "Added text" is judged when a photo is uploaded; no test can detect it. DSR-07 and C-10 resolved; new task T12.22 raises the pin to 1.6.0. ADR-0060. |
+| OA-77 | 2026-11-03 | DSR-12: the DS choice controls (`UCheckbox`, `UCheckboxGroup`, `URadioGroup`) are only 24 px tall at `xl`, so P12-V21 (44 px, CR-36) cannot pass through a size prop. How does T12.9 proceed? | Option A: wait for the DS. DS 1.7.0 adds the size `2xl` to those three controls: every row is at least 44 px tall and the label fills the row. A new task, T12.23, raises the pin to 1.7.0; T12.9 depends on it and uses `size="2xl"` in `VariantSelector` and `FilterSidebarGroups`. Option B (rejected): padding added in the storefront, which CR-36 forbids. Option C (rejected): lower P12-V21 to the 24 px DS minimum. ADR-0061. |
 
 ---
 
@@ -972,7 +974,7 @@ The admin form, the storefront filters and the API validation all read `attribut
 
 ### 4.5 Storefront and the Design System
 
-**Packages.** `web/` consumes the three DS packages at one exact version, currently `1.6.0` (A17):
+**Packages.** `web/` consumes the three DS packages at one exact version, currently `1.7.0` (A17):
 
 | Package | What the storefront uses | Where |
 |---|---|---|
@@ -3792,7 +3794,7 @@ The R2 rows of the T11.3 table: `verify_email`, `password_reset`, `preorder_arri
 
 - Foundation: T12.1 → T12.14 (styling scan and DS pin check), T12.2 → T12.11, T12.6. These need no Design System release and can start now.
 - Catalog: T12.18 (raises the DS pin to 1.3.0, which holds DSR-01, DSR-02 and DSR-03) → T12.4 → T12.5 → T12.19 → T12.20 (raises the DS pin to 1.5.0, which holds DSR-11) → T12.16. T12.18 needs no other task of the phase and can run right after T12.6
-- Pages: T12.10 → T12.13; T12.7 and T12.8 (either order, both after T12.16); T12.21 (after T12.16); T12.22 (any time after T12.20); then T12.9 → T12.15
+- Pages: T12.10 → T12.13; T12.7 and T12.8 (either order, both after T12.16); T12.21 (after T12.16); T12.22 (any time after T12.20); T12.23 (after T12.22); then T12.9 → T12.15
 - Phase close: T12.12 (needs T12.15 and T12.14)
 - R2, after R1: T12.3, T12.17
 
@@ -4001,15 +4003,26 @@ Images: `@nuxt/image` (`none` provider in Part A, since derivatives are pre-gene
 
 DS 1.6.0 changes the docs only: the photo rule now reads "Put no text you add inside the image. Words printed on the product itself, such as its box or label, may show. The title, the tag, and the alt text carry the text, so no one needs the picture to read it." (DSR-07, DS:ADR-0064). Raise the three DS packages in `web/` to exactly `1.6.0` (A17), in `package.json` and in `pnpm-workspace.yaml`, and refresh `pnpm-lock.yaml`. `nuxt typecheck` must pass. Refresh the files in `api/apps/notifications/templates/email/ds/` and `ds-email-manifest.json` from the 1.6.0 email package, and keep P11-V12 and P11-V13 green. Check the DS release notes of 1.6.0 for any other change that touches the storefront or an email; list what you find in the report. Run `make test-all`, as §4.5 requires of a DS upgrade. It can run at any time after T12.20 and before T12.12.
 
+- [ ] **T12.23 — Design System 1.7.0**
+  - Release: R1 · Gate: task
+  - REQs: REQ-050
+  - Verifies: [no-test: `nuxt typecheck` passes; the pin is checked by P12-V27 (T12.14); the vendored email HTML is checked by P11-V12]
+  - Depends on: T12.22
+  - Context: §4.5 (Packages, Email); A17; OA-77
+  - Open items: DSR-12 resolved by this task
+
+DS 1.7.0 adds the size `2xl` to `UCheckbox`, `UCheckboxGroup` and `URadioGroup`: every row is at least 44 px tall and the label fills the row (DSR-12). The visible box, the text size, the focus ring and the sizes `xs` to `xl` do not change. Raise the three DS packages in `web/` to exactly `1.7.0` (A17), in `package.json` and in `pnpm-workspace.yaml`, and refresh `pnpm-lock.yaml`. `nuxt typecheck` must pass. Refresh the files in `api/apps/notifications/templates/email/ds/` and `ds-email-manifest.json` from the 1.7.0 email package, and keep P11-V12 and P11-V13 green. Check the DS release notes of 1.7.0 for any other change that touches the storefront or an email; list what you find in the report. Do not use the new size here: T12.9 does. Run `make test-all`, as §4.5 requires of a DS upgrade. It runs after T12.22 and before T12.9.
+
 - [ ] **T12.9 — Accessibility and mobile**
   - Release: R1 · Gate: task
   - REQs: REQ-051
   - Verifies: P12-V19, P12-V21
-  - Depends on: T12.13, T12.7, T12.8, T12.21
-  - Context: §4.6 (Accessibility); CR-33, CR-35, CR-36
+  - Depends on: T12.13, T12.7, T12.8, T12.21, T12.23
+  - Context: §4.6 (Accessibility); CR-33, CR-35, CR-36; DSR-12; ADR-0061
+  - Open items: DSR-12 resolved by DS 1.7.0 (ADR-0061)
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
 
-Accessibility and mobile: real `<button>` and `<a>` elements, labelled inputs, the DS focus ring (DS:ADR-0009; never restyled), 44px minimum tap targets through DS size props (CR-36), tested at 360px wide. Most Mexican e-commerce traffic is mobile.
+Accessibility and mobile: real `<button>` and `<a>` elements, labelled inputs, the DS focus ring (DS:ADR-0009; never restyled), 44px minimum tap targets through DS size props (CR-36), tested at 360px wide. Checkboxes and radios use `size="2xl"` (DS 1.7.0, DSR-12) in `VariantSelector` and `FilterSidebarGroups`; the slideover close button uses `size: 'xl'`. Most Mexican e-commerce traffic is mobile.
 
 - [ ] **T12.15 — Pre-launch page**
   - Release: R1 · Gate: task
@@ -5523,7 +5536,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 8 | ~~G3~~, ~~G4~~, ~~G5~~, ~~G25~~, ~~G26~~, ~~G27~~, ~~G31~~, ~~G33~~ |
 | Phase 9 | ~~G7~~, ~~G8~~, ~~G11~~, ~~G14~~, ~~G46~~ |
 | Phase 11 | ~~G17~~; DSR-04, DSR-05 released |
-| Phase 12 | ~~G18~~, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03 released (DS 1.3.0, T12.18), DSR-06, DSR-07 released (DS 1.6.0, T12.22); DSR-09 or its fallback |
+| Phase 12 | ~~G18~~, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03 released (DS 1.3.0, T12.18), DSR-06, DSR-07 released (DS 1.6.0, T12.22), DSR-12 released (DS 1.7.0, T12.23); DSR-09 or its fallback |
 | Phase 13 | G21, G22 |
 | Phase 16 | S2, D6, D7, D13, G45 |
 | Phase 17 | S3, S4 |
@@ -5598,6 +5611,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.53 | 2026-11-02 | G53 resolved: product descriptions are plain text for the first launch; the product page shows paragraphs and renders no Markdown or HTML. No task, Verify ID or schema change. | OA-75; ADR-0059 |
 | 1.54 | 2026-11-02 | §4.7 lists `NUXT_PUBLIC_SITE_URL` (web). T22.4 adds a step: set `NUXT_PUBLIC_SITE_URL` to the storefront's public address, because canonical URLs, `og:url` and the sitemap (T12.7) are built from it. No requirement, Verify ID or schema change. | Owner request in chat, 2026-11-02 |
 | 1.55 | 2026-11-02 | DSR-07 and C-10 resolved: text printed on the product itself may show in a product photo, added text may not (DS:ADR-0064, DS 1.6.0). New task T12.22 raises the DS pin to 1.6.0 (docs only). A17 and the pin citations read 1.6.0. No requirement, Verify ID or schema change. | OA-76; ADR-0060 |
+| 1.56 | 2026-11-03 | DSR-12 resolved: DS 1.7.0 adds the size `2xl` to checkboxes and radios, so they reach the 44 px tap target (CR-36). New task T12.23 raises the DS pin to 1.7.0 (after T12.22, before T12.9, which now depends on it and uses the size). A17 and the pin citations read 1.7.0. No new Verify ID or schema change. | OA-77; ADR-0061 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5707,6 +5721,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0058 | The sold-out text of a variant option is in its visible label | `docs/decisions/0058-sold-out-text-in-variant-label.md` | G52; OA-74 |
 | ADR-0059 | Product descriptions are plain text for the first launch | `docs/decisions/0059-plain-text-product-descriptions.md` | G53; OA-75 |
 | ADR-0060 | Text printed on a product may show in its photo | `docs/decisions/0060-packaging-text-in-photos.md` | C-10; DSR-07; OA-76 |
+| ADR-0061 | Checkboxes and radios reach the 44 px tap target through the DS size `2xl` | `docs/decisions/0061-choice-controls-44px.md` | DSR-12; OA-77 |
 
 ## Appendix C — Dated market facts
 
@@ -6084,10 +6099,11 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T12.20 | New: raise the DS pin to 1.5.0, which resolves DSR-11 | OA-70, OA-71; §4.5 |
 | T12.21 | New: show the sold-out text in the variant selector's visible label | OA-74; G52 |
 | T12.22 | New: raise the DS pin to 1.6.0, which resolves DSR-07 | OA-76; §4.5 |
+| T12.23 | New: raise the DS pin to 1.7.0, which resolves DSR-12 | OA-77; §4.5 |
 | T12.4 | Built from DS parts per the §4.5 composition map; depends on T12.18 (DSR-01, DSR-02, DSR-03); `PriceDisplay` no longer formats "$1,234.00 MXN" | CR-26; OA-09; G19 decided (ADR-0024) |
 | T12.6 | Cites ADR-0024 and CR-30; locale and currency in one file | G19; DS:formatting.md |
 | T12.8 | Adds the DS photo standards and DSR-07; no test of its own | DS:ADR-0056, DS:ADR-0057 |
-| T12.9 | Focus ring from the DS; tap targets through DS size props | DS:ADR-0009; CR-36 |
+| T12.9 | Focus ring from the DS; tap targets through DS size props (`2xl` for checkboxes and radios); depends on T12.23 | DS:ADR-0009; CR-36; DSR-12 |
 | T12.10 | `error.vue` built from the DS error-page pattern; owns P12-V25 | §4.5 |
 | T12.12 | Phase-close task | §0.2 |
 | T12.14 | New: styling scan and DS pin check | REQ-050; CR-27 |
