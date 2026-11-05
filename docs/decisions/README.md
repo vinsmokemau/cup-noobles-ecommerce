@@ -66,3 +66,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0059](0059-plain-text-product-descriptions.md) | Product descriptions are plain text for the first launch | accepted | G53; OA-75 |
 | [ADR-0060](0060-packaging-text-in-photos.md) | Text printed on a product may show in its photo | accepted | C-10; DSR-07; OA-76 |
 | [ADR-0061](0061-choice-controls-44px.md) | Checkboxes and radios reach the 44 px tap target through the DS size `2xl` | accepted | DSR-12; OA-77 |
+| [ADR-0062](0062-meta-descriptions.md) | Meta descriptions of the home, catalog and product pages | accepted | G55; OA-78 |
