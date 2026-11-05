@@ -4014,7 +4014,7 @@ DS 1.6.0 changes the docs only: the photo rule now reads "Put no text you add in
 
 DS 1.7.0 adds the size `2xl` to `UCheckbox`, `UCheckboxGroup` and `URadioGroup`: every row is at least 44 px tall and the label fills the row (DSR-12). The visible box, the text size, the focus ring and the sizes `xs` to `xl` do not change. Raise the three DS packages in `web/` to exactly `1.7.0` (A17), in `package.json` and in `pnpm-workspace.yaml`, and refresh `pnpm-lock.yaml`. `nuxt typecheck` must pass. Refresh the files in `api/apps/notifications/templates/email/ds/` and `ds-email-manifest.json` from the 1.7.0 email package, and keep P11-V12 and P11-V13 green. Check the DS release notes of 1.7.0 for any other change that touches the storefront or an email; list what you find in the report. Do not use the new size here: T12.9 does. Run `make test-all`, as §4.5 requires of a DS upgrade. It runs after T12.22 and before T12.9.
 
-- [ ] **T12.9 — Accessibility and mobile**
+- [x] **T12.9 — Accessibility and mobile** (2026-11-04, dd65044)
   - Release: R1 · Gate: task
   - REQs: REQ-051
   - Verifies: P12-V19, P12-V21
