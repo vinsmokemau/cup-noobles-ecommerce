@@ -25,7 +25,7 @@ function update(key: string, selected: string[]) {
       :key="facet.key"
       :model-value="modelValue[facet.key] ?? []"
       :legend="facet.title"
-      size="xl"
+      size="2xl"
       :items="
         facet.values.map((v) => ({
           value: String(v.value),

@@ -28,7 +28,7 @@ const active = computed(() => Object.values(props.modelValue).some((v) => v.leng
 <template>
   <div v-if="facets.length">
     <div class="lg:hidden">
-      <USlideover v-model:open="open" :title="labels.title" side="left">
+      <USlideover v-model:open="open" :title="labels.title" side="left" :close="{ size: 'xl' }">
         <UButton
           color="primary"
           variant="ghost"

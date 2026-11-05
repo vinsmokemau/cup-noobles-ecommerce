@@ -79,7 +79,7 @@ function choose(axis: string, value: string) {
       :legend="group.legend"
       :items="group.items"
       orientation="horizontal"
-      size="xl"
+      size="2xl"
       @update:model-value="choose(group.axis, $event as string)"
     >
       <template #label="{ item }">

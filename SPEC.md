@@ -470,6 +470,7 @@ Each item is built in the DS repository under its own SPEC and released as a DS 
 | DSR-10 | `CnMediaCard.vue` (DS 1.0.0, line 81) fails `vue-tsc` with TS2352: `EventTarget \| null` converted to `Picture`. Found in T1.5 with `nuxt typecheck`; `make test` runs `vue-tsc`. | Phase 1 (T1.17) | R1 | Resolved (DS 1.0.1, T1.17) |
 | DSR-11 | `CnMediaCard` and `CnImageGallery` render their `<img>` with no `width` and `height` and no `loading` attribute (ui-review of T12.4, Web Interface Guidelines, Images). A catalog grid then shifts while it loads and loads every picture at once. | Phase 12 (T12.4) | R1 | Resolved (DS 1.4.0, T12.20) |
 | DSR-12 | The choice controls (`UCheckbox`, `URadioGroup`) reached only 24 px tall at their largest size, `xl` (T12.9, P12-V21). CR-36 asks for 44 px through DS size props, and no size prop did it. The variant selector (radios) and the filter facets (checkboxes) are affected. | Phase 12 (T12.9) | R1 | Resolved (DS 1.7.0, ADR-0061; pin in T12.23) |
+| DSR-13 | The Nuxt UI locale is not set, so the built-in labels of DS components are English. The slideover close button of the filter panel (`FilterSidebar`) is announced as "Close" in an es-MX storefront (ui-review of T12.9). `ButtonProps` takes no `aria-label`, so the storefront cannot name it without a custom slot that would copy DS styling (CR-27). Proposal: the layer sets the `es` locale on `UApp` (or exposes a locale prop). | Phase 12 (T12.9) | R1 | Open |
 
 ### 2.5 Dev defaults
 
