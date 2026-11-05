@@ -24,6 +24,8 @@ export interface SeedManifest {
     }
     search: Ref & { query: string; typo: string }
   }
+  // A fictional staff account (T12.15).
+  staff: { email: string; password: string }
 }
 
 const MANIFEST_PATH = fileURLToPath(new URL('../../var/e2e/manifest.json', import.meta.url))

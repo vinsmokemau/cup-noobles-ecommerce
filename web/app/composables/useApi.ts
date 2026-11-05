@@ -11,13 +11,21 @@ export class ApiError extends Error {
   readonly status: number
   readonly detail: string
   readonly fieldErrors: Record<string, string[]>
+  /** The API answered `{"prelaunch": true}`: pre-launch mode is on (G32, ADR-0038). */
+  readonly prelaunch: boolean
 
-  constructor(status: number, detail: string, fieldErrors: Record<string, string[]> = {}) {
+  constructor(
+    status: number,
+    detail: string,
+    fieldErrors: Record<string, string[]> = {},
+    prelaunch = false,
+  ) {
     super(detail)
     this.name = 'ApiError'
     this.status = status
     this.detail = detail
     this.fieldErrors = fieldErrors
+    this.prelaunch = prelaunch
   }
 }
 
@@ -55,7 +63,12 @@ export function toApiError(failure: unknown): ApiError {
   } else {
     detail = toStrings(payload).join(' ')
   }
-  return new ApiError(status, detail || MESSAGE_GENERIC, fieldErrors)
+  const prelaunch =
+    status === 503 &&
+    typeof payload === 'object' &&
+    payload !== null &&
+    (payload as { prelaunch?: unknown }).prelaunch === true
+  return new ApiError(status, detail || MESSAGE_GENERIC, fieldErrors, prelaunch)
 }
 
 function readCookie(cookies: string | undefined, name: string): string | undefined {

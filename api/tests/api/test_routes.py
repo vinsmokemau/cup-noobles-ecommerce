@@ -33,6 +33,7 @@ def test_seed_e2e_writes_manifest(settings, tmp_path):
     first = json.loads(path.read_text())
     call_command("seed_e2e")
 
-    # Idempotent, and each phase adds its own part (Phase 12: the catalog).
+    # Idempotent, and each phase adds its own part (Phase 12: the catalog and, for T12.15, a staff
+    # account).
     assert json.loads(path.read_text()) == first
-    assert set(first) == {"catalog"}
+    assert set(first) == {"catalog", "staff"}
