@@ -4035,7 +4035,7 @@ Accessibility and mobile: real `<button>` and `<a>` elements, labelled inputs, t
 
 DS 1.8.0 adds the component `CnApp`, the root of an app: it wraps `UApp` with the Nuxt UI `es` locale by default, takes a `locale` prop, and passes every other `UApp` prop and the default slot through (DSR-13). Nuxt UI's built-in text, such as the close buttons of a modal, a slideover, a toast and an alert, is then announced in Spanish. Raise the three DS packages in `web/` to exactly `1.8.0` (A17), in `package.json` and in `pnpm-workspace.yaml`, and refresh `pnpm-lock.yaml`. Replace `<UApp>` with `<CnApp>` in `web/app/app.vue` and in `web/app/error.vue` (an app that keeps `<UApp>` stays in English with no error, so check both files). Add no `aria-label`, no `#close` slot and no direct `@nuxt/ui` dependency for this (CR-27, P12-V27). P12-V21 gains the assertion that the filter panel's close button is named "Cerrar". `nuxt typecheck` must pass. Refresh the files in `api/apps/notifications/templates/email/ds/` and `ds-email-manifest.json` from the 1.8.0 email package, and keep P11-V12 and P11-V13 green. Check the DS release notes of 1.8.0 (`CHANGELOG.md`, section 1.8.0) for any other change that touches the storefront or an email; list what you find in the report. Run `/ui-review` on the changed files, `make e2e FILES=e2e/p12_mobile.spec.ts`, and `make test-all`, as §4.5 requires of a DS upgrade. It runs after T12.23 and before T12.15, which builds on `app.vue`.
 
-- [ ] **T12.15 — Pre-launch page**
+- [x] **T12.15 — Pre-launch page** (2026-11-05, 354f0ed)
   - Release: R1 · Gate: task
   - REQs: REQ-062
   - Verifies: P12-V28
