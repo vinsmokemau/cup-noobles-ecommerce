@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.56 |
+| Spec version | 1.57 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
-| Design System | `@vinsmokemau/cup-noobles-tokens`, `-nuxt` and `-email`, pinned at exactly `1.7.0` (A17). Raised only by a DS upgrade task. |
+| Design System | `@vinsmokemau/cup-noobles-tokens`, `-nuxt` and `-email`, pinned at exactly `1.8.0` (A17). Raised only by a DS upgrade task. |
 | Normative files | `SPEC.md` and `spec/schema.sql` (the canonical schema, §4.4) |
 | Converted from | `cup-noobles-implementation-plan.md` (September 2026). Appendix E maps every old section to its new place. |
 
@@ -209,7 +209,7 @@ Tasks and Verify IDs tagged R2 keep their IDs and stay in §6. The traceability 
 
 ## 2. Rules, conflicts, assumptions and open items
 
-Source key: **plan** is `cup-noobles-implementation-plan.md`. **DS** is the Design System repository at version 1.7.0. **GE** is the owner's internal execution guide (v4), cited by ID only. **OA** is an owner answer in §2.6.
+Source key: **plan** is `cup-noobles-implementation-plan.md`. **DS** is the Design System repository at version 1.8.0. **GE** is the owner's internal execution guide (v4), cited by ID only. **OA** is an owner answer in §2.6.
 
 ### 2.1 Carried-forward rules
 
@@ -347,7 +347,7 @@ Each assumption is cheap to reverse unless its row says otherwise. A1–A14 keep
 | A14 | Each mock behaves exactly like its real provider at the interface level; the shared contract suites run against both | A mock easier than the real thing hides bugs until Part B | Medium | R1 |
 | A15 | One maintainer: the owner is the developer and the business owner. Governance is sized for one person, and decisions are recorded as owner answers and ADRs. | OA-04; DS:A-01 | n/a | R1 |
 | A16 | Guest checkout only in R1. A customer is identified by email, and also by phone and shipping address for purchase limits (G31). | OA-11 | Medium | R1 |
-| A17 | The three DS packages are pinned at an exact version, currently `1.7.0`. A DS upgrade is its own task. | OA-12; DS:R-01 | Low | R1 |
+| A17 | The three DS packages are pinned at an exact version, currently `1.8.0`. A DS upgrade is its own task. | OA-12; DS:R-01 | Low | R1 |
 | A18 | The repository is public on GitHub Free, created by the owner | OA-10 | Low | R1 |
 | A19 | The weekly dashboard and the monthly report are built by the owner from admin CSV exports. The store has no reporting screens. | GE:T34, GE:T43 | Low | R1 |
 
@@ -470,7 +470,7 @@ Each item is built in the DS repository under its own SPEC and released as a DS 
 | DSR-10 | `CnMediaCard.vue` (DS 1.0.0, line 81) fails `vue-tsc` with TS2352: `EventTarget \| null` converted to `Picture`. Found in T1.5 with `nuxt typecheck`; `make test` runs `vue-tsc`. | Phase 1 (T1.17) | R1 | Resolved (DS 1.0.1, T1.17) |
 | DSR-11 | `CnMediaCard` and `CnImageGallery` render their `<img>` with no `width` and `height` and no `loading` attribute (ui-review of T12.4, Web Interface Guidelines, Images). A catalog grid then shifts while it loads and loads every picture at once. | Phase 12 (T12.4) | R1 | Resolved (DS 1.4.0, T12.20) |
 | DSR-12 | The choice controls (`UCheckbox`, `URadioGroup`) reached only 24 px tall at their largest size, `xl` (T12.9, P12-V21). CR-36 asks for 44 px through DS size props, and no size prop did it. The variant selector (radios) and the filter facets (checkboxes) are affected. | Phase 12 (T12.9) | R1 | Resolved (DS 1.7.0, ADR-0061; pin in T12.23) |
-| DSR-13 | The Nuxt UI locale is not set, so the built-in labels of DS components are English. The slideover close button of the filter panel (`FilterSidebar`) is announced as "Close" in an es-MX storefront (ui-review of T12.9). `ButtonProps` takes no `aria-label`, so the storefront cannot name it without a custom slot that would copy DS styling (CR-27). Proposal: the layer sets the `es` locale on `UApp` (or exposes a locale prop). | Phase 12 (T12.9) | R1 | Open |
+| DSR-13 | The Nuxt UI locale is not set, so the built-in labels of DS components are English. The slideover close button of the filter panel (`FilterSidebar`) is announced as "Close" in an es-MX storefront (ui-review of T12.9). `ButtonProps` takes no `aria-label`, so the storefront cannot name it without a custom slot that would copy DS styling (CR-27). Resolution: DS 1.8.0 adds `CnApp`, which wraps `UApp` with the `es` locale by default and takes a `locale` prop. | Phase 12 (T12.9) | R1 | Resolved (DS 1.8.0, DS:ADR-0071; pin in T12.24) |
 
 ### 2.5 Dev defaults
 
@@ -975,7 +975,7 @@ The admin form, the storefront filters and the API validation all read `attribut
 
 ### 4.5 Storefront and the Design System
 
-**Packages.** `web/` consumes the three DS packages at one exact version, currently `1.7.0` (A17):
+**Packages.** `web/` consumes the three DS packages at one exact version, currently `1.8.0` (A17):
 
 | Package | What the storefront uses | Where |
 |---|---|---|
@@ -3795,7 +3795,7 @@ The R2 rows of the T11.3 table: `verify_email`, `password_reset`, `preorder_arri
 
 - Foundation: T12.1 → T12.14 (styling scan and DS pin check), T12.2 → T12.11, T12.6. These need no Design System release and can start now.
 - Catalog: T12.18 (raises the DS pin to 1.3.0, which holds DSR-01, DSR-02 and DSR-03) → T12.4 → T12.5 → T12.19 → T12.20 (raises the DS pin to 1.5.0, which holds DSR-11) → T12.16. T12.18 needs no other task of the phase and can run right after T12.6
-- Pages: T12.10 → T12.13; T12.7 and T12.8 (either order, both after T12.16); T12.21 (after T12.16); T12.22 (any time after T12.20); T12.23 (after T12.22); then T12.9 → T12.15
+- Pages: T12.10 → T12.13; T12.7 and T12.8 (either order, both after T12.16); T12.21 (after T12.16); T12.22 (any time after T12.20); T12.23 (after T12.22); then T12.9 → T12.24 → T12.15
 - Phase close: T12.12 (needs T12.15 and T12.14)
 - R2, after R1: T12.3, T12.17
 
@@ -4025,11 +4025,21 @@ DS 1.7.0 adds the size `2xl` to `UCheckbox`, `UCheckboxGroup` and `URadioGroup`:
 
 Accessibility and mobile: real `<button>` and `<a>` elements, labelled inputs, the DS focus ring (DS:ADR-0009; never restyled), 44px minimum tap targets through DS size props (CR-36), tested at 360px wide. Checkboxes and radios use `size="2xl"` (DS 1.7.0, DSR-12) in `VariantSelector` and `FilterSidebarGroups`; the slideover close button uses `size: 'xl'`. Most Mexican e-commerce traffic is mobile.
 
+- [ ] **T12.24 — Design System 1.8.0**
+  - Release: R1 · Gate: task
+  - REQs: REQ-051
+  - Verifies: P12-V21
+  - Depends on: T12.23
+  - Context: §4.5 (Packages, Email); A17; DSR-13; DS:ADR-0071
+  - Open items: DSR-13 resolved by this task
+
+DS 1.8.0 adds the component `CnApp`, the root of an app: it wraps `UApp` with the Nuxt UI `es` locale by default, takes a `locale` prop, and passes every other `UApp` prop and the default slot through (DSR-13). Nuxt UI's built-in text, such as the close buttons of a modal, a slideover, a toast and an alert, is then announced in Spanish. Raise the three DS packages in `web/` to exactly `1.8.0` (A17), in `package.json` and in `pnpm-workspace.yaml`, and refresh `pnpm-lock.yaml`. Replace `<UApp>` with `<CnApp>` in `web/app/app.vue` and in `web/app/error.vue` (an app that keeps `<UApp>` stays in English with no error, so check both files). Add no `aria-label`, no `#close` slot and no direct `@nuxt/ui` dependency for this (CR-27, P12-V27). P12-V21 gains the assertion that the filter panel's close button is named "Cerrar". `nuxt typecheck` must pass. Refresh the files in `api/apps/notifications/templates/email/ds/` and `ds-email-manifest.json` from the 1.8.0 email package, and keep P11-V12 and P11-V13 green. Check the DS release notes of 1.8.0 (`CHANGELOG.md`, section 1.8.0) for any other change that touches the storefront or an email; list what you find in the report. Run `/ui-review` on the changed files, `make e2e FILES=e2e/p12_mobile.spec.ts`, and `make test-all`, as §4.5 requires of a DS upgrade. It runs after T12.23 and before T12.15, which builds on `app.vue`.
+
 - [ ] **T12.15 — Pre-launch page**
   - Release: R1 · Gate: task
   - REQs: REQ-062
   - Verifies: P12-V28
-  - Depends on: T12.9
+  - Depends on: T12.9, T12.24
   - Context: §4.5 (Composition map); T5.7; CR-47
   - Open items: D17
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
@@ -4110,7 +4120,7 @@ The home page's open pre-orders section: seeded pre-order products with their re
 | Test ID | Layer | File | Assertion |
 |---|---|---|---|
 | P12-V20 | E2E | `web/e2e/p12_product.spec.ts` › `p12_v20 unknown product is a real 404` | The response status is 404; `error.vue` links back to the catalog; the page carries `noindex`. |
-| P12-V21 | E2E | `web/e2e/p12_mobile.spec.ts` › `p12_v21 no horizontal scroll at 360px` | On every 12.A route, `documentElement.scrollWidth <= 360`, and header and product-page controls are at least 44px tall. |
+| P12-V21 | E2E | `web/e2e/p12_mobile.spec.ts` › `p12_v21 no horizontal scroll at 360px` | On every 12.A route, `documentElement.scrollWidth <= 360`, and header and product-page controls are at least 44px tall. The close button of the open filter panel is named "Cerrar" (DSR-13). |
 | P12-V22 [R2] | SSR | `web/e2e/p12_ssr.spec.ts` › `p12_v22 ssr sees the logged-in customer` | A raw-HTML request carrying a session cookie renders the customer's name in the header, which proves cookie forwarding end to end. |
 | P12-V23 | E2E | `web/e2e/p12_seo.spec.ts` › `p12_v23 sitemap canonical and json-ld` | `/sitemap.xml` lists active products and excludes draft and archived ones; product pages carry a canonical URL, `og:image`, and JSON-LD that parses. |
 | P12-V24 | unit | `web/tests/unit/lint-rules.test.ts` › `p12_v24 bare $fetch forbidden` | The T12.11 ESLint rule flags a fixture file calling `$fetch` and passes `useApi.ts`. |
@@ -5537,7 +5547,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 8 | ~~G3~~, ~~G4~~, ~~G5~~, ~~G25~~, ~~G26~~, ~~G27~~, ~~G31~~, ~~G33~~ |
 | Phase 9 | ~~G7~~, ~~G8~~, ~~G11~~, ~~G14~~, ~~G46~~ |
 | Phase 11 | ~~G17~~; DSR-04, DSR-05 released |
-| Phase 12 | ~~G18~~, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03 released (DS 1.3.0, T12.18), DSR-06, DSR-07 released (DS 1.6.0, T12.22), DSR-12 released (DS 1.7.0, T12.23); DSR-09 or its fallback |
+| Phase 12 | ~~G18~~, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03 released (DS 1.3.0, T12.18), DSR-06, DSR-07 released (DS 1.6.0, T12.22), DSR-12 released (DS 1.7.0, T12.23), DSR-13 released (DS 1.8.0, T12.24); DSR-09 or its fallback |
 | Phase 13 | G21, G22 |
 | Phase 16 | S2, D6, D7, D13, G45 |
 | Phase 17 | S3, S4 |
@@ -5613,6 +5623,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.54 | 2026-11-02 | §4.7 lists `NUXT_PUBLIC_SITE_URL` (web). T22.4 adds a step: set `NUXT_PUBLIC_SITE_URL` to the storefront's public address, because canonical URLs, `og:url` and the sitemap (T12.7) are built from it. No requirement, Verify ID or schema change. | Owner request in chat, 2026-11-02 |
 | 1.55 | 2026-11-02 | DSR-07 and C-10 resolved: text printed on the product itself may show in a product photo, added text may not (DS:ADR-0064, DS 1.6.0). New task T12.22 raises the DS pin to 1.6.0 (docs only). A17 and the pin citations read 1.6.0. No requirement, Verify ID or schema change. | OA-76; ADR-0060 |
 | 1.56 | 2026-11-03 | DSR-12 resolved: DS 1.7.0 adds the size `2xl` to checkboxes and radios, so they reach the 44 px tap target (CR-36). New task T12.23 raises the DS pin to 1.7.0 (after T12.22, before T12.9, which now depends on it and uses the size). A17 and the pin citations read 1.7.0. No new Verify ID or schema change. | OA-77; ADR-0061 |
+| 1.57 | 2026-11-04 | DSR-13 resolved: DS 1.8.0 adds `CnApp`, so the built-in text of Nuxt UI is es-MX (the filter panel's close button was announced in English). New task T12.24 raises the DS pin to 1.8.0 and swaps `UApp` for `CnApp` (after T12.23, before T12.15, which now depends on it). P12-V21 gains the assertion that the close button is named "Cerrar". A17 and the pin citations read 1.8.0. No new Verify ID or schema change. | Owner request in chat, 2026-11-04; DS:ADR-0071 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5638,7 +5649,7 @@ Generated from §3 and §6; from T1.14b on, `scripts/check_traceability.py` rege
 | REQ-041 | R1 | T9.13b, T10.13, T16.7, T19.4 | P9-V01 · P10-V01 · P16-V01 · P19-V01 |
 | REQ-042 | R1 | T1.13b, T1.12a, T15.5 | P1-V08 · P1-V13 · P15-V13 · P15-V14 |
 | REQ-050 | R1 | T12.14 | P12-V26 · P12-V27 |
-| REQ-051 | R1 | T1.13b, T12.4, T12.9, T13.7, T14.6, T15.6a, T15.6b | P1-V09 · P1-V20 · P12-V12 · P12-V19 · P12-V21 · P13-V16 · P14-V17 · P15-V01 · P15-V03 · P15-V04 · P15-V08 |
+| REQ-051 | R1 | T1.13b, T12.4, T12.9, T12.24, T13.7, T14.6, T15.6a, T15.6b | P1-V09 · P1-V20 · P12-V12 · P12-V19 · P12-V21 · P13-V16 · P14-V17 · P15-V01 · P15-V03 · P15-V04 · P15-V08 |
 | REQ-052 | R1 | T11.3, T12.6, T12.4, T13.7 | P11-V04 · P12-V09 · P12-V12 · P13-V14 |
 | REQ-053 | R1 | T12.16, T12.10, T12.13, T13.4 | P12-V01 · P12-V03 · P12-V20 · P12-V25 · P13-V20 |
 | REQ-054 | R1 | T1.12c, T5.5, T12.4, T12.11, T12.19 | P1-V07 · P5-V04 · P12-V04 · P12-V24 · P12-V30 · P12-V31 |
@@ -6092,7 +6103,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 |---|---|---|
 | Phase 12 | Deliverable adds the pre-launch page and "assembled from the Design System layer"; `useAuth` leaves the deliverable (R2) | §1.2; §4.5; G32 |
 | 12.A | Home: "pre-orders open" marked R2 (T12.17), "featured" marked G28; a note that every route shows the pre-launch page while the mode is on | §1.2; G28; G32 |
-| Tasks | Listed in execution order: T12.1, T12.14, T12.2, T12.11, T12.6, T12.18, T12.4, T12.5, T12.19, T12.20, T12.16, T12.10, T12.13, T12.7, T12.8, T12.9, T12.15, T12.12 (R1), then T12.3, T12.17 (R2) | Execution order; the styling scan runs early |
+| Tasks | Listed in execution order: T12.1, T12.14, T12.2, T12.11, T12.6, T12.18, T12.4, T12.5, T12.19, T12.20, T12.16, T12.10, T12.13, T12.7, T12.8, T12.9, T12.24, T12.15, T12.12 (R1), then T12.3, T12.17 (R2) | Execution order; the styling scan runs early |
 | T12.1 | `extends` the DS layer; modules drop `@nuxt/ui`; the production SSR route follows G18 | C-11; §4.5; G18 |
 | T12.2 | Cookie forwarding serves a staff session in R1 | §1.2; G32 |
 | T12.3 | Tagged R2 (owns P12-V08, P12-V22) | Accounts are R2 |
@@ -6101,6 +6112,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T12.21 | New: show the sold-out text in the variant selector's visible label | OA-74; G52 |
 | T12.22 | New: raise the DS pin to 1.6.0, which resolves DSR-07 | OA-76; §4.5 |
 | T12.23 | New: raise the DS pin to 1.7.0, which resolves DSR-12 | OA-77; §4.5 |
+| T12.24 | New: raise the DS pin to 1.8.0 and use `CnApp`, which resolves DSR-13 | Owner request in chat, 2026-11-04; DS:ADR-0071; §4.5 |
 | T12.4 | Built from DS parts per the §4.5 composition map; depends on T12.18 (DSR-01, DSR-02, DSR-03); `PriceDisplay` no longer formats "$1,234.00 MXN" | CR-26; OA-09; G19 decided (ADR-0024) |
 | T12.6 | Cites ADR-0024 and CR-30; locale and currency in one file | G19; DS:formatting.md |
 | T12.8 | Adds the DS photo standards and DSR-07; no test of its own | DS:ADR-0056, DS:ADR-0057 |
