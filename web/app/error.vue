@@ -25,7 +25,7 @@ const retry = () => reloadNuxtApp({ persistState: false })
 </script>
 
 <template>
-  <UApp>
+  <CnApp>
     <ErrorPage
       v-if="notFound"
       :status="status"
@@ -42,5 +42,5 @@ const retry = () => reloadNuxtApp({ persistState: false })
       action-label="Volver a intentar"
       @action="retry"
     />
-  </UApp>
+  </CnApp>
 </template>

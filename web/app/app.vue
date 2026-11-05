@@ -7,7 +7,7 @@ useHead({
 </script>
 
 <template>
-  <UApp>
+  <CnApp>
     <NuxtPage />
-  </UApp>
+  </CnApp>
 </template>

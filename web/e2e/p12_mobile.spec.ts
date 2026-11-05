@@ -76,6 +76,8 @@ test('p12_v21 no horizontal scroll at 360px', async ({ page, seed }) => {
     }
     // The slideover's close button (size `xl`) is among the controls checked here.
     await expectTapTargets(page, 'filter panel', panel)
+    // Nuxt UI's built-in text is es-MX through CnApp (DSR-13), not English "Close".
+    await expect(panel.getByRole('button', { name: 'Cerrar' })).toBeVisible()
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
       'filter panel scrollWidth',
