@@ -15,14 +15,14 @@ importers:
         specifier: 8.6.2
         version: 8.6.2(a4755954a421f070c899e97738039c42)
       '@vinsmokemau/cup-noobles-email':
-        specifier: 1.6.0
-        version: 1.6.0
+        specifier: 1.7.0
+        version: 1.7.0
       '@vinsmokemau/cup-noobles-nuxt':
-        specifier: 1.6.0
-        version: 1.6.0(6f9c7c2270a073ac42185a173a56e304)
+        specifier: 1.7.0
+        version: 1.7.0(6f9c7c2270a073ac42185a173a56e304)
       '@vinsmokemau/cup-noobles-tokens':
-        specifier: 1.6.0
-        version: 1.6.0
+        specifier: 1.7.0
+        version: 1.7.0
       nuxt:
         specifier: 4.5.2
         version: 4.5.2(@babel/plugin-syntax-jsx@7.29.7(@babel/core@7.29.7(supports-color@10.2.2)))(@babel/plugin-syntax-typescript@7.29.7(@babel/core@7.29.7(supports-color@10.2.2)))(@oxc-project/types@0.154.0)(@types/node@26.6.5)(@vue/compiler-sfc@3.5.44)(cac@7.1.0)(commander@14.0.3)(confbox@0.3.1)(db0@0.3.4)(dotenv@17.4.2)(esbuild@0.28.2)(eslint@10.13.0(jiti@2.7.0)(supports-color@10.2.2))(giget@3.3.1)(ioredis@5.11.1(supports-color@10.2.2))(lightningcss@1.33.0)(magicast@0.5.5)(optionator@0.9.4)(oxc-parser@0.141.0)(rolldown@1.2.14)(rollup-plugin-visualizer@7.1.1(rolldown@1.2.14)(rollup@4.64.10))(rollup@4.64.10)(srvx@0.11.22)(supports-color@10.2.2)(terser@5.51.2)(typescript@5.9.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))(vue-tsc@3.3.13(typescript@5.9.3))(yaml@2.9.1)
@@ -2449,14 +2449,14 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@vinsmokemau/cup-noobles-email@1.6.0':
-    resolution: {integrity: sha512-5lzs9kIP0enn3vqXIvZzlWFrIDBavMZLWtEUW5q6D3wWyC6mCoNltDKM+d+/Pc9sapISRzMkkrpMdtQJuRfBcg==, tarball: https://npm.pkg.github.com/download/@vinsmokemau/cup-noobles-email/1.6.0/6c93d508e5172d7655682829863bec688a928b1c}
+  '@vinsmokemau/cup-noobles-email@1.7.0':
+    resolution: {integrity: sha512-hBjpRj4nUDQtv6qdPSjgUk3IfYzjxG9u7+D1sXV1E3XssdvPArRBeexkWXTd++uuY0+jO9dt6gtiqDq/7CgWWQ==, tarball: https://npm.pkg.github.com/download/@vinsmokemau/cup-noobles-email/1.7.0/a8c1d78bd93bbd2303b45e09cfbc86e1f07e4bff}
 
-  '@vinsmokemau/cup-noobles-nuxt@1.6.0':
-    resolution: {integrity: sha512-kouz1ooCHikuKfRwSgt0viEFKiU6KwV4jj9cFbtObzj1AWDduyisM4EIt7WwqX7DlVHPnWX59bVV871gcl+Hdw==, tarball: https://npm.pkg.github.com/download/@vinsmokemau/cup-noobles-nuxt/1.6.0/851c3e837e9ec790b41f87bf725b3608e59d3a4e}
+  '@vinsmokemau/cup-noobles-nuxt@1.7.0':
+    resolution: {integrity: sha512-J2LfaKjluedbJ6tEkYzAavCa2m1MtWmio/B+/3H1z/m9bDJBQgfSgbGxLGl6SRA1kheyOBQWMxdNxJEf0tAUmw==, tarball: https://npm.pkg.github.com/download/@vinsmokemau/cup-noobles-nuxt/1.7.0/3ab5979ab39589ad089c82fe861e78514d8d295e}
 
-  '@vinsmokemau/cup-noobles-tokens@1.6.0':
-    resolution: {integrity: sha512-wjgK6iYznqlCoTKXaGKzWL5W114H41kPRZilwTs2CZHIHutg/rbXZsNulPCbt99oCxgNEm+fr3nORGUylVM/xQ==, tarball: https://npm.pkg.github.com/download/@vinsmokemau/cup-noobles-tokens/1.6.0/a5b7454880045eb35987573ba109e4a78bf25bdb}
+  '@vinsmokemau/cup-noobles-tokens@1.7.0':
+    resolution: {integrity: sha512-xOmj3hC3OL2+Wtnq77asS63s5bpXjk7y5E81UKl/Aq7niHxl1Y/iompWk8QUFtoq86ilOMK3inI4HsG8w/Dm4A==, tarball: https://npm.pkg.github.com/download/@vinsmokemau/cup-noobles-tokens/1.7.0/e103f320cd847d5e0a74b02511b708aa5fd04620}
 
   '@vitejs/plugin-vue-jsx@5.1.6':
     resolution: {integrity: sha512-YXvi4as2clxt6DFw5+a0tTA97ntiQXm/raR8ofNj3aNwwdlVGTiG2gp7EvfZW17P50acL/9bP0ccF4XnqNmlgA==}
@@ -9681,13 +9681,13 @@ snapshots:
       - rollup
       - supports-color
 
-  '@vinsmokemau/cup-noobles-email@1.6.0': {}
+  '@vinsmokemau/cup-noobles-email@1.7.0': {}
 
-  '@vinsmokemau/cup-noobles-nuxt@1.6.0(6f9c7c2270a073ac42185a173a56e304)':
+  '@vinsmokemau/cup-noobles-nuxt@1.7.0(6f9c7c2270a073ac42185a173a56e304)':
     dependencies:
       '@iconify-json/ph': 1.2.2
       '@nuxt/ui': 4.11.2(de69a704ebc0abed8af5766651a6c6a1)
-      '@vinsmokemau/cup-noobles-tokens': 1.6.0
+      '@vinsmokemau/cup-noobles-tokens': 1.7.0
       tailwindcss: 4.3.3
     transitivePeerDependencies:
       - '@azure/app-configuration'
@@ -9773,7 +9773,7 @@ snapshots:
       - yup
       - zod
 
-  '@vinsmokemau/cup-noobles-tokens@1.6.0': {}
+  '@vinsmokemau/cup-noobles-tokens@1.7.0': {}
 
   '@vitejs/plugin-vue-jsx@5.1.6(supports-color@10.2.2)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))(vue@3.5.44(typescript@5.9.3))':
     dependencies:
