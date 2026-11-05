@@ -4025,7 +4025,7 @@ DS 1.7.0 adds the size `2xl` to `UCheckbox`, `UCheckboxGroup` and `URadioGroup`:
 
 Accessibility and mobile: real `<button>` and `<a>` elements, labelled inputs, the DS focus ring (DS:ADR-0009; never restyled), 44px minimum tap targets through DS size props (CR-36), tested at 360px wide. Checkboxes and radios use `size="2xl"` (DS 1.7.0, DSR-12) in `VariantSelector` and `FilterSidebarGroups`; the slideover close button uses `size: 'xl'`. Most Mexican e-commerce traffic is mobile.
 
-- [ ] **T12.24 — Design System 1.8.0**
+- [x] **T12.24 — Design System 1.8.0** (2026-11-05, f335f1b)
   - Release: R1 · Gate: task
   - REQs: REQ-051
   - Verifies: P12-V21
