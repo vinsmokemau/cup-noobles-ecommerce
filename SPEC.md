@@ -4003,7 +4003,7 @@ Images: `@nuxt/image` (`none` provider in Part A, since derivatives are pre-gene
 
 DS 1.6.0 changes the docs only: the photo rule now reads "Put no text you add inside the image. Words printed on the product itself, such as its box or label, may show. The title, the tag, and the alt text carry the text, so no one needs the picture to read it." (DSR-07, DS:ADR-0064). Raise the three DS packages in `web/` to exactly `1.6.0` (A17), in `package.json` and in `pnpm-workspace.yaml`, and refresh `pnpm-lock.yaml`. `nuxt typecheck` must pass. Refresh the files in `api/apps/notifications/templates/email/ds/` and `ds-email-manifest.json` from the 1.6.0 email package, and keep P11-V12 and P11-V13 green. Check the DS release notes of 1.6.0 for any other change that touches the storefront or an email; list what you find in the report. Run `make test-all`, as §4.5 requires of a DS upgrade. It can run at any time after T12.20 and before T12.12.
 
-- [ ] **T12.23 — Design System 1.7.0**
+- [x] **T12.23 — Design System 1.7.0** (2026-11-04, 8139b9b)
   - Release: R1 · Gate: task
   - REQs: REQ-050
   - Verifies: [no-test: `nuxt typecheck` passes; the pin is checked by P12-V27 (T12.14); the vendored email HTML is checked by P11-V12]
