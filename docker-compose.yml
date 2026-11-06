@@ -57,6 +57,8 @@ services:
       - ./web:/app
       # The type-drift test (P12-V04) reads the snapshot at ../api from the app directory.
       - ./api/openapi.snapshot.yml:/api/openapi.snapshot.yml:ro
+      # The AddressForm test (P13-V05) builds its lookup answers from the backend's sample dataset.
+      - ./api/fixtures/mx_postal_codes_sample.csv:/api/fixtures/mx_postal_codes_sample.csv:ro
       - web_node_modules:/app/node_modules
       # Generated types differ between the container and the host (eslint, typecheck), so each keeps its own.
       - web_nuxt:/app/.nuxt
