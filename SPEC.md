@@ -4051,7 +4051,7 @@ Per G32 (ADR-0038): while pre-launch mode is on (T5.7), every storefront route r
 
 A dev-only toggle, `POST /dev/test/prelaunch/`, registered only when `DEV_TOOLS_ENABLED` (404 in production), lets E2E specs switch the mode.
 
-- [ ] **T12.12 — Lighthouse budgets**
+- [x] **T12.12 — Lighthouse budgets** (2026-11-05, 690b2e9)
   - Release: R1 · Gate: phase-close
   - REQs: —
   - Verifies: P12-V02, P12-V23
