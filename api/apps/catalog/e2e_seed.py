@@ -61,6 +61,21 @@ def _stock(variant: Any, units: int) -> None:
         receive_stock(variant, location, units, note="seed_e2e")
 
 
+# The checkout specs (Phase 13) buy this variant (L + blanco) and reserve stock each time they run,
+# so a re-run of `seed_e2e` tops it up to a level no run exhausts. Other specs never buy it.
+CHECKOUT_VARIANT_SKU = "E2E-HOODIE-L-BLA"
+CHECKOUT_VARIANT_STOCK = 500
+
+
+def _keep_checkout_stock(hoodie: Product) -> None:
+    variant = hoodie.variants.get(sku=CHECKOUT_VARIANT_SKU)
+    location = Location.objects.get(code="almacen")
+    item, _ = StockItem.objects.get_or_create(variant=variant, location=location)
+    missing = CHECKOUT_VARIANT_STOCK - (item.on_hand - item.reserved)
+    if missing > 0:
+        receive_stock(variant, location, missing, note="seed_e2e")
+
+
 def _test_picture() -> ContentFile:
     """A plain grey rectangle: test data, so the product page has a picture to share (P12-V23)."""
     buffer = BytesIO()
@@ -122,6 +137,8 @@ def seed_catalog() -> dict[str, Any]:
             sku = f"E2E-HOODIE-{options['talla']}-{options['color'][:3].upper()}"
             _stock(add_variant(hoodie, options, price, sku, position=position), units)
         publish_product(hoodie)
+
+    _keep_checkout_stock(hoodie)
 
     if not hoodie.description_md:
         hoodie.description_md = HOODIE_DESCRIPTION

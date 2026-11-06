@@ -10,10 +10,12 @@ from pathlib import Path
 from typing import Any
 
 from django.conf import settings
+from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 
 from apps.accounts.models import Customer
 from apps.catalog.e2e_seed import seed_catalog
+from apps.shipping.seeds import seed_shipping, seed_states
 
 # A fictional staff account for the specs that need a staff session (T12.15). It exists only where
 # dev tools are on, so a production database never holds a known password.
@@ -41,6 +43,10 @@ class Command(BaseCommand):
     help = "Seed the end-to-end data and write var/e2e/manifest.json."
 
     def handle(self, *args: Any, **options: Any) -> None:
+        # The checkout specs (Phase 13) quote shipping and look up postal codes.
+        seed_states()
+        seed_shipping()
+        call_command("load_postal_codes", verbosity=0)
         manifest: dict[str, Any] = {"catalog": seed_catalog(), "staff": seed_staff()}
         path = manifest_path()
         path.parent.mkdir(parents=True, exist_ok=True)

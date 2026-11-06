@@ -143,6 +143,12 @@ const stateName = computed(() => MX_STATES.find((s) => s.code === state.state_co
 function onSubmit() {
   emit('submit', { ...state })
 }
+
+// The checkout owns the submit button, so it asks the form to check itself (and show its errors).
+async function validate(): Promise<boolean> {
+  return (await form.value?.validate({ silent: true })) !== false
+}
+defineExpose({ validate })
 </script>
 
 <template>
@@ -165,6 +171,7 @@ function onSubmit() {
         inputmode="numeric"
         maxlength="5"
         autocomplete="postal-code"
+        spellcheck="false"
         :disabled="disabled"
       />
     </UFormField>
