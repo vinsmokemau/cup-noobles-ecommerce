@@ -4238,7 +4238,7 @@ Cart and checkout components, built from DS parts per the §4.5 composition map 
 
 Each line of the `Cart` response gains `product_name` (the product's name) and `options` (the variant's options, the same object the catalog payload carries), read from the rows the cart already joins for the price: no extra query per line. Run `make schema-update` so the snapshot and `web/app/types/api.d.ts` change. `CartLine` takes the name from the line and shows the options as text next to it; `carrito.vue` stops passing a default title and drops its G56 comment. Existing assertions of P7 and P13 tests stay as they are. No image: the owner did not ask for one (OA-82).
 
-- [ ] **T13.5 — Add to cart and the header badge**
+- [x] **T13.5 — Add to cart and the header badge** (2026-11-05, ec7ed2b)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P13-V08
