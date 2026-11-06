@@ -8,7 +8,8 @@
       ],
       "numberOfRuns": 3,
       "settings": {
-        "onlyCategories": ["performance", "seo", "accessibility"]
+        "onlyCategories": ["performance", "seo", "accessibility"],
+        "chromeFlags": "--headless=new --no-sandbox"
       }
     },
     "assert": {
