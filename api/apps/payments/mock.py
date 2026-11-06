@@ -21,6 +21,7 @@ from typing import Any
 from django.conf import settings
 from django.utils import timezone
 
+from apps.orders import status_token
 from apps.orders.models import Order
 from apps.payments import signing
 from apps.payments.base import (
@@ -134,10 +135,11 @@ class MockPaymentProvider:
     def _back_urls(order: Order) -> dict[str, str]:
         """Where the provider sends the browser after paying (SPEC.md 16.2: `/pedido/{id}/…`)."""
         base = f"{str(settings.SITE_URL).rstrip('/')}/pedido/{order.public_id}"
+        token = status_token.issue(order)
         return {
-            "success": f"{base}/gracias",
-            "pending": f"{base}/pendiente",
-            "failure": f"{base}/error",
+            "success": f"{base}/gracias?t={token}",
+            "pending": f"{base}/pendiente?t={token}",
+            "failure": f"{base}/error?t={token}",
         }
 
     def fetch_payment(self, provider_payment_id: str) -> ProviderPayment:

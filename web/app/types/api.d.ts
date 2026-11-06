@@ -207,6 +207,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/orders/{public_id}/status/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description `GET /api/orders/{public_id}/status/?t=<token>` (G21, ADR-0065).
+         *
+         *     Read-only and not subject to the guest-lookup limit. A missing order, an expired token and a
+         *     tampered token return the same 404, so the response says nothing about which one it was.
+         */
+        get: operations["orders_status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders/lookup/": {
         parameters: {
             query?: never;
@@ -1131,6 +1153,36 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Health"];
                 };
+            };
+        };
+    };
+    orders_status: {
+        parameters: {
+            query: {
+                t: string;
+            };
+            header?: never;
+            path: {
+                public_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderStatus"];
+                };
+            };
+            /** @description No such order, or the token is missing, expired or tampered. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

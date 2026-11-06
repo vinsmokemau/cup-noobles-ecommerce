@@ -109,7 +109,11 @@ def test_p9_v02_each_button_outcome(
     if button in CHECKOUT_BUTTONS:
         outcome, form, state, status, method, back = CHECKOUT_BUTTONS[button]
         response = press_checkout(client, preference_id, outcome, **form)
-        assert response["Location"].endswith(f"/pedido/{order.public_id}/{back}")
+        assert (
+            response["Location"]
+            .split("?")[0]
+            .endswith(f"/pedido/{order.public_id}/{back}")
+        )
         assert len(queued(settings)) == 1
         deliver_once()
         payment = Payment.objects.get()
@@ -120,7 +124,11 @@ def test_p9_v02_each_button_outcome(
             expected_events = ["payment_approved"]
     elif button == "expire":
         response = press_checkout(client, preference_id, "expire")
-        assert response["Location"].endswith(f"/pedido/{order.public_id}/error")
+        assert (
+            response["Location"]
+            .split("?")[0]
+            .endswith(f"/pedido/{order.public_id}/error")
+        )
         assert queued(settings) == []  # nothing happened, so nothing is sent
         deliver_once()
         state, expected_events = "pending_payment", []

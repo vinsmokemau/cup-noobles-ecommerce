@@ -90,7 +90,9 @@ def test_outcome_records_a_payment_queues_a_notification_and_redirects(
     notifications = _records(settings, "mock_ntf_")
     assert [n["data"] for n in notifications] == [{"id": payments[0]["id"]}]
     assert response.status_code == 302
-    assert response["Location"].endswith(f"/pedido/{order.public_id}/{back}")
+    assert (
+        response["Location"].split("?")[0].endswith(f"/pedido/{order.public_id}/{back}")
+    )
 
 
 def test_installments_use_the_configured_options(client, settings, preference_id):
@@ -114,7 +116,9 @@ def test_expire_records_nothing_and_queues_nothing(
 
     assert _records(settings, "mock_pay_") == []
     assert _records(settings, "mock_ntf_") == []
-    assert response["Location"].endswith(f"/pedido/{order.public_id}/error")
+    assert (
+        response["Location"].split("?")[0].endswith(f"/pedido/{order.public_id}/error")
+    )
 
 
 @pytest.mark.parametrize("outcome", ["oxxo", "spei"])

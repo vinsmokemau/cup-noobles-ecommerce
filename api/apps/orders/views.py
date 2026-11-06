@@ -24,6 +24,7 @@ from rest_framework.views import APIView
 from apps.carts.identity import get_cart_token
 from apps.carts.models import Cart
 from apps.carts.views import CartCsrfAuthentication
+from apps.orders import status_token
 from apps.orders.models import Order
 from apps.orders.serializers import (
     CheckoutLinesUnavailableSerializer,
@@ -90,6 +91,46 @@ class OrderLookupView(APIView):
                 number=data.validated_data["number"],
                 email=data.validated_data["email"],
             )
+            .prefetch_related("lines", "shipments", "payments")
+            .first()
+        )
+        if order is None:
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        return Response(OrderStatusSerializer(order).data)
+
+    def finalize_response(
+        self, request: Request, response: Response, *args: Any, **kwargs: Any
+    ) -> Response:
+        response = super().finalize_response(request, response, *args, **kwargs)
+        response["Cache-Control"] = "no-store"
+        return response
+
+
+class OrderStatusTokenView(APIView):
+    """`GET /api/orders/{public_id}/status/?t=<token>` (G21, ADR-0065).
+
+    Read-only and not subject to the guest-lookup limit. A missing order, an expired token and a
+    tampered token return the same 404, so the response says nothing about which one it was.
+    """
+
+    authentication_classes: list = []
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        operation_id="orders_status",
+        parameters=[OpenApiParameter("t", str, OpenApiParameter.QUERY, required=True)],
+        responses={
+            200: OrderStatusSerializer,
+            404: OpenApiResponse(
+                description="No such order, or the token is missing, expired or tampered."
+            ),
+        },
+    )
+    def get(self, request: Request, public_id: str) -> Response:
+        if not status_token.is_valid(request.query_params.get("t"), public_id):
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        order = (
+            Order.objects.filter(public_id=public_id)
             .prefetch_related("lines", "shipments", "payments")
             .first()
         )
