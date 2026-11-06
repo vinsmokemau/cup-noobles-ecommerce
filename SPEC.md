@@ -4182,7 +4182,7 @@ IDs keep their numbers (OA-80). T13.3 names the Factura section, but T13.11 buil
 
 #### Tasks
 
-- [ ] **T13.8 — Dev inspection endpoints**
+- [x] **T13.8 — Dev inspection endpoints** (2026-11-05, 4e2bf47)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: used by P13-V02 and P13-V18; P15-V11 (Phase 15) checks they are absent in production]
