@@ -4205,7 +4205,7 @@ They are read-only, and they let E2E specs assert stock and order effects withou
 
 `app/composables/useCart.ts` — `useState('cart')` holding the server's cart response, plus `add/update/remove/setFulfillment` which call the API and **replace state with the server's response**. Never mutate the local object optimistically; the server is the only place totals exist.
 
-- [ ] **T13.2 — Cart and address components**
+- [x] **T13.2 — Cart and address components** (2026-11-05, 765f831)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P13-V05, P13-V06, P13-V07
