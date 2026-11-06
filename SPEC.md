@@ -4272,7 +4272,7 @@ Per G21 (ADR-0065): at T1 the API issues a short-lived signed token for the orde
 
 Per G22 (ADR-0066): `POST /api/orders/{public_id}/pay/`, authorised by the order-status token (T13.9), returns a fresh `checkout_url` from `payment_provider().create_checkout(order)` while the order is `pending_payment`, keeping its reservations and its deadline. Any other state returns 409. The cart is marked converted at T1 (T9.16, ADR-0049), so retrying from the cart cannot create a second order holding a second set of stock.
 
-- [ ] **T13.3 — Checkout page**
+- [x] **T13.3 — Checkout page** (2026-11-06, 11c151d)
   - Release: R1 · Gate: task
   - REQs: REQ-021
   - Verifies: P13-V01, P13-V02, P13-V11, P13-V21
