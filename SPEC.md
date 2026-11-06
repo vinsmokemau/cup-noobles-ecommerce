@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.64 |
+| Spec version | 1.65 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -454,6 +454,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G54 | 12 | T12.7, T12.10, T12.22 | The composables coverage ratchet fails in `make test-all`: composables are at 69.23% against a baseline of 100%. `usePageSeo.ts` (T12.7) has no unit test (0%) and `useServerFailure.ts` (T12.10) is at 50%. Found while running T12.22, which does not touch either file. | Add unit tests for `usePageSeo` and `useServerFailure` until composables return to 100%, in a Phase 12 step before the phase-close. | R1 | Resolved (ADR-0063) |
 | G55 | 12 | T12.12, T12.7, P12-V02 | No page sets a meta description, so Lighthouse SEO scores 0.91–0.92 against the budget of 0.95 (T12.12). The text for the home and catalog pages is customer-facing copy that no source supplies. | Home: "Tienda en línea de cultura geek y gamer. Explora el catálogo de Cup Noobles, elige tu favorito y recibe tu pedido en casa." Catalog: "Explora el catálogo de Cup Noobles: productos de cultura geek y gamer. Filtra por categoría y encuentra el que buscas." Product pages use the start of the product's own description (plain text, ADR-0059). | R1 | Resolved (ADR-0062) |
 | G56 | 13 | T13.13, T13.15 | The cart response carries no product name or variant options, so every `CartLine` on `/carrito` is titled "Producto" and the customer cannot tell two lines apart. | Add `product_name` and `options` to each cart line in the API (data already joined for the price) and pass them to `CartLine`. No image. | R1 | Resolved (ADR-0064) |
+| G57 | 13 | T13.3, T13.7, P13-V01 | P13-V01 (T13.3) asserts the "confirmed `gracias` view", but T13.7, which builds `gracias`, runs after T13.3 (phase execution order), so the assertion cannot pass at T13.3. | Narrow P13-V01 to the hand-off: it reaches the simulator, "Aprobar con tarjeta" is pressed, the browser lands on `/pedido/{id}/gracias?t=…` and `/dev/test/orders/` shows the order `paid`. The confirmed view is asserted by P13-V13 (T13.7). | R1 | Resolved (ADR-0067) |
 
 #### Design System requests (DSR)
 
@@ -579,6 +580,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-82 | 2026-11-05 | G56: every cart line on `/carrito` is titled "Producto" because the cart response has no product name or options. Fix it in the API, or leave it open? | Option A: add `product_name` and `options` to each cart line and show them in `CartLine`, as a new task T13.15 after T13.13 and before T13.5. No image. ADR-0064: an API payload change. |
 | OA-83 | 2026-11-05 | G21: the guest landing pages must poll the order, but the guest lookup needs the number and the email and allows 5 calls an hour. How do they read the order state, and when does the token expire? | Option A: the proposed resolution. A signed order-status token is carried in the `back_urls`, read by a read-only status endpoint that returns the same 404 for a missing, expired or tampered token. The token expires at the order's `payment_deadline_at`, so it reuses the D6 windows and adds no new number. P13-V26, P13-V13 and P13-V14 lose their `xfail`. ADR-0065. |
 | OA-84 | 2026-11-06 | G22: no endpoint retries payment for a `pending_payment` order. Which rule? | Option A: the proposed resolution. `POST /api/orders/{public_id}/pay/`, authorised by the order-status token, returns a fresh `checkout_url` from `payment_provider().create_checkout(order)` while the order is `pending_payment`, keeping its reservations and its deadline. Any other state returns 409. The cart half was decided at T1 (OA-58, ADR-0049). P13-V15 and P13-V27 lose their `xfail`. ADR-0066. |
+| OA-85 | 2026-11-06 | G57: P13-V01 asserts the confirmed `gracias` view at T13.3, but `gracias` is built by T13.7. Which rule? | Option A: the proposed resolution. P13-V01 passes when the mobile delivery purchase reaches the simulator, "Aprobar con tarjeta" is pressed, the browser lands on `/pedido/{id}/gracias?t=…` and `/dev/test/orders/` shows the order `paid`. The "confirmed view" assertion stays with P13-V13 in T13.7. ADR-0067. |
 
 ---
 
@@ -4277,6 +4279,7 @@ Per G22 (ADR-0066): `POST /api/orders/{public_id}/pay/`, authorised by the order
   - Depends on: T13.5, T13.10
   - Context: 13.A; 8.4; §2.5 (D5); CR-02
   - Open items: D5 (stand-in §2.5)
+  - Decided: G57 (ADR-0067)
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
 
 Checkout page — deliberately one page, collapsible sections, no wizard:
@@ -4338,7 +4341,7 @@ A `<NuxtErrorBoundary>` around the cart and checkout regions. A failed API call 
   - Verifies: P13-V13, P13-V14, P13-V15, P13-V16
   - Depends on: T13.4
   - Context: 13.A; 9.6; CR-31
-  - Decided: G21 (ADR-0065), G22 (ADR-0066)
+  - Decided: G21 (ADR-0065), G22 (ADR-0066), G57 (ADR-0067)
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
 
 Landing pages:
@@ -4366,7 +4369,7 @@ Pickup and pre-orders in the cart and checkout: the delivery or pickup toggle in
 
 | Test ID | Layer | File | Assertion |
 |---|---|---|---|
-| P13-V01 | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v01 mobile viewport purchase delivery` | On the `mobile` project, a delivery purchase goes through the simulator's "Aprobar con tarjeta" and reaches the confirmed `gracias` view. *The real-device check moves to Phase 22 as `[manual]`; the pickup purchase is P13-V25.* |
+| P13-V01 | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v01 mobile viewport purchase delivery` | On the `mobile` project, a delivery purchase goes through the simulator's "Aprobar con tarjeta", the browser lands on `/pedido/{id}/gracias?t=…`, and `/dev/test/orders/` (T13.8) shows the order `paid` (G57, ADR-0067). *The confirmed `gracias` view is asserted by P13-V13 in T13.7. The real-device check moves to Phase 22 as `[manual]`; the pickup purchase is P13-V25.* |
 | P13-V02 | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v02 double-click Pagar creates one order` | A `dblclick`, and separately two synthetic clicks fired together, on "Pagar" produce exactly one order for the cart (via `/dev/test/orders/`, T13.8). The button is disabled while the request is in flight, and the browser is redirected once. |
 
 **Composables and components:**
@@ -5667,6 +5670,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.62 | 2026-11-05 | G56 resolved: each cart line carries `product_name` and `options`, and `CartLine` shows them. New task T13.15 (after T13.13, before T13.5) with P13-V28 and P13-V29. No requirement or schema change. | OA-82; ADR-0064 |
 | 1.63 | 2026-11-05 | G21 resolved: a signed order-status token in the `back_urls`, read by a status endpoint that returns one 404 for a missing, expired or tampered token; it expires at `payment_deadline_at`. T13.9 and the Phase 13 execution note lose the G21 `xfail`; the ⚠️ marks of P13-V13, V14, V26 and REQ-052 are removed. G22 stays open. No new task, Verify ID or schema change. | OA-83; ADR-0065 |
 | 1.64 | 2026-11-06 | G22 resolved as proposed: `POST /api/orders/{public_id}/pay/`, authorised by the order-status token, returns a fresh `checkout_url` while the order is `pending_payment`, keeping reservations and deadline; any other state returns 409. T13.10, T13.7 and the Phase 13 execution note lose the G22 `xfail`; the ⚠️ marks of P13-V15 and P13-V27 are removed. No new task, Verify ID or schema change. | OA-84; ADR-0066 |
+| 1.65 | 2026-11-06 | G57 resolved as proposed: P13-V01 is narrowed to the hand-off (simulator approval, landing on `gracias?t=…`, order `paid` in `/dev/test/orders/`); the confirmed `gracias` view is asserted by P13-V13 in T13.7. T13.3 and T13.7 cite G57. No new task, Verify ID or schema change. | OA-85; ADR-0067 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5782,6 +5786,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0064 | Cart lines carry the product name and options | `docs/decisions/0064-cart-line-product-details.md` | G56; OA-82 |
 | ADR-0065 | The order-status token | `docs/decisions/0065-order-status-token.md` | G21; OA-83 |
 | ADR-0066 | The pay-retry endpoint | `docs/decisions/0066-pay-retry-endpoint.md` | G22; OA-84 |
+| ADR-0067 | P13-V01 asserts the hand-off, not the confirmed view | `docs/decisions/0067-p13-v01-handoff.md` | G57; OA-85 |
 
 ## Appendix C — Dated market facts
 
