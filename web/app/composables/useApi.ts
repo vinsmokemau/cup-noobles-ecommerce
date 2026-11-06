@@ -56,7 +56,16 @@ export function toApiError(failure: unknown): ApiError {
   if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
     for (const [key, value] of Object.entries(payload)) {
       const messages = toStrings(value)
-      if (!messages.length) continue
+      if (!messages.length) {
+        // A nested serializer (`{"invoice": {"rfc": [...]}}`) becomes dotted keys (`invoice.rfc`).
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          for (const [inner, innerValue] of Object.entries(value)) {
+            const innerMessages = toStrings(innerValue)
+            if (innerMessages.length) fieldErrors[`${key}.${inner}`] = innerMessages
+          }
+        }
+        continue
+      }
       if (key === 'detail' || key === 'non_field_errors') detail = messages.join(' ')
       else fieldErrors[key] = messages
     }

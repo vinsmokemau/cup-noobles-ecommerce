@@ -529,6 +529,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/Health'
           description: The database is unreachable.
+  /api/invoicing/cfdi-catalogs/:
+    get:
+      operationId: invoicing_cfdi_catalogs_retrieve
+      description: '`GET /api/invoicing/cfdi-catalogs/`: anonymous, read-only and
+        cacheable.'
+      tags:
+      - invoicing
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CfdiCatalogs'
+          description: ''
   /api/orders/{public_id}/pay/:
     post:
       operationId: orders_pay
@@ -828,6 +844,30 @@ components:
       - children
       - name
       - slug
+    CfdiCatalogItem:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+      required:
+      - code
+      - name
+    CfdiCatalogs:
+      type: object
+      properties:
+        regimen_fiscal:
+          type: array
+          items:
+            $ref: '#/components/schemas/CfdiCatalogItem'
+        uso_cfdi:
+          type: array
+          items:
+            $ref: '#/components/schemas/CfdiCatalogItem'
+      required:
+      - regimen_fiscal
+      - uso_cfdi
     CheckoutAddress:
       type: object
       description: |-

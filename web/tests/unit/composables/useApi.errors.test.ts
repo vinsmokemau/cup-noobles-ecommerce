@@ -42,4 +42,12 @@ describe('toApiError', () => {
     expect(toApiError({ status: 500, data: {} }).detail).toMatch(/Algo salió mal/)
     expect(toApiError({ status: 500, data: 42 }).detail).toMatch(/Algo salió mal/)
   })
+
+  it('t13_11 flattens a nested serializer into dotted field keys', () => {
+    const error = toApiError({
+      status: 400,
+      data: { invoice: { rfc: ['El RFC no es válido.'], legal_name: [], extra: 3 } },
+    })
+    expect(error.fieldErrors).toEqual({ 'invoice.rfc': ['El RFC no es válido.'] })
+  })
 })

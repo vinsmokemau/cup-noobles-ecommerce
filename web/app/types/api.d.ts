@@ -207,6 +207,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/invoicing/cfdi-catalogs/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description `GET /api/invoicing/cfdi-catalogs/`: anonymous, read-only and cacheable. */
+        get: operations["invoicing_cfdi_catalogs_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders/{public_id}/pay/": {
         parameters: {
             query?: never;
@@ -358,6 +375,14 @@ export interface components {
             name: string;
             description?: string;
             readonly children: components["schemas"]["CategoryNode"][];
+        };
+        CfdiCatalogItem: {
+            code: string;
+            name: string;
+        };
+        CfdiCatalogs: {
+            regimen_fiscal: components["schemas"]["CfdiCatalogItem"][];
+            uso_cfdi: components["schemas"]["CfdiCatalogItem"][];
         };
         /**
          * @description The delivery address given in the request, frozen into `order.shipping_address` (T8.2).
@@ -1179,6 +1204,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    invoicing_cfdi_catalogs_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CfdiCatalogs"];
                 };
             };
         };

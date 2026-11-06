@@ -5,9 +5,11 @@ import type { components } from '~/types/api'
 
 type CheckoutAddress = components['schemas']['CheckoutAddress']
 type CheckoutResponse = components['schemas']['CheckoutResponse']
+type CheckoutInvoice = components['schemas']['CheckoutInvoice']
+type CfdiCatalogs = components['schemas']['CfdiCatalogs']
 
-// The checkout (T13.3): one page, collapsible sections, no wizard. Contacto, Entrega and Revisión;
-// the Factura section is added by T13.11. Every amount shown is the server's (CR-02, REQ-002): the
+// The checkout (T13.3): one page, collapsible sections, no wizard. Contacto, Entrega, Factura
+// (optional, T13.11) and Revisión. Every amount shown is the server's (CR-02, REQ-002): the
 // quote follows the postal code through `setFulfillment`, and "Pagar" only sends what the customer typed.
 const { cart, pending, refresh, setFulfillment } = useCart()
 const api = useApi()
@@ -31,6 +33,17 @@ const contact = reactive({ email: '', phone: '' })
 const address = ref<Partial<CheckoutAddress>>({})
 const contactForm = useTemplateRef('contactForm')
 const addressForm = useTemplateRef<{ validate: () => Promise<boolean> }>('addressForm')
+
+// Factura: the select options come from the API's CFDI catalog. A failed load never blocks the
+// purchase: the section says so and offers a retry.
+const invoice = ref<CheckoutInvoice | null>(null)
+const invoiceForm = useTemplateRef<{ validate: () => Promise<boolean> }>('invoiceForm')
+const invoiceErrors = ref<Record<string, string[]>>({})
+const {
+  data: catalogs,
+  error: catalogsError,
+  refresh: reloadCatalogs,
+} = await useAsyncData('cfdi-catalogs', () => api<CfdiCatalogs>('/invoicing/cfdi-catalogs/'))
 
 const lines = computed(() => cart.value?.lines ?? [])
 const totals = computed(() => cart.value?.totals)
@@ -68,12 +81,14 @@ async function pay() {
   if (submitting.value || redirecting.value || !idempotencyKey.value) return
   submitting.value = true
   payError.value = ''
+  invoiceErrors.value = {}
   try {
     const contactValid = await contactForm.value
       ?.validate({ silent: true })
       .then((data) => data !== false)
     const addressValid = await addressForm.value?.validate()
-    if (!contactValid || !addressValid) return
+    const invoiceValid = (await invoiceForm.value?.validate()) !== false
+    if (!contactValid || !addressValid || !invoiceValid) return
 
     const response = await api<CheckoutResponse>('/checkout/', {
       method: 'POST',
@@ -83,14 +98,27 @@ async function pay() {
         phone: contact.phone,
         fulfillment_method: 'delivery',
         address_payload: address.value,
+        // Unchecked "Quiero factura" sends no invoice data at all.
+        ...(invoice.value ? { invoice: invoice.value } : {}),
       },
     })
     // The button stays disabled: the browser is leaving for the payment page.
     redirecting.value = true
     window.location.href = response.checkout_url
   } catch (failure) {
-    payError.value =
-      failure instanceof ApiError ? failure.detail : 'Algo salió mal. Inténtalo de nuevo.'
+    if (failure instanceof ApiError) {
+      // Server field errors of the invoice render under their inputs (`invoice.rfc` → `rfc`).
+      invoiceErrors.value = Object.fromEntries(
+        Object.entries(failure.fieldErrors)
+          .filter(([key]) => key.startsWith('invoice.'))
+          .map(([key, messages]) => [key.slice('invoice.'.length), messages]),
+      )
+      payError.value = Object.keys(invoiceErrors.value).length
+        ? 'Revisa los datos de tu factura.'
+        : failure.detail
+    } else {
+      payError.value = 'Algo salió mal. Inténtalo de nuevo.'
+    }
   } finally {
     submitting.value = false
   }
@@ -179,6 +207,29 @@ usePageSeo({ title: 'Checkout', noindex: true })
             hide-submit
             :disabled="submitting"
             @update:postal-code="onPostalCode"
+          />
+        </template>
+      </UCollapsible>
+
+      <UCollapsible default-open :unmount-on-hide="false" class="flex flex-col gap-4">
+        <UButton
+          label="Factura"
+          color="neutral"
+          variant="ghost"
+          size="xl"
+          trailing-icon="i-ph-caret-down-bold"
+          class="justify-between"
+        />
+        <template #content>
+          <InvoiceForm
+            ref="invoiceForm"
+            v-model="invoice"
+            :regimes="catalogs?.regimen_fiscal"
+            :uses="catalogs?.uso_cfdi"
+            :catalogs-failed="!!catalogsError"
+            :field-errors="invoiceErrors"
+            :disabled="submitting"
+            @retry-catalogs="reloadCatalogs()"
           />
         </template>
       </UCollapsible>

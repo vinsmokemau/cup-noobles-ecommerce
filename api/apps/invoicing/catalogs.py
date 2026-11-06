@@ -24,3 +24,18 @@ def tax_regime_codes() -> set[str]:
 
 def cfdi_use_codes() -> set[str]:
     return {item["code"] for item in _load()["uso_cfdi"]}
+
+
+def public_catalogs() -> dict[str, list[dict[str, str]]]:
+    """The two lists the checkout offers, as `{code, name}` rows. The file's `$comment` and
+    `title` stay server-side: they mark the sample as a placeholder (§2.5)."""
+    data = _load()
+    return {
+        "regimen_fiscal": [
+            {"code": item["code"], "name": item["name"]}
+            for item in data["regimen_fiscal"]
+        ],
+        "uso_cfdi": [
+            {"code": item["code"], "name": item["name"]} for item in data["uso_cfdi"]
+        ],
+    }
