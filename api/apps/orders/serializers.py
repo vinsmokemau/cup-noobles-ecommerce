@@ -180,6 +180,10 @@ class CheckoutResponseSerializer(serializers.Serializer):
     checkout_url = serializers.CharField()
 
 
+class PayRetryResponseSerializer(serializers.Serializer):
+    checkout_url = serializers.CharField()
+
+
 class CheckoutLineErrorSerializer(serializers.Serializer):
     variant_public_id = serializers.UUIDField()
     sku = serializers.CharField()

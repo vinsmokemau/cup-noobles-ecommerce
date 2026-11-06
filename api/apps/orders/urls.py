@@ -9,4 +9,9 @@ urlpatterns = [
         views.OrderStatusTokenView.as_view(),
         name="order-status",
     ),
+    path(
+        "<uuid:public_id>/pay/",
+        views.OrderPayRetryView.as_view(),
+        name="order-pay",
+    ),
 ]

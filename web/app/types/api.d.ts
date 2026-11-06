@@ -207,6 +207,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/orders/{public_id}/pay/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description `POST /api/orders/{public_id}/pay/?t=<token>` (G22, ADR-0066).
+         *
+         *     Authorised by the order-status token alone, so it carries no session and no CSRF. While the
+         *     order is `pending_payment` it returns a fresh `checkout_url`; the reservations and the
+         *     `payment_deadline_at` are untouched. Any other state returns 409. A missing order and a bad
+         *     token return the same 404 as the status endpoint.
+         */
+        post: operations["orders_pay"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders/{public_id}/status/": {
         parameters: {
             query?: never;
@@ -540,6 +564,9 @@ export interface components {
         };
         PatchedCartLineQuantity: {
             quantity?: number;
+        };
+        PayRetryResponse: {
+            checkout_url: string;
         };
         PostalCode: {
             state_code: string;
@@ -1153,6 +1180,43 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Health"];
                 };
+            };
+        };
+    };
+    orders_pay: {
+        parameters: {
+            query: {
+                t: string;
+            };
+            header?: never;
+            path: {
+                public_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayRetryResponse"];
+                };
+            };
+            /** @description No such order, or the token is missing, expired or tampered. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The order is not `pending_payment`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

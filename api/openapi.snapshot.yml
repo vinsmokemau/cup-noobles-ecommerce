@@ -529,6 +529,43 @@ paths:
               schema:
                 $ref: '#/components/schemas/Health'
           description: The database is unreachable.
+  /api/orders/{public_id}/pay/:
+    post:
+      operationId: orders_pay
+      description: |-
+        `POST /api/orders/{public_id}/pay/?t=<token>` (G22, ADR-0066).
+
+        Authorised by the order-status token alone, so it carries no session and no CSRF. While the
+        order is `pending_payment` it returns a fresh `checkout_url`; the reservations and the
+        `payment_deadline_at` are untouched. Any other state returns 409. A missing order and a bad
+        token return the same 404 as the status endpoint.
+      parameters:
+      - in: path
+        name: public_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: t
+        schema:
+          type: string
+        required: true
+      tags:
+      - orders
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayRetryResponse'
+          description: ''
+        '404':
+          description: No such order, or the token is missing, expired or tampered.
+        '409':
+          description: The order is not `pending_payment`.
   /api/orders/{public_id}/status/:
     get:
       operationId: orders_status
@@ -1287,6 +1324,13 @@ components:
           type: integer
           maximum: 99
           minimum: 1
+    PayRetryResponse:
+      type: object
+      properties:
+        checkout_url:
+          type: string
+      required:
+      - checkout_url
     PostalCode:
       type: object
       properties:

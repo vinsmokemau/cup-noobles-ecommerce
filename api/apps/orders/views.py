@@ -24,6 +24,7 @@ from rest_framework.views import APIView
 from apps.carts.identity import get_cart_token
 from apps.carts.models import Cart
 from apps.carts.views import CartCsrfAuthentication
+from apps.core.providers import payment_provider
 from apps.orders import status_token
 from apps.orders.models import Order
 from apps.orders.serializers import (
@@ -33,6 +34,7 @@ from apps.orders.serializers import (
     CheckoutTotalChangedSerializer,
     OrderLookupRequestSerializer,
     OrderStatusSerializer,
+    PayRetryResponseSerializer,
 )
 from apps.orders.services import (
     EmptyCart,
@@ -41,6 +43,7 @@ from apps.orders.services import (
     TotalChanged,
     create_order_from_cart,
 )
+from apps.payments.models import Payment
 
 EMPTY_CART = "El carrito está vacío."
 IDEMPOTENCY_KEY_REUSED = {
@@ -49,6 +52,10 @@ IDEMPOTENCY_KEY_REUSED = {
 }
 IDEMPOTENCY_KEY_MAX_LENGTH = 255
 NOT_FOUND = {"detail": "No encontramos ese pedido."}
+NOT_PAYABLE = {
+    "code": "order_not_payable",
+    "detail": "Este pedido ya no admite un nuevo intento de pago.",
+}
 TOO_MANY = {"detail": "Demasiados intentos. Inténtalo de nuevo más tarde."}
 
 
@@ -137,6 +144,62 @@ class OrderStatusTokenView(APIView):
         if order is None:
             return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
         return Response(OrderStatusSerializer(order).data)
+
+    def finalize_response(
+        self, request: Request, response: Response, *args: Any, **kwargs: Any
+    ) -> Response:
+        response = super().finalize_response(request, response, *args, **kwargs)
+        response["Cache-Control"] = "no-store"
+        return response
+
+
+class OrderPayRetryView(APIView):
+    """`POST /api/orders/{public_id}/pay/?t=<token>` (G22, ADR-0066).
+
+    Authorised by the order-status token alone, so it carries no session and no CSRF. While the
+    order is `pending_payment` it returns a fresh `checkout_url`; the reservations and the
+    `payment_deadline_at` are untouched. Any other state returns 409. A missing order and a bad
+    token return the same 404 as the status endpoint.
+    """
+
+    authentication_classes: list = []
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        operation_id="orders_pay",
+        request=None,
+        parameters=[OpenApiParameter("t", str, OpenApiParameter.QUERY, required=True)],
+        responses={
+            200: PayRetryResponseSerializer,
+            404: OpenApiResponse(
+                description="No such order, or the token is missing, expired or tampered."
+            ),
+            409: OpenApiResponse(description="The order is not `pending_payment`."),
+        },
+    )
+    def post(self, request: Request, public_id: str) -> Response:
+        if not status_token.is_valid(request.query_params.get("t"), public_id):
+            return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        with transaction.atomic():
+            # Locked so a retry cannot race the payment webhook or the deadline job.
+            order = (
+                Order.objects.select_for_update().filter(public_id=public_id).first()
+            )
+            if order is None:
+                return Response(NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+            if order.state != "pending_payment":
+                return Response(NOT_PAYABLE, status=status.HTTP_409_CONFLICT)
+            provider = payment_provider()
+            session = provider.create_checkout(order)
+            Payment.objects.create(
+                order=order,
+                provider=provider.code,
+                provider_preference_id=session.preference_id,
+                status="initiated",
+                amount_cents=order.total_cents,
+                raw={"checkout_url": session.url},
+            )
+        return Response({"checkout_url": session.url})
 
     def finalize_response(
         self, request: Request, response: Response, *args: Any, **kwargs: Any
