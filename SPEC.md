@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.63 |
+| Spec version | 1.64 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -419,7 +419,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G19 | 12 | P12-V09 | `$1,234.00 MXN` (12.4) against the `Intl` output (12.6) | Decided by DS:formatting.md (C-08, CR-30) | R1 | Decided; ADR in T1.15 |
 | G20 | 10 | P15-V05, demo step 9 | Receiving goods has no admin page, but it is daily work (GE:T30, GE:T35, GE:§5.2) | A "Recibir mercancía" admin action (variant, location, quantity) calling `receive_stock` in R1, and `receive_preorder_stock` for pre-order variants in R2 | R1 | Resolved (ADR-0035) |
 | G21 | 13 | P13-V13, P13-V14 | Guest landing pages must poll the order, but the guest endpoint needs number and email and allows 5 calls an hour | A short-lived signed order-status token, carried in `back_urls`, for a read-only status endpoint | R1 | Resolved (ADR-0065) |
-| G22 | 13 | P13-V15 | No endpoint retries payment for a `pending_payment` order, and when the cart counts as converted was undefined (decided: at T1, ADR-0049, built in T9.16) | `POST /api/orders/{public_id}/pay/` returns a fresh `checkout_url`; the cart is converted at T1 (adopted, ADR-0049) | R1 | Open (the endpoint) |
+| G22 | 13 | P13-V15 | No endpoint retries payment for a `pending_payment` order, and when the cart counts as converted was undefined (decided: at T1, ADR-0049, built in T9.16) | `POST /api/orders/{public_id}/pay/` returns a fresh `checkout_url`; the cart is converted at T1 (adopted, ADR-0049) | R1 | Resolved (ADR-0066) |
 | G23 | 20 | plan Appendix B | The production topology (20.A) has no process that runs the scheduled jobs | A fourth container from the `api` image running supercronic, or a process supervisor inside `api` | R1 | Open |
 | G24 | 4 | P4-V07 | `check_stock_integrity` is tested in Phase 4 but specified in 21.7 | Move the command into Phase 4; 21.7 keeps only its daily schedule | R1 | Resolved (ADR-0034) |
 | G25 | 8 | P8-V06, 8.4 | Phase 8 needs a payment provider (`create_checkout`, `refund`) before the mock exists (9.9); 1.11 creates only the interfaces | Build those two mock methods in Phase 8, and the rest of the mock in Phase 9 | R1 | Resolved (ADR-0041) |
@@ -578,6 +578,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-81 | 2026-11-05 | Add a skill that works out a phase's task order and writes the execution-order note, so the owner does not ask for it by hand each phase? | Option A: add `order-tasks` (our own, mirrored into `.agents/skills/`). It changes spec text only. No ADR: cheap to reverse, a skill file. |
 | OA-82 | 2026-11-05 | G56: every cart line on `/carrito` is titled "Producto" because the cart response has no product name or options. Fix it in the API, or leave it open? | Option A: add `product_name` and `options` to each cart line and show them in `CartLine`, as a new task T13.15 after T13.13 and before T13.5. No image. ADR-0064: an API payload change. |
 | OA-83 | 2026-11-05 | G21: the guest landing pages must poll the order, but the guest lookup needs the number and the email and allows 5 calls an hour. How do they read the order state, and when does the token expire? | Option A: the proposed resolution. A signed order-status token is carried in the `back_urls`, read by a read-only status endpoint that returns the same 404 for a missing, expired or tampered token. The token expires at the order's `payment_deadline_at`, so it reuses the D6 windows and adds no new number. P13-V26, P13-V13 and P13-V14 lose their `xfail`. ADR-0065. |
+| OA-84 | 2026-11-06 | G22: no endpoint retries payment for a `pending_payment` order. Which rule? | Option A: the proposed resolution. `POST /api/orders/{public_id}/pay/`, authorised by the order-status token, returns a fresh `checkout_url` from `payment_provider().create_checkout(order)` while the order is `pending_payment`, keeping its reservations and its deadline. Any other state returns 409. The cart half was decided at T1 (OA-58, ADR-0049). P13-V15 and P13-V27 lose their `xfail`. ADR-0066. |
 
 ---
 
@@ -4172,7 +4173,7 @@ The home page's open pre-orders section: seeded pre-order products with their re
 - Phase close: T13.7 (needs T13.4; polls through T13.9 and retries through T13.10)
 - R2, after R1: T13.14
 
-IDs keep their numbers (OA-80). T13.3 names the Factura section, but T13.11 builds it, so T13.3 leaves that section out until T13.11 runs. G21 is decided (ADR-0065), so the tests of T13.9 and the status polling of T13.7 (P13-V13, V14, V26) are plain tests. G22 keeps the tests of T13.10 and T13.7 (P13-V15, V27) `xfail` until it is decided.
+IDs keep their numbers (OA-80). T13.3 names the Factura section, but T13.11 builds it, so T13.3 leaves that section out until T13.11 runs. G21 is decided (ADR-0065) and G22 is decided (ADR-0066), so the tests of T13.9, T13.10 and T13.7 (P13-V13, V14, V15, V26, V27) are plain tests.
 
 #### 13.A Pages
 
@@ -4265,9 +4266,9 @@ Per G21 (ADR-0065): at T1 the API issues a short-lived signed token for the orde
   - Verifies: P13-V27
   - Depends on: T13.9
   - Context: 8.A (T1, T4); 9.B
-  - Open items: G22 (tests xfail until decided)
+  - Decided: G22 (ADR-0066)
 
-Per G22's proposed resolution: `POST /api/orders/{public_id}/pay/`, authorised by the order-status token (T13.9), returns a fresh `checkout_url` from `payment_provider().create_checkout(order)` while the order is `pending_payment`, keeping its reservations and its deadline. Any other state returns 409. The cart is marked converted at T1 (T9.16, ADR-0049), so retrying from the cart cannot create a second order holding a second set of stock.
+Per G22 (ADR-0066): `POST /api/orders/{public_id}/pay/`, authorised by the order-status token (T13.9), returns a fresh `checkout_url` from `payment_provider().create_checkout(order)` while the order is `pending_payment`, keeping its reservations and its deadline. Any other state returns 409. The cart is marked converted at T1 (T9.16, ADR-0049), so retrying from the cart cannot create a second order holding a second set of stock.
 
 - [ ] **T13.3 — Checkout page**
   - Release: R1 · Gate: task
@@ -4337,8 +4338,7 @@ A `<NuxtErrorBoundary>` around the cart and checkout regions. A failed API call 
   - Verifies: P13-V13, P13-V14, P13-V15, P13-V16
   - Depends on: T13.4
   - Context: 13.A; 9.6; CR-31
-  - Open items: G22 (tests xfail until decided)
-  - Decided: G21 (ADR-0065)
+  - Decided: G21 (ADR-0065), G22 (ADR-0066)
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
 
 Landing pages:
@@ -4390,7 +4390,7 @@ Pickup and pre-orders in the cart and checkout: the delivery or pickup toggle in
 | P13-V12 [R2] | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v12 pickup shows store details and zero shipping` | "Recoger en tienda" shows the placeholder store address, hours and hold period, and the shipping line reads $0.00. |
 | P13-V13 | E2E | `web/e2e/p13_landing.spec.ts` › `p13_v13 gracias polls until paid` | After approval, `gracias` shows the pending message and then the confirmation once the mock webhook has been processed. |
 | P13-V14 | E2E | `web/e2e/p13_landing.spec.ts` › `p13_v14 pendiente shows voucher and expiry` | After "Pagar en OXXO", `pendiente` shows the voucher link (the mock voucher page) and its expiry in es-MX format. |
-| P13-V15 | E2E | `web/e2e/p13_landing.spec.ts` › `p13_v15 error page offers retry` | After "Rechazar", `error` offers a retry that leads to a new simulator session for the same order. ⚠️ G22 |
+| P13-V15 | E2E | `web/e2e/p13_landing.spec.ts` › `p13_v15 error page offers retry` | After "Rechazar", `error` offers a retry that leads to a new simulator session for the same order. |
 | P13-V16 | a11y | `web/e2e/p13_a11y.spec.ts` › `p13_v16 axe on cart checkout and landing pages` | `expectNoA11yViolations` passes on every 13.A route, on both projects. |
 
 **Added negative and edge cases:**
@@ -4412,7 +4412,7 @@ Pickup and pre-orders in the cart and checkout: the delivery or pickup toggle in
 | P13-V24 | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v24 purchase limit message` | Exceeding a purchase limit shows the server's per-line message in the review section and creates no order. |
 | P13-V25 [R2] | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v25 mobile viewport purchase pickup` | On the `mobile` project, a pickup purchase goes through the simulator's "Aprobar con tarjeta" and reaches the confirmed `gracias` view. |
 | P13-V26 | API | `api/tests/api/orders/test_status_token.py::test_p13_v26_status_token` | A valid order-status token returns the order's status; an expired or tampered token returns 404 with the same body as a missing order. |
-| P13-V27 | API | `api/tests/api/orders/test_pay_retry.py::test_p13_v27_pay_retry` | `POST /api/orders/{public_id}/pay/` returns a fresh `checkout_url` while the order is `pending_payment`, without new reservations, and 409 in any other state. ⚠️ G22 |
+| P13-V27 | API | `api/tests/api/orders/test_pay_retry.py::test_p13_v27_pay_retry` | `POST /api/orders/{public_id}/pay/` returns a fresh `checkout_url` while the order is `pending_payment`, without new reservations, and 409 in any other state. |
 | P13-V28 | API | `api/tests/api/carts/test_lines.py::test_p13_v28_cart_line_product_details` | A cart line carries `product_name` and `options` equal to its product's name and its variant's options; the number of queries for a cart does not grow with the number of lines. |
 | P13-V29 | E2E | `web/e2e/p13_cart.spec.ts` › `p13_v29 lines show product name and options` | With two variants of the same product in the cart, `/carrito` shows the product's name on both rows and each row's own options, so the rows can be told apart. |
 
@@ -5584,7 +5584,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 9 | ~~G7~~, ~~G8~~, ~~G11~~, ~~G14~~, ~~G46~~ |
 | Phase 11 | ~~G17~~; DSR-04, DSR-05 released |
 | Phase 12 | ~~G18~~, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03 released (DS 1.3.0, T12.18), DSR-06, DSR-07 released (DS 1.6.0, T12.22), DSR-12 released (DS 1.7.0, T12.23), DSR-13 released (DS 1.8.0, T12.24); DSR-09 or its fallback |
-| Phase 13 | ~~G21~~, G22 |
+| Phase 13 | ~~G21~~, ~~G22~~ |
 | Phase 16 | S2, D6, D7, D13, G45 |
 | Phase 17 | S3, S4 |
 | Phase 18 | S1 |
@@ -5666,6 +5666,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.61 | 2026-11-05 | New skill `order-tasks` (§0.5): it derives a phase's execution order and writes the note, the register row and the version. No task, Verify ID or schema change. | OA-81; owner request in chat |
 | 1.62 | 2026-11-05 | G56 resolved: each cart line carries `product_name` and `options`, and `CartLine` shows them. New task T13.15 (after T13.13, before T13.5) with P13-V28 and P13-V29. No requirement or schema change. | OA-82; ADR-0064 |
 | 1.63 | 2026-11-05 | G21 resolved: a signed order-status token in the `back_urls`, read by a status endpoint that returns one 404 for a missing, expired or tampered token; it expires at `payment_deadline_at`. T13.9 and the Phase 13 execution note lose the G21 `xfail`; the ⚠️ marks of P13-V13, V14, V26 and REQ-052 are removed. G22 stays open. No new task, Verify ID or schema change. | OA-83; ADR-0065 |
+| 1.64 | 2026-11-06 | G22 resolved as proposed: `POST /api/orders/{public_id}/pay/`, authorised by the order-status token, returns a fresh `checkout_url` while the order is `pending_payment`, keeping reservations and deadline; any other state returns 409. T13.10, T13.7 and the Phase 13 execution note lose the G22 `xfail`; the ⚠️ marks of P13-V15 and P13-V27 are removed. No new task, Verify ID or schema change. | OA-84; ADR-0066 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5780,6 +5781,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0063 | The composables coverage returns to 100% through unit tests | `docs/decisions/0063-composables-coverage-restored.md` | G54; OA-79 |
 | ADR-0064 | Cart lines carry the product name and options | `docs/decisions/0064-cart-line-product-details.md` | G56; OA-82 |
 | ADR-0065 | The order-status token | `docs/decisions/0065-order-status-token.md` | G21; OA-83 |
+| ADR-0066 | The pay-retry endpoint | `docs/decisions/0066-pay-retry-endpoint.md` | G22; OA-84 |
 
 ## Appendix C — Dated market facts
 
@@ -6192,7 +6194,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T13.7 | Phase-close task; polls through the order-status endpoint (T13.9) and retries through T13.10 | G21, G22 |
 | T13.8 | Moved first; no test of its own (used by P13-V02, P13-V18; P15-V11 checks production) | Execution order |
 | T13.9 | New (pre-allocated): order-status token endpoint | G21 |
-| T13.10 | New (pre-allocated): pay-retry endpoint | G22 |
+| T13.10 | New (pre-allocated): pay-retry endpoint | G22; ADR-0066 |
 | T13.11 | New (pre-allocated): "Quiero factura"; adds `GET /api/invoicing/cfdi-catalogs/` if T8.7 doesn't expose the catalog | REQ-060; D16 |
 | T13.12 | New (pre-allocated): purchase-limit message | REQ-061; G31 |
 | T13.13 | New (beyond the pre-allocated list): the `/carrito` page; the plan had no task for it | Gap in the plan's task list |
@@ -6206,7 +6208,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | P13-V24 | New (pre-allocated): purchase-limit message | REQ-061 |
 | P13-V25 | New `[R2]` (pre-allocated): pickup purchase on mobile | Mixed R1/R2 item split |
 | P13-V26 | New (pre-allocated): order-status token API | G21; ADR-0065 |
-| P13-V27 | New (pre-allocated): pay-retry API ⚠️ G22 | G22 |
+| P13-V27 | New (pre-allocated): pay-retry API | G22; ADR-0066 |
 | Fixtures | `checkoutAs` gains `invoice?`, `fulfillment` becomes an R2 option; `status_token(order)` added | §1.2; new tests |
 
 #### Phase 14

@@ -70,3 +70,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0063](0063-composables-coverage-restored.md) | The composables coverage returns to 100% through unit tests | accepted | G54; OA-79 |
 | [ADR-0064](0064-cart-line-product-details.md) | Cart lines carry the product name and options | accepted | G56; OA-82 |
 | [ADR-0065](0065-order-status-token.md) | The order-status token | accepted | G21; OA-83 |
+| [ADR-0066](0066-pay-retry-endpoint.md) | The pay-retry endpoint | accepted | G22; OA-84 |
