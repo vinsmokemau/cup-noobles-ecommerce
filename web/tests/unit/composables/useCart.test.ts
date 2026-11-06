@@ -146,4 +146,20 @@ describe('useCart', () => {
     await add(VARIANT, 1).catch(() => undefined)
     expect(pending.value).toBe(false)
   })
+
+  it('p13_v08 count sums the units and addOne sends held quantity plus one', async () => {
+    const { cart, count, addOne } = useCart()
+    expect(count.value).toBe(0)
+    cart.value = cartFixture()
+    expect(count.value).toBe(2)
+    fetchMock.mockResolvedValueOnce(cartFixture())
+    await addOne(VARIANT)
+    expect(fetchMock.mock.calls[0]![1].body).toEqual({ variant_public_id: VARIANT, quantity: 3 })
+    fetchMock.mockResolvedValueOnce(cartFixture())
+    await addOne('another-variant')
+    expect(fetchMock.mock.calls[1]![1].body).toEqual({
+      variant_public_id: 'another-variant',
+      quantity: 1,
+    })
+  })
 })

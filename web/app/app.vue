@@ -12,6 +12,9 @@ const prelaunch = await usePrelaunch()
 <template>
   <CnApp>
     <PrelaunchPage v-if="prelaunch" />
-    <NuxtPage v-else />
+    <template v-else>
+      <SiteHeader />
+      <NuxtPage />
+    </template>
   </CnApp>
 </template>

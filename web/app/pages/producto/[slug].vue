@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ApiError } from '~/composables/useApi'
 import type { AttributeSchema, ProductDetailData } from '~/types/catalog'
 
 const api = useApi()
@@ -31,6 +32,30 @@ watch(
 const variant = computed(() =>
   product.value?.variants.find((v) => v.public_id === selectedId.value),
 )
+
+// Add to cart (T13.5). The cart state is the server's answer; the message only reports the outcome.
+const { addOne, pending: adding } = useCart()
+const added = ref(false)
+const addError = ref('')
+const canAdd = computed(
+  () => !!variant.value && variant.value.availability.status !== 'out_of_stock',
+)
+watch(selectedId, () => {
+  added.value = false
+  addError.value = ''
+})
+async function addToCart() {
+  if (!variant.value) return
+  added.value = false
+  addError.value = ''
+  try {
+    await addOne(variant.value.public_id)
+    added.value = true
+  } catch (failure) {
+    addError.value =
+      failure instanceof ApiError ? failure.detail : 'Algo salió mal. Inténtalo de nuevo.'
+  }
+}
 
 const paragraphs = computed(() =>
   (product.value?.description_md ?? '')
@@ -107,6 +132,21 @@ useHead({
             :variants="product.variants"
             :axes="product.variant_axes"
           />
+          <UButton
+            color="primary"
+            variant="solid"
+            size="xl"
+            label="Agregar al carrito"
+            :disabled="!canAdd"
+            :loading="adding"
+            data-testid="add-to-cart"
+            @click="addToCart"
+          />
+          <p v-if="added" role="status" data-testid="added-to-cart">
+            Agregado al carrito.
+            <NuxtLink to="/carrito">Ver carrito</NuxtLink>
+          </p>
+          <p v-if="addError" role="alert">{{ addError }}</p>
         </div>
       </div>
       <section

@@ -98,3 +98,32 @@ test('p13_v29 lines show product name and options', async ({ page, seed }) => {
   }
   await expectNoA11yViolations(page)
 })
+
+test('p13_v08 add to cart updates the badge', async ({ page, seed }) => {
+  const { hoodie } = seed.catalog
+  await page.goto(`/producto/${hoodie.slug}`)
+  await waitForHydration(page)
+  const badge = page.getByTestId('cart-badge')
+  await expect(badge).toHaveCount(0)
+
+  const add = page.getByTestId('add-to-cart')
+  await add.click()
+  await expect(page.getByTestId('added-to-cart')).toBeVisible()
+  await expect(badge).toHaveText('1')
+  await add.click()
+  await expect(badge).toHaveText('2')
+  await expectNoA11yViolations(page)
+
+  // The server's price, not one computed here.
+  const served = (await (await page.request.get('/api/cart/')).json()) as {
+    lines: { line_total_cents: number }[]
+  }
+  expect(served.lines).toHaveLength(1)
+  await page.getByRole('link', { name: 'Carrito, 2 productos' }).click()
+  await expect(page).toHaveURL(/\/carrito$/)
+  const row = page.locator('[data-line-id]')
+  await expect(row).toHaveCount(1)
+  await expect(row).toContainText(hoodie.name)
+  const total = (served.lines[0]!.line_total_cents / 100).toLocaleString('es-MX')
+  await expect(row).toContainText(total)
+})

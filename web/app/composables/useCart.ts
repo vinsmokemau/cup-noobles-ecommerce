@@ -54,5 +54,18 @@ export function useCart() {
     })
   }
 
-  return { cart, pending, refresh, add, update, remove, setFulfillment }
+  /** Units in the cart, for the header badge. A count of items, not an amount: no money is computed here. */
+  const count = computed(() => (cart.value?.lines ?? []).reduce((n, line) => n + line.quantity, 0))
+
+  /**
+   * Adds one more unit of a variant. The API sets the quantity it is given, so this sends the
+   * quantity the cart already holds plus one.
+   */
+  function addOne(variantPublicId: string) {
+    const held =
+      cart.value?.lines.find((l) => l.variant_public_id === variantPublicId)?.quantity ?? 0
+    return add(variantPublicId, held + 1)
+  }
+
+  return { cart, pending, count, refresh, add, addOne, update, remove, setFulfillment }
 }
