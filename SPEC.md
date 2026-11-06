@@ -4293,7 +4293,7 @@ Checkout page — deliberately one page, collapsible sections, no wizard:
 
 In R2, Contacto prefills the email of a logged-in customer, Entrega gains the pickup option, and Revisión shows the pre-order notice (T13.14).
 
-- [ ] **T13.11 — "Quiero factura"**
+- [x] **T13.11 — "Quiero factura"** (2026-11-06, 27531f5)
   - Release: R1 · Gate: task
   - REQs: REQ-060
   - Verifies: P13-V23
