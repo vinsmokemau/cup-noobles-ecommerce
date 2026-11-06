@@ -4249,7 +4249,7 @@ Each line of the `Cart` response gains `product_name` (the product's name) and `
 
 Wire the product page's add-to-cart button (12.A) to `useCart().add`, and add a header cart badge that reads `useCart` state.
 
-- [ ] **T13.9 — Order-status token**
+- [x] **T13.9 — Order-status token** (2026-11-05, 0fb450e)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P13-V26
