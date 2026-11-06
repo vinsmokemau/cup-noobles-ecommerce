@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.58 |
+| Spec version | 1.59 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -450,7 +450,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G51 | 12 | T12.16, P12-V13, G28 | No public API exposes featured products: the `is_featured` and `featured_position` columns (ADR-0030) are not in the product card, the product list has no `featured` filter, and there is no featured endpoint, so the home page cannot list them. | Add a `featured=true` filter to `GET /api/catalog/products/`: active featured products in `featured_position` order, same pagination and cache headers; the list is unchanged without it. Built inside T12.16, with the snapshot and types regenerated. | R1 | Resolved (ADR-0057) |
 | G52 | 12 | T12.4, T12.16, T12.21, P12-V10 | In `VariantSelector`, the sold-out text ("· Agotado") reaches only the radio's accessible name, which Nuxt UI sets once at mount. After the visitor changes a choice the name goes stale (an available option is still announced as sold out), and the visible label never shows the text. | Show the sold-out text in the visible label through the radio group's label slot, or ask the DS for a sold-out state on its choice control (a DS request if the slot cannot do it). | R1 | Decided (ADR-0058); T12.21 resolves it |
 | G53 | 12 | T12.16 | `product.description_md` is Markdown, but the spec defines no renderer or allowed subset, so the product page shows it as plain paragraphs. | Agree a renderer and an allowed subset (paragraphs, lists, emphasis, links), sanitised; or store plain text. | R1 | Resolved (ADR-0059) |
-| G54 | 12 | T12.7, T12.10, T12.22 | The composables coverage ratchet fails in `make test-all`: composables are at 69.23% against a baseline of 100%. `usePageSeo.ts` (T12.7) has no unit test (0%) and `useServerFailure.ts` (T12.10) is at 50%. Found while running T12.22, which does not touch either file. | Add unit tests for `usePageSeo` and `useServerFailure` until composables return to 100%, in a Phase 12 step before the phase-close. | R1 | Open |
+| G54 | 12 | T12.7, T12.10, T12.22 | The composables coverage ratchet fails in `make test-all`: composables are at 69.23% against a baseline of 100%. `usePageSeo.ts` (T12.7) has no unit test (0%) and `useServerFailure.ts` (T12.10) is at 50%. Found while running T12.22, which does not touch either file. | Add unit tests for `usePageSeo` and `useServerFailure` until composables return to 100%, in a Phase 12 step before the phase-close. | R1 | Resolved (ADR-0063) |
 | G55 | 12 | T12.12, T12.7, P12-V02 | No page sets a meta description, so Lighthouse SEO scores 0.91–0.92 against the budget of 0.95 (T12.12). The text for the home and catalog pages is customer-facing copy that no source supplies. | Home: "Tienda en línea de cultura geek y gamer. Explora el catálogo de Cup Noobles, elige tu favorito y recibe tu pedido en casa." Catalog: "Explora el catálogo de Cup Noobles: productos de cultura geek y gamer. Filtra por categoría y encuentra el que buscas." Product pages use the start of the product's own description (plain text, ADR-0059). | R1 | Resolved (ADR-0062) |
 
 #### Design System requests (DSR)
@@ -570,6 +570,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-76 | 2026-11-02 | DSR-07 / C-10: does the DS photo rule "no text inside the image" apply to product packaging photos? The owner decided it in the DS repository on 2026-11-01 (DS:OD-15, DS:ADR-0064); DS 1.6.0 publishes the wording. | Option B of the DS, adopted here: text printed on the product itself (its box or label) may show in a product photo; text added to a photo (banners, price stickers, flashes such as "NEW", watermarks, captions) is not allowed. The title, the tag and the alt text carry the words. "Added text" is judged when a photo is uploaded; no test can detect it. DSR-07 and C-10 resolved; new task T12.22 raises the pin to 1.6.0. ADR-0060. |
 | OA-77 | 2026-11-03 | DSR-12: the DS choice controls (`UCheckbox`, `UCheckboxGroup`, `URadioGroup`) are only 24 px tall at `xl`, so P12-V21 (44 px, CR-36) cannot pass through a size prop. How does T12.9 proceed? | Option A: wait for the DS. DS 1.7.0 adds the size `2xl` to those three controls: every row is at least 44 px tall and the label fills the row. A new task, T12.23, raises the pin to 1.7.0; T12.9 depends on it and uses `size="2xl"` in `VariantSelector` and `FilterSidebarGroups`. Option B (rejected): padding added in the storefront, which CR-36 forbids. Option C (rejected): lower P12-V21 to the 24 px DS minimum. ADR-0061. |
 | OA-78 | 2026-11-05 | G55: no page sets a meta description, so Lighthouse SEO fails its budget of 0.95. What do the home and catalog pages say? | Home A and catalog A of the proposals: "Tienda en línea de cultura geek y gamer. Explora el catálogo de Cup Noobles, elige tu favorito y recibe tu pedido en casa." and "Explora el catálogo de Cup Noobles: productos de cultura geek y gamer. Filtra por categoría y encuentra el que buscas." Product pages use the start of the product's own description. Rejected: options B and C of each page. ADR-0062. |
+| OA-79 | 2026-11-05 | G54: the composables coverage ratchet failed in `make test-all`. Is the gap resolved by the unit tests added in T12.12? | Yes. Unit tests for `usePageSeo` and for the server path of `failOnServer` (the server flag is now a defaulted parameter) bring composables back to 100%, and a full `make test-all PHASE_CLOSE=1` is green. ADR-0063. |
 
 ---
 
@@ -5630,6 +5631,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.56 | 2026-11-03 | DSR-12 resolved: DS 1.7.0 adds the size `2xl` to checkboxes and radios, so they reach the 44 px tap target (CR-36). New task T12.23 raises the DS pin to 1.7.0 (after T12.22, before T12.9, which now depends on it and uses the size). A17 and the pin citations read 1.7.0. No new Verify ID or schema change. | OA-77; ADR-0061 |
 | 1.57 | 2026-11-04 | DSR-13 resolved: DS 1.8.0 adds `CnApp`, so the built-in text of Nuxt UI is es-MX (the filter panel's close button was announced in English). New task T12.24 raises the DS pin to 1.8.0 and swaps `UApp` for `CnApp` (after T12.23, before T12.15, which now depends on it). P12-V21 gains the assertion that the close button is named "Cerrar". A17 and the pin citations read 1.8.0. No new Verify ID or schema change. | Owner request in chat, 2026-11-04; DS:ADR-0071 |
 | 1.58 | 2026-11-05 | G55 resolved: the home and catalog pages get the owner's meta descriptions and product pages use the start of the product description, so Lighthouse SEO can reach 0.95. T12.12 builds them and gains P12-V23 (an assertion on the description) beside P12-V02; the E2E seed gives the hoodie a description. No new Verify ID or schema change. | OA-78; ADR-0062 |
+| 1.59 | 2026-11-05 | G54 resolved: unit tests for `usePageSeo` and the server path of `failOnServer` restore the composables coverage to 100%. No task, Verify ID or schema change. | OA-79; ADR-0063 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5741,6 +5743,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0060 | Text printed on a product may show in its photo | `docs/decisions/0060-packaging-text-in-photos.md` | C-10; DSR-07; OA-76 |
 | ADR-0061 | Checkboxes and radios reach the 44 px tap target through the DS size `2xl` | `docs/decisions/0061-choice-controls-44px.md` | DSR-12; OA-77 |
 | ADR-0062 | Meta descriptions of the home, catalog and product pages | `docs/decisions/0062-meta-descriptions.md` | G55; OA-78 |
+| ADR-0063 | The composables coverage returns to 100% through unit tests | `docs/decisions/0063-composables-coverage-restored.md` | G54; OA-79 |
 
 ## Appendix C — Dated market facts
 

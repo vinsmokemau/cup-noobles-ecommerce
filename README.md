@@ -87,6 +87,8 @@ Every target runs inside the compose environment, so local runs and CI use the s
 | `make e2e FILES=e2e/p1_smoke.spec.ts` | The named Playwright specs on desktop and mobile, with axe, against the E2E stack. |
 | `make check-migrations` | `makemigrations --check --dry-run`. |
 | `make test-all` | Everything in `make test`, plus the slow tests, the full schemathesis run, the migration round trip, all Playwright specs, the coverage ratchet and the traceability check. Add `PHASE_CLOSE=1` to enforce the coverage gates. |
+
+The Lighthouse budgets (T12.12) run in `make test-all` against a production build of the storefront, not the dev server. The test starts the `lighthouse` profile of `docker-compose.e2e.yml` (`web-prod` and `proxy-prod`, on <http://localhost:8081>) and stops it afterwards. The first start builds the storefront, so it takes a few minutes.
 | `make schema-update` | Regenerates `api/openapi.snapshot.yml` and `web/app/types/api.d.ts` after an intentional API change. |
 | `make coverage-ratchet` | Rewrites `coverage-baseline.json` after coverage rises. |
 
