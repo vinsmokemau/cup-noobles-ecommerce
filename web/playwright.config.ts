@@ -9,6 +9,7 @@ const PRELAUNCH_SPECS = /p12_prelaunch\.spec\.ts/
 
 export default defineConfig({
   testDir: './e2e',
+  globalSetup: './e2e/global-setup.ts',
   fullyParallel: true,
   // A test that passes only on retry still fails the run in CI.
   retries: process.env.CI ? 1 : 0,
