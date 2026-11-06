@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.60 |
+| Spec version | 1.61 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -129,6 +129,7 @@ Sessions on this repository use only the skills below and Claude's built-in tool
 | `review` | Adapted from `ponytail-review` (`DietrichGebert/ponytail` at `09c434a`, MIT) | On demand, and required before the phase-close report of Phases 4, 8, 9 and 16 | Reports findings only. `SPEC.md` is authoritative: a finding that contradicts it becomes a question for the owner, never an edit. |
 | `ui-review` | Vercel Web Interface Guidelines, a pinned copy in `docs/review/web-interface-guidelines.md` (`vercel-labs/web-interface-guidelines` at `434b7f9`, MIT) | Before the task report of every storefront task in Phases 12–14 | Reports findings. The Design System wins where they disagree: copy casing and voice follow DS microcopy and voice, focus and every visual style belong to the DS (DS:ADR-0009, CR-27). React advice is mapped to its Nuxt equivalent. |
 | `decide` | Our own | When the owner answers an open item | Records the owner answer, writes the ADR, updates §2.4, removes the matching `xfail` markers, and bumps the spec version and change log |
+| `order-tasks` | Our own | `/order-tasks 14`, when the owner asks for a phase's task order before it starts | Works out the execution order of one phase from its dependencies and writes the "Execution order" note, the register row and the spec version. Spec text only: it never renumbers or moves a task. |
 
 Rules:
 
@@ -572,6 +573,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-78 | 2026-11-05 | G55: no page sets a meta description, so Lighthouse SEO fails its budget of 0.95. What do the home and catalog pages say? | Home A and catalog A of the proposals: "Tienda en línea de cultura geek y gamer. Explora el catálogo de Cup Noobles, elige tu favorito y recibe tu pedido en casa." and "Explora el catálogo de Cup Noobles: productos de cultura geek y gamer. Filtra por categoría y encuentra el que buscas." Product pages use the start of the product's own description. Rejected: options B and C of each page. ADR-0062. |
 | OA-79 | 2026-11-05 | G54: the composables coverage ratchet failed in `make test-all`. Is the gap resolved by the unit tests added in T12.12? | Yes. Unit tests for `usePageSeo` and for the server path of `failOnServer` (the server flag is now a defaulted parameter) bring composables back to 100%, and a full `make test-all PHASE_CLOSE=1` is green. ADR-0063. |
 | OA-80 | 2026-11-05 | Phase 13 task order: the tasks are listed in a valid, linear order, but their numbers do not follow it (T13.8 comes first, T13.13 fourth, T13.7 last) and the phase has no execution-order note. Add one, or renumber? | Option A: add the note. Execution order: T13.8, T13.1, T13.2, T13.13, T13.5, T13.9, T13.10, T13.3, T13.11, T13.6, T13.12, T13.4, T13.7 (phase-close); then, in R2, T13.14. IDs keep their numbers. The note flags that G21 and G22 leave tests xfail. No ADR: cheap to reverse, spec text only. |
+| OA-81 | 2026-11-05 | Add a skill that works out a phase's task order and writes the execution-order note, so the owner does not ask for it by hand each phase? | Option A: add `order-tasks` (our own, mirrored into `.agents/skills/`). It changes spec text only. No ADR: cheap to reverse, a skill file. |
 
 ---
 
@@ -5644,6 +5646,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.58 | 2026-11-05 | G55 resolved: the home and catalog pages get the owner's meta descriptions and product pages use the start of the product description, so Lighthouse SEO can reach 0.95. T12.12 builds them and gains P12-V23 (an assertion on the description) beside P12-V02; the E2E seed gives the hoodie a description. No new Verify ID or schema change. | OA-78; ADR-0062 |
 | 1.59 | 2026-11-05 | G54 resolved: unit tests for `usePageSeo` and the server path of `failOnServer` restore the composables coverage to 100%. No task, Verify ID or schema change. | OA-79; ADR-0063 |
 | 1.60 | 2026-11-05 | Phase 13 gets an execution-order note, as Phases 7 to 12 have. No task, Verify ID or schema change. | OA-80; owner request in chat |
+| 1.61 | 2026-11-05 | New skill `order-tasks` (§0.5): it derives a phase's execution order and writes the note, the register row and the version. No task, Verify ID or schema change. | OA-81; owner request in chat |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 

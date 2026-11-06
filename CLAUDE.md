@@ -34,7 +34,7 @@ The owner is not a designer, and is both the developer and the business owner.
 
 ## Skills and tools
 
-- Use only the skills in SPEC.md §0.5: `task`, `review`, `ui-review` and `decide`. Storefront tasks run `/ui-review`; the phase-close tasks of Phases 4, 8, 9 and 16 run `/review`.
+- Use only the skills in SPEC.md §0.5: `task`, `review`, `ui-review`, `decide` and `order-tasks`. Storefront tasks run `/ui-review`; the phase-close tasks of Phases 4, 8, 9 and 16 run `/review`.
 - Do not add third-party plugins, hooks, MCP servers or always-on rule sets. A third-party skill is adopted only by copying it into `.claude/skills/`, pinned, with its license, and through an amendment.
 
 ## Instruction mirrors
