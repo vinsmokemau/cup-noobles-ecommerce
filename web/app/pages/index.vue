@@ -12,7 +12,12 @@ const { data, error, refresh } = await useAsyncData('home', async () => {
 })
 failOnServer(error)
 
-usePageSeo({ title: 'Cup Noobles' })
+usePageSeo({
+  title: 'Cup Noobles',
+  // The owner's text (G55, ADR-0062).
+  description:
+    'Tienda en línea de cultura geek y gamer. Explora el catálogo de Cup Noobles, elige tu favorito y recibe tu pedido en casa.',
+})
 </script>
 
 <template>

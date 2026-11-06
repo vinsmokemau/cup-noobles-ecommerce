@@ -1,16 +1,10 @@
 import { expect, test, waitForHydration } from './fixtures'
 
-// The dev-only toggle goes through the proxy to the API (T12.15). The mode is one switch on a
-// stack the two projects share, so the desktop project runs the test and the mobile one skips it.
+// The dev-only toggle goes through the proxy to the API (T12.15). The mode is one switch for the
+// whole stack, so this spec has its own project (playwright.config.ts) that runs after the others.
 const TOGGLE = '/dev/test/prelaunch/'
 
-test('p12_v28 prelaunch page for anonymous visitors', async ({
-  page,
-  request,
-  seed,
-  browser,
-}, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop', 'one shared switch')
+test('p12_v28 prelaunch page for anonymous visitors', async ({ page, request, seed, browser }) => {
   const { hoodie } = seed.catalog
   const routes = ['/', '/catalogo', `/producto/${hoodie.slug}`]
   const set = async (on: boolean) => {

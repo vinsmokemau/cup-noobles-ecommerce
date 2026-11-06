@@ -116,7 +116,7 @@ scripts-tests:
 	@$(STEP) "scripts tests" $(API) python -m pytest -q -c /repo/scripts/pytest.ini -p no:django /repo/scripts/tests
 
 web-unit:
-	@$(STEP) "vitest" $(WEB) pnpm exec vitest run --coverage --coverage.reporter=json-summary --coverage.reporter=text-summary $(WEB_THRESHOLDS)
+	@$(STEP) "vitest" $(WEB) pnpm exec vitest run --exclude 'tests/perf/**' --coverage --coverage.reporter=json-summary --coverage.reporter=text-summary $(WEB_THRESHOLDS)
 
 api-tests:
 	@$(STEP) "pytest" $(API) pytest -q $(PYTEST_NOT_SLOW) $(COV)
@@ -138,7 +138,7 @@ e2e-all:
 	@$(STEP) "playwright (all specs, axe)" sh -c 'cd web && pnpm exec playwright test'
 
 lighthouse:
-	@if [ -f web/lighthouserc.json ]; then $(STEP) "lighthouse budgets" sh -c 'cd web && pnpm exec lhci collect && pnpm exec lhci assert'; else $(SKIP) "lighthouse budgets" "arrives with T12.12"; fi
+	@$(STEP) "lighthouse budgets" sh -c 'cd web && pnpm exec vitest run tests/perf/lighthouse.test.ts'
 
 coverage-report:
 	@$(STEP) "coverage" $(API) $(RATCHET) --only report

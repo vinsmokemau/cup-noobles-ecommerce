@@ -2,6 +2,8 @@ export interface PageSeo {
   title: MaybeRefOrGetter<string | undefined>
   /** A path or URL of the share picture; a path is made absolute. */
   image?: MaybeRefOrGetter<string | undefined>
+  /** The meta description; without one the page has none (G55). */
+  description?: MaybeRefOrGetter<string | undefined>
   /** Keep the page out of search engines. */
   noindex?: boolean
 }
@@ -22,6 +24,8 @@ export function usePageSeo(options: PageSeo) {
   useSeoMeta({
     title: options.title,
     ogTitle: options.title,
+    description: options.description,
+    ogDescription: options.description,
     ogType: 'website',
     ogUrl: canonical,
     ogLocale: 'es_MX',

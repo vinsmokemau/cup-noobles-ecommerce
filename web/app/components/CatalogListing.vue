@@ -5,6 +5,8 @@ import type { Facet, ProductPage } from '~/types/catalog'
 // list can be shared and the back button undoes a choice. The category page is this component with a scope.
 const props = defineProps<{
   title: string
+  /** The meta description of the page (G55). */
+  description?: string
   /** Category slug; the list and the facets cover that category and its descendants. */
   category?: string
 }>()
@@ -46,7 +48,7 @@ const nextCursor = computed(() => cursorOf(data.value?.page.next))
 const previousCursor = computed(() => cursorOf(data.value?.page.previous))
 const pageLink = (value: string) => ({ query: { ...route.query, cursor: value } })
 
-usePageSeo({ title: () => props.title })
+usePageSeo({ title: () => props.title, description: () => props.description })
 </script>
 
 <template>

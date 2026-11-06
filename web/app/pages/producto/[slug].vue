@@ -70,6 +70,7 @@ const jsonLd = computed(() => {
 
 usePageSeo({
   title: () => product.value?.name,
+  description: () => metaDescription(product.value?.description_md),
   image: () => pickImageSrc(product.value?.images[0] ?? product.value?.image, 1200),
 })
 useHead({

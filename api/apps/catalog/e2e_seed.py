@@ -32,6 +32,8 @@ from apps.inventory.services import receive_stock
 FRANCHISE_SLUG = "franquicia-e2e"
 CATEGORY_SLUG = "figuras-e2e"
 HOODIE = "Sudadera Nube E2E"
+# Test data for the meta description (G55); not catalog copy.
+HOODIE_DESCRIPTION = "Sudadera de prueba para las pruebas de extremo a extremo.\n\nNo es un producto real."
 DRAFT = "Figura Borrador E2E"
 ARCHIVED = "Figura Archivada E2E"
 # (name, linea, featured position or None)
@@ -110,11 +112,20 @@ def seed_catalog() -> dict[str, Any]:
 
     hoodie = Product.objects.filter(name=HOODIE).first()
     if hoodie is None:
-        hoodie = create_product("apparel", HOODIE, {"material": "Algodón"})
+        hoodie = create_product(
+            "apparel",
+            HOODIE,
+            {"material": "Algodón"},
+            description_md=HOODIE_DESCRIPTION,
+        )
         for position, (options, price, units) in enumerate(HOODIE_VARIANTS):
             sku = f"E2E-HOODIE-{options['talla']}-{options['color'][:3].upper()}"
             _stock(add_variant(hoodie, options, price, sku, position=position), units)
         publish_product(hoodie)
+
+    if not hoodie.description_md:
+        hoodie.description_md = HOODIE_DESCRIPTION
+        hoodie.save(update_fields=["description_md"])
 
     if not hoodie.images.exists():
         add_product_image(hoodie, _test_picture())

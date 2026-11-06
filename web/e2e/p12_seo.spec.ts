@@ -21,6 +21,13 @@ test('p12_v23 sitemap canonical and json-ld', async ({ request, seed }) => {
   expect(new URL(canonical![1]!).pathname).toBe(`/producto/${hoodie.slug}`)
   expect(html).toMatch(/<meta[^>]*property="og:image"[^>]*content="https?:\/\/[^"]+"/)
 
+  // G55: a meta description on the product page, and on the home and catalog pages.
+  expect(html).toMatch(/<meta[^>]*name="description"[^>]*content="[^"]+"/)
+  for (const path of ['/', '/catalogo']) {
+    const page = await (await request.get(path)).text()
+    expect(page, path).toMatch(/<meta[^>]*name="description"[^>]*content="[^"]+"/)
+  }
+
   const ld = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/)
   expect(ld, 'JSON-LD').not.toBeNull()
   const data = JSON.parse(ld![1]!)

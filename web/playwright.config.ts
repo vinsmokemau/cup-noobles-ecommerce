@@ -4,6 +4,8 @@ import { defineConfig, devices } from '@playwright/test'
 // specs reach the same origin a customer does.
 const BASE_URL = 'http://localhost:8080'
 const GUARD_SPECS = /p1_guard\.spec\.ts/
+// Pre-launch mode is one switch for the whole stack, so its spec runs alone, after the others.
+const PRELAUNCH_SPECS = /p12_prelaunch\.spec\.ts/
 
 export default defineConfig({
   testDir: './e2e',
@@ -26,8 +28,22 @@ export default defineConfig({
     timeout: 10 * 60 * 1000,
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] }, testIgnore: GUARD_SPECS },
-    { name: 'mobile', use: { ...devices['Pixel 7'] }, testIgnore: GUARD_SPECS },
+    {
+      name: 'desktop',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: [GUARD_SPECS, PRELAUNCH_SPECS],
+    },
+    {
+      name: 'mobile',
+      use: { ...devices['Pixel 7'] },
+      testIgnore: [GUARD_SPECS, PRELAUNCH_SPECS],
+    },
+    {
+      name: 'prelaunch',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: PRELAUNCH_SPECS,
+      dependencies: ['desktop', 'mobile'],
+    },
     // The harness's own checks: they assert the guard and the axe wrapper, so they run once.
     { name: 'selftest', use: { ...devices['Desktop Chrome'] }, testMatch: GUARD_SPECS },
   ],

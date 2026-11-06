@@ -24,6 +24,6 @@
 	}
 
 	handle {
-		reverse_proxy web:3000
+		reverse_proxy {$WEB_UPSTREAM:web:3000}
 	}
 }

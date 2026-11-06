@@ -41,5 +41,13 @@ export default defineNuxtConfig({
     // Production and `nuxt preview`: server-rendered pages reach Django through this rule.
     '/api/**': { proxy: `${apiServerTarget}/api/**` },
   },
+  hooks: {
+    // Nuxt prefetches every lazy chunk's assets on every page, including the three Design System
+    // logo files (about 275 KB) that a page may never show. Prefetch hints stay off so a visit
+    // downloads only what it renders (T12.12, the Lighthouse performance budget).
+    'build:manifest': (manifest) => {
+      for (const entry of Object.values(manifest)) entry.prefetch = false
+    },
+  },
   compatibilityDate: '2026-10-20',
 })
