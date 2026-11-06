@@ -4196,7 +4196,7 @@ Dev inspection endpoints for tests, registered only when `DEV_TOOLS_ENABLED` (40
 
 They are read-only, and they let E2E specs assert stock and order effects without scraping the admin.
 
-- [ ] **T13.1 — `useCart`**
+- [x] **T13.1 — `useCart`** (2026-11-05, 6b87fe8)
   - Release: R1 · Gate: task
   - REQs: REQ-002
   - Verifies: P13-V03, P13-V04
