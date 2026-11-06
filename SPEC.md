@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.59 |
+| Spec version | 1.60 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -571,6 +571,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-77 | 2026-11-03 | DSR-12: the DS choice controls (`UCheckbox`, `UCheckboxGroup`, `URadioGroup`) are only 24 px tall at `xl`, so P12-V21 (44 px, CR-36) cannot pass through a size prop. How does T12.9 proceed? | Option A: wait for the DS. DS 1.7.0 adds the size `2xl` to those three controls: every row is at least 44 px tall and the label fills the row. A new task, T12.23, raises the pin to 1.7.0; T12.9 depends on it and uses `size="2xl"` in `VariantSelector` and `FilterSidebarGroups`. Option B (rejected): padding added in the storefront, which CR-36 forbids. Option C (rejected): lower P12-V21 to the 24 px DS minimum. ADR-0061. |
 | OA-78 | 2026-11-05 | G55: no page sets a meta description, so Lighthouse SEO fails its budget of 0.95. What do the home and catalog pages say? | Home A and catalog A of the proposals: "Tienda en línea de cultura geek y gamer. Explora el catálogo de Cup Noobles, elige tu favorito y recibe tu pedido en casa." and "Explora el catálogo de Cup Noobles: productos de cultura geek y gamer. Filtra por categoría y encuentra el que buscas." Product pages use the start of the product's own description. Rejected: options B and C of each page. ADR-0062. |
 | OA-79 | 2026-11-05 | G54: the composables coverage ratchet failed in `make test-all`. Is the gap resolved by the unit tests added in T12.12? | Yes. Unit tests for `usePageSeo` and for the server path of `failOnServer` (the server flag is now a defaulted parameter) bring composables back to 100%, and a full `make test-all PHASE_CLOSE=1` is green. ADR-0063. |
+| OA-80 | 2026-11-05 | Phase 13 task order: the tasks are listed in a valid, linear order, but their numbers do not follow it (T13.8 comes first, T13.13 fourth, T13.7 last) and the phase has no execution-order note. Add one, or renumber? | Option A: add the note. Execution order: T13.8, T13.1, T13.2, T13.13, T13.5, T13.9, T13.10, T13.3, T13.11, T13.6, T13.12, T13.4, T13.7 (phase-close); then, in R2, T13.14. IDs keep their numbers. The note flags that G21 and G22 leave tests xfail. No ADR: cheap to reverse, spec text only. |
 
 ---
 
@@ -4157,6 +4158,16 @@ The home page's open pre-orders section: seeded pre-order products with their re
 
 **Release 1 scope:** delivery only; the "Quiero factura" section; the purchase-limit message; the order-status token and pay-retry endpoints the landing pages need (G21, G22).
 
+**Execution order.** Task IDs do not follow the order of work. Run the tasks in the order they are listed below, which is also this one, and each depends only on tasks before it:
+
+- Cart: T13.8 (dev inspection endpoints) → T13.1 → T13.2 → T13.13 → T13.5
+- Order endpoints: T13.9 → T13.10. They need only T13.8, so they can run before or after the cart chain, but both chains finish before T13.3
+- Checkout: T13.3 (needs T13.5 and T13.10) → T13.11 → T13.6 → T13.12 → T13.4
+- Phase close: T13.7 (needs T13.4; polls through T13.9 and retries through T13.10)
+- R2, after R1: T13.14
+
+IDs keep their numbers (OA-80). T13.3 names the Factura section, but T13.11 builds it, so T13.3 leaves that section out until T13.11 runs. G21 and G22 keep the tests of T13.9, T13.10 and T13.7 (P13-V13 to V15, V26, V27) `xfail` until they are decided.
+
 #### 13.A Pages
 
 | Route | File | Notes |
@@ -5632,6 +5643,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.57 | 2026-11-04 | DSR-13 resolved: DS 1.8.0 adds `CnApp`, so the built-in text of Nuxt UI is es-MX (the filter panel's close button was announced in English). New task T12.24 raises the DS pin to 1.8.0 and swaps `UApp` for `CnApp` (after T12.23, before T12.15, which now depends on it). P12-V21 gains the assertion that the close button is named "Cerrar". A17 and the pin citations read 1.8.0. No new Verify ID or schema change. | Owner request in chat, 2026-11-04; DS:ADR-0071 |
 | 1.58 | 2026-11-05 | G55 resolved: the home and catalog pages get the owner's meta descriptions and product pages use the start of the product description, so Lighthouse SEO can reach 0.95. T12.12 builds them and gains P12-V23 (an assertion on the description) beside P12-V02; the E2E seed gives the hoodie a description. No new Verify ID or schema change. | OA-78; ADR-0062 |
 | 1.59 | 2026-11-05 | G54 resolved: unit tests for `usePageSeo` and the server path of `failOnServer` restore the composables coverage to 100%. No task, Verify ID or schema change. | OA-79; ADR-0063 |
+| 1.60 | 2026-11-05 | Phase 13 gets an execution-order note, as Phases 7 to 12 have. No task, Verify ID or schema change. | OA-80; owner request in chat |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
