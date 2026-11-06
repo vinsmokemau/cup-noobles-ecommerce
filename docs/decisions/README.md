@@ -68,3 +68,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0061](0061-choice-controls-44px.md) | Checkboxes and radios reach the 44 px tap target through the DS size `2xl` | accepted | DSR-12; OA-77 |
 | [ADR-0062](0062-meta-descriptions.md) | Meta descriptions of the home, catalog and product pages | accepted | G55; OA-78 |
 | [ADR-0063](0063-composables-coverage-restored.md) | The composables coverage returns to 100% through unit tests | accepted | G54; OA-79 |
+| [ADR-0064](0064-cart-line-product-details.md) | Cart lines carry the product name and options | accepted | G56; OA-82 |

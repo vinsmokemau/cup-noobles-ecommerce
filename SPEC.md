@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.61 |
+| Spec version | 1.62 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -453,7 +453,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G53 | 12 | T12.16 | `product.description_md` is Markdown, but the spec defines no renderer or allowed subset, so the product page shows it as plain paragraphs. | Agree a renderer and an allowed subset (paragraphs, lists, emphasis, links), sanitised; or store plain text. | R1 | Resolved (ADR-0059) |
 | G54 | 12 | T12.7, T12.10, T12.22 | The composables coverage ratchet fails in `make test-all`: composables are at 69.23% against a baseline of 100%. `usePageSeo.ts` (T12.7) has no unit test (0%) and `useServerFailure.ts` (T12.10) is at 50%. Found while running T12.22, which does not touch either file. | Add unit tests for `usePageSeo` and `useServerFailure` until composables return to 100%, in a Phase 12 step before the phase-close. | R1 | Resolved (ADR-0063) |
 | G55 | 12 | T12.12, T12.7, P12-V02 | No page sets a meta description, so Lighthouse SEO scores 0.91–0.92 against the budget of 0.95 (T12.12). The text for the home and catalog pages is customer-facing copy that no source supplies. | Home: "Tienda en línea de cultura geek y gamer. Explora el catálogo de Cup Noobles, elige tu favorito y recibe tu pedido en casa." Catalog: "Explora el catálogo de Cup Noobles: productos de cultura geek y gamer. Filtra por categoría y encuentra el que buscas." Product pages use the start of the product's own description (plain text, ADR-0059). | R1 | Resolved (ADR-0062) |
-| G56 | 13 | T13.13 | The cart response carries no product name, image or variant options, so every `CartLine` on `/carrito` is titled "Producto" and the customer cannot tell two lines apart. | Add `product_name` and `options` to each cart line in the API (a read of data already joined for the price), and pass them to `CartLine`. Proposal only; not applied. | R1 | Open |
+| G56 | 13 | T13.13, T13.15 | The cart response carries no product name or variant options, so every `CartLine` on `/carrito` is titled "Producto" and the customer cannot tell two lines apart. | Add `product_name` and `options` to each cart line in the API (data already joined for the price) and pass them to `CartLine`. No image. | R1 | Resolved (ADR-0064) |
 
 #### Design System requests (DSR)
 
@@ -575,6 +575,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-79 | 2026-11-05 | G54: the composables coverage ratchet failed in `make test-all`. Is the gap resolved by the unit tests added in T12.12? | Yes. Unit tests for `usePageSeo` and for the server path of `failOnServer` (the server flag is now a defaulted parameter) bring composables back to 100%, and a full `make test-all PHASE_CLOSE=1` is green. ADR-0063. |
 | OA-80 | 2026-11-05 | Phase 13 task order: the tasks are listed in a valid, linear order, but their numbers do not follow it (T13.8 comes first, T13.13 fourth, T13.7 last) and the phase has no execution-order note. Add one, or renumber? | Option A: add the note. Execution order: T13.8, T13.1, T13.2, T13.13, T13.5, T13.9, T13.10, T13.3, T13.11, T13.6, T13.12, T13.4, T13.7 (phase-close); then, in R2, T13.14. IDs keep their numbers. The note flags that G21 and G22 leave tests xfail. No ADR: cheap to reverse, spec text only. |
 | OA-81 | 2026-11-05 | Add a skill that works out a phase's task order and writes the execution-order note, so the owner does not ask for it by hand each phase? | Option A: add `order-tasks` (our own, mirrored into `.agents/skills/`). It changes spec text only. No ADR: cheap to reverse, a skill file. |
+| OA-82 | 2026-11-05 | G56: every cart line on `/carrito` is titled "Producto" because the cart response has no product name or options. Fix it in the API, or leave it open? | Option A: add `product_name` and `options` to each cart line and show them in `CartLine`, as a new task T13.15 after T13.13 and before T13.5. No image. ADR-0064: an API payload change. |
 
 ---
 
@@ -4163,7 +4164,7 @@ The home page's open pre-orders section: seeded pre-order products with their re
 
 **Execution order.** Task IDs do not follow the order of work. Run the tasks in the order they are listed below, which is also this one, and each depends only on tasks before it:
 
-- Cart: T13.8 (dev inspection endpoints) → T13.1 → T13.2 → T13.13 → T13.5
+- Cart: T13.8 (dev inspection endpoints) → T13.1 → T13.2 → T13.13 → T13.15 → T13.5
 - Order endpoints: T13.9 → T13.10. They need only T13.8, so they can run before or after the cart chain, but both chains finish before T13.3
 - Checkout: T13.3 (needs T13.5 and T13.10) → T13.11 → T13.6 → T13.12 → T13.4
 - Phase close: T13.7 (needs T13.4; polls through T13.9 and retries through T13.10)
@@ -4225,6 +4226,16 @@ Cart and checkout components, built from DS parts per the §4.5 composition map 
   - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
 
 `/carrito` (13.A): `CartLine` rows from `useCart` state; the server's per-line availability messages (`reduced` with `max_available`, `unavailable` — 7.4); totals from the server; the DS empty-state pattern with a link to the catalog when the cart is empty; and the button to the checkout.
+
+- [ ] **T13.15 — Product name and options on cart lines**
+  - Release: R1 · Gate: task
+  - REQs: —
+  - Verifies: P13-V28, P13-V29
+  - Depends on: T13.13
+  - Context: 7.4; 4.6 (API); 13.A; G56, ADR-0064
+  - Done when: `/ui-review` ran (§0.5); findings fixed or registered.
+
+Each line of the `Cart` response gains `product_name` (the product's name) and `options` (the variant's options, the same object the catalog payload carries), read from the rows the cart already joins for the price: no extra query per line. Run `make schema-update` so the snapshot and `web/app/types/api.d.ts` change. `CartLine` takes the name from the line and shows the options as text next to it; `carrito.vue` stops passing a default title and drops its G56 comment. Existing assertions of P7 and P13 tests stay as they are. No image: the owner did not ask for one (OA-82).
 
 - [ ] **T13.5 — Add to cart and the header badge**
   - Release: R1 · Gate: task
@@ -4399,6 +4410,8 @@ Pickup and pre-orders in the cart and checkout: the delivery or pickup toggle in
 | P13-V25 [R2] | E2E | `web/e2e/p13_checkout.spec.ts` › `p13_v25 mobile viewport purchase pickup` | On the `mobile` project, a pickup purchase goes through the simulator's "Aprobar con tarjeta" and reaches the confirmed `gracias` view. |
 | P13-V26 | API | `api/tests/api/orders/test_status_token.py::test_p13_v26_status_token` | A valid order-status token returns the order's status; an expired or tampered token returns 404 with the same body as a missing order. ⚠️ G21 |
 | P13-V27 | API | `api/tests/api/orders/test_pay_retry.py::test_p13_v27_pay_retry` | `POST /api/orders/{public_id}/pay/` returns a fresh `checkout_url` while the order is `pending_payment`, without new reservations, and 409 in any other state. ⚠️ G22 |
+| P13-V28 | API | `api/tests/api/carts/test_lines.py::test_p13_v28_cart_line_product_details` | A cart line carries `product_name` and `options` equal to its product's name and its variant's options; the number of queries for a cart does not grow with the number of lines. |
+| P13-V29 | E2E | `web/e2e/p13_cart.spec.ts` › `p13_v29 lines show product name and options` | With two variants of the same product in the cart, `/carrito` shows the product's name on both rows and each row's own options, so the rows can be told apart. |
 
 **Fixtures and factories introduced** (reused by later phases)
 
@@ -5648,6 +5661,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.59 | 2026-11-05 | G54 resolved: unit tests for `usePageSeo` and the server path of `failOnServer` restore the composables coverage to 100%. No task, Verify ID or schema change. | OA-79; ADR-0063 |
 | 1.60 | 2026-11-05 | Phase 13 gets an execution-order note, as Phases 7 to 12 have. No task, Verify ID or schema change. | OA-80; owner request in chat |
 | 1.61 | 2026-11-05 | New skill `order-tasks` (§0.5): it derives a phase's execution order and writes the note, the register row and the version. No task, Verify ID or schema change. | OA-81; owner request in chat |
+| 1.62 | 2026-11-05 | G56 resolved: each cart line carries `product_name` and `options`, and `CartLine` shows them. New task T13.15 (after T13.13, before T13.5) with P13-V28 and P13-V29. No requirement or schema change. | OA-82; ADR-0064 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5689,7 +5703,7 @@ Generated from §3 and §6; from T1.14b on, `scripts/check_traceability.py` rege
 | REQ-072 | R1 | T1.12a, T2.1c | P1-V04 · P2-V01 · P2-V07 |
 | REQ-073 | R1 | T1.14a, T1.9, T15.5 | P1-V03 · P1-V23 · P15-V14 |
 
-365 Verify IDs in §6; 141 are acceptance criteria of a §3 requirement. The others are feature-level checks of their phase (OA-02).
+367 Verify IDs in §6; 141 are acceptance criteria of a §3 requirement. The others are feature-level checks of their phase (OA-02).
 
 ## Appendix B — ADR index
 
@@ -5760,6 +5774,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0061 | Checkboxes and radios reach the 44 px tap target through the DS size `2xl` | `docs/decisions/0061-choice-controls-44px.md` | DSR-12; OA-77 |
 | ADR-0062 | Meta descriptions of the home, catalog and product pages | `docs/decisions/0062-meta-descriptions.md` | G55; OA-78 |
 | ADR-0063 | The composables coverage returns to 100% through unit tests | `docs/decisions/0063-composables-coverage-restored.md` | G54; OA-79 |
+| ADR-0064 | Cart lines carry the product name and options | `docs/decisions/0064-cart-line-product-details.md` | G56; OA-82 |
 
 ## Appendix C — Dated market facts
 
@@ -6165,7 +6180,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 |---|---|---|
 | Phase 13 | Deliverable: checkout for delivery with an optional CFDI request (pickup is R2); R1 scope added | §1.2; OA-08; A8 |
 | 13.A | `/checkout` note: four sections — contact, delivery, invoice (optional), review | REQ-060 |
-| Tasks | Listed in execution order: T13.8, T13.1, T13.2, T13.13, T13.5, T13.9, T13.10, T13.3, T13.11, T13.6, T13.12, T13.4, T13.7 (R1), then T13.14 (R2) | Execution order |
+| Tasks | Listed in execution order: T13.8, T13.1, T13.2, T13.13, T13.15, T13.5, T13.9, T13.10, T13.3, T13.11, T13.6, T13.12, T13.4, T13.7 (R1), then T13.14 (R2) | Execution order |
 | T13.2 | Components built from DS parts per the §4.5 composition map | CR-26; OA-09 |
 | T13.3 | No pickup toggle in R1; adds the Factura section; logged-in prefill, pickup and the pre-order notice move to T13.14 | §1.2; REQ-060 |
 | T13.6 | Adds G4's `expected_total_cents` handling | G4 |
@@ -6177,6 +6192,7 @@ Where each part of `cup-noobles-implementation-plan.md` now lives, and every cha
 | T13.12 | New (pre-allocated): purchase-limit message | REQ-061; G31 |
 | T13.13 | New (beyond the pre-allocated list): the `/carrito` page; the plan had no task for it | Gap in the plan's task list |
 | T13.14 | New `[R2]` (beyond the pre-allocated list): pickup, the mixed-cart notice and the logged-in prefill | §1.2 |
+| T13.15 | New (owner decision): product name and options on cart lines; P13-V28 and P13-V29 | G56; OA-82 |
 | Storefront tasks | Done when adds "`/ui-review` ran (§0.5)" | §0.5; OA-13 |
 | P13-V01 | Edited to the delivery purchase; the pickup purchase moved to P13-V25 | Mixed R1/R2 item split |
 | P13-V11 | "§5.E dev defaults" → "§2.5 dev defaults" | Spec references |
