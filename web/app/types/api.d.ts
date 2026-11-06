@@ -287,6 +287,8 @@ export interface components {
             readonly id: number;
             /** Format: uuid */
             variant_public_id: string;
+            product_name: string;
+            options: unknown;
             quantity: number;
             unit_price_cents: number;
             readonly line_total_cents: number;

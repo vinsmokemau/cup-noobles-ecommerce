@@ -4,22 +4,27 @@ import type { Cart } from '~/composables/useCart'
 type CartLine = Cart['lines'][number]
 
 // One row of the cart. It shows what the server sent and asks for changes; it never computes a
-// total (CR-02). The cart line carries no product name, so the page passes `name` when it has one.
+// total (CR-02). The name and the variant's options come from the line itself (G56).
 const props = withDefaults(
   defineProps<{
     line: CartLine
-    name?: string
     /** Disables the controls while a cart request is in flight. */
     disabled?: boolean
   }>(),
-  { name: undefined, disabled: false },
+  { disabled: false },
 )
 const emit = defineEmits<{
   'update:quantity': [lineId: number, quantity: number]
   remove: [lineId: number]
 }>()
 
-const title = computed(() => props.name ?? 'Producto')
+const title = computed(() => props.line.product_name)
+// "Talla: L · Color: negro", in the order the catalog sent them; a product with no variation has none.
+const optionsText = computed(() =>
+  Object.entries(props.line.options ?? {})
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(' · '),
+)
 const max = computed(() => props.line.max_available ?? undefined)
 
 function setQuantity(value: number | null | undefined) {
@@ -31,8 +36,9 @@ function setQuantity(value: number | null | undefined) {
 <template>
   <UCard :data-line-id="line.id" :data-availability="line.availability">
     <div class="flex flex-wrap items-center justify-between gap-4">
-      <div class="flex flex-col gap-1">
+      <div class="flex min-w-0 flex-col gap-1 break-words">
         <p>{{ title }}</p>
+        <p v-if="optionsText" data-testid="line-options">{{ optionsText }}</p>
         <p>{{ formatMXN(line.unit_price_cents) }}</p>
         <slot />
       </div>

@@ -77,6 +77,9 @@ class ShippingQuoteSerializer(serializers.Serializer):
 
 class CartLineSerializer(serializers.ModelSerializer):
     variant_public_id = serializers.UUIDField(source="variant.public_id")
+    # Read from the rows the cart already joins for the price (G56, ADR-0064).
+    product_name = serializers.CharField(source="variant.product.name")
+    options = serializers.JSONField(source="variant.options")
     unit_price_cents = serializers.IntegerField(source="variant.price_cents")
     line_total_cents = serializers.SerializerMethodField()
     availability = serializers.SerializerMethodField()
@@ -87,6 +90,8 @@ class CartLineSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "variant_public_id",
+            "product_name",
+            "options",
             "quantity",
             "unit_price_cents",
             "line_total_cents",

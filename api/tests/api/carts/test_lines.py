@@ -1,13 +1,15 @@
-"""P7-V10, P7-V02, P7-V11: cart line bounds, availability and the line endpoints (T7.1, T7.4)."""
+"""P7-V10, P7-V02, P7-V11, P13-V28: cart line bounds, availability, details (T7.1, T7.4)."""
 
 import uuid
 
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from apps.carts.models import Cart, CartLine
 from apps.catalog.models import Product
 from tests.factories.carts import CartLineFactory
-from tests.factories.catalog import VariantFactory
+from tests.factories.catalog import ProductFactory, VariantFactory
 from tests.factories.inventory import holding_order, stocked_variant
 
 pytestmark = pytest.mark.django_db
@@ -218,3 +220,27 @@ def test_p7_v11_inactive_or_archived_variant(cart_client):
     lines = cart_client.get("/api/cart/").json()["lines"]
     assert [row["availability"] for row in lines] == ["unavailable", "unavailable"]
     assert CartLine.objects.count() == 2
+
+
+def test_p13_v28_cart_line_product_details(cart_client):
+    product = ProductFactory(name="Sudadera Noobles")
+    small = VariantFactory(product=product, options={"talla": "S", "color": "negro"})
+    large = VariantFactory(product=product, options={"talla": "L", "color": "negro"})
+    CartLineFactory(cart=cart_client.cart, variant=small)
+    CartLineFactory(cart=cart_client.cart, variant=large)
+
+    with CaptureQueriesContext(connection) as two_lines:
+        lines = cart_client.get("/api/cart/").json()["lines"]
+
+    assert [(row["product_name"], row["options"]) for row in lines] == [
+        ("Sudadera Noobles", {"talla": "S", "color": "negro"}),
+        ("Sudadera Noobles", {"talla": "L", "color": "negro"}),
+    ]
+
+    for _ in range(3):
+        CartLineFactory(cart=cart_client.cart)
+    with CaptureQueriesContext(connection) as five_lines:
+        body = cart_client.get("/api/cart/").json()
+
+    assert len(body["lines"]) == 5
+    assert len(five_lines) == len(two_lines)

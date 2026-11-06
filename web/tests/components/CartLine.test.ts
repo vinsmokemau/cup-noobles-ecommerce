@@ -6,6 +6,8 @@ import type { Cart } from '~/composables/useCart'
 const line: Cart['lines'][number] = {
   id: 7,
   variant_public_id: '5f0f6a1e-6f6f-4f0e-9d57-0b3a2f6c1a11',
+  product_name: 'Sudadera',
+  options: { talla: 'L', color: 'negro' },
   quantity: 2,
   unit_price_cents: 15000,
   // Not 2 × 15000: the server's number is the one shown (CR-02).
@@ -16,7 +18,7 @@ const line: Cart['lines'][number] = {
 
 describe('CartLine', () => {
   it('shows the server amounts and asks for changes without computing', async () => {
-    const wrapper = await mountSuspended(CartLine, { props: { line, name: 'Sudadera' } })
+    const wrapper = await mountSuspended(CartLine, { props: { line } })
     expect(wrapper.text()).toContain('Sudadera')
     expect(wrapper.text()).toContain(formatMXN(15000))
     expect(wrapper.text()).toContain(formatMXN(29900))

@@ -4,7 +4,6 @@ import { ApiError } from '~/composables/useApi'
 // The cart page (T13.13). Everything shown here is what the server last sent: line totals,
 // availability and the totals box. The page never computes an amount and never changes a
 // quantity on its own (CR-02, REQ-002); a `reduced` line is reported and the customer decides.
-// The cart response has no product names yet, so each line shows the default title (G56).
 const { cart, pending, refresh, update, remove } = useCart()
 
 const { error, refresh: reload } = await useAsyncData('cart-page', async () => {

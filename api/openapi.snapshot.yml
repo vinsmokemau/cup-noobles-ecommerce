@@ -677,6 +677,9 @@ components:
         variant_public_id:
           type: string
           format: uuid
+        product_name:
+          type: string
+        options: {}
         quantity:
           type: integer
           maximum: 2147483647
@@ -700,6 +703,8 @@ components:
       - id
       - line_total_cents
       - max_available
+      - options
+      - product_name
       - quantity
       - unit_price_cents
       - variant_public_id
