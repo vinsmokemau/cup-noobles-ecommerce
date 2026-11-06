@@ -4227,7 +4227,7 @@ Cart and checkout components, built from DS parts per the §4.5 composition map 
 
 `/carrito` (13.A): `CartLine` rows from `useCart` state; the server's per-line availability messages (`reduced` with `max_available`, `unavailable` — 7.4); totals from the server; the DS empty-state pattern with a link to the catalog when the cart is empty; and the button to the checkout.
 
-- [ ] **T13.15 — Product name and options on cart lines**
+- [x] **T13.15 — Product name and options on cart lines** (2026-11-05, 52cbcb2)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P13-V28, P13-V29
