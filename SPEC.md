@@ -4260,7 +4260,7 @@ Wire the product page's add-to-cart button (12.A) to `useCart().add`, and add a 
 
 Per G21 (ADR-0065): at T1 the API issues a short-lived signed token for the order (Django signing, expiring at the order's `payment_deadline_at`), carried in the provider's `back_urls` (`/pedido/{public_id}/gracias?t=…`, and likewise `pendiente` and `error`). `GET /api/orders/{public_id}/status/?t=<token>` returns the order's public status fields — state, number, total, and the voucher URL and expiry if one is pending. It is read-only, is not subject to the guest-lookup limit (6.7), and returns the same 404 body for a missing, expired or tampered token.
 
-- [ ] **T13.10 — Pay retry**
+- [x] **T13.10 — Pay retry** (2026-11-06, 6f4ca15)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P13-V27
