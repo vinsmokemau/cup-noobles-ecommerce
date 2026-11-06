@@ -4216,7 +4216,7 @@ They are read-only, and they let E2E specs assert stock and order effects withou
 
 Cart and checkout components, built from DS parts per the §4.5 composition map (do not hand-roll these, CR-26): `CartLine`, `AddressForm` (with postal-code autofill from T6.6). Forms use `UForm` with one Zod schema each (CR-28).
 
-- [ ] **T13.13 — Cart page**
+- [x] **T13.13 — Cart page** (2026-11-05, e1549ac)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P13-V09, P13-V10
