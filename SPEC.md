@@ -4305,7 +4305,7 @@ In R2, Contacto prefills the email of a logged-in customer, Entrega gains the pi
 
 The checkout's Factura section: a checkbox, "Quiero factura", reveals the fiscal fields as DS form fields — RFC, nombre o razón social, código postal fiscal, régimen fiscal and uso de CFDI. Régimen and uso are selects whose options come from the API's CFDI catalog (`api/fixtures/cfdi_catalogs.json`, §4.4); this task adds the read-only, cacheable `GET /api/invoicing/cfdi-catalogs/` that serves them. Zod checks formats on the client; the server's field errors (P8-V19) render under the matching inputs through `ApiError.fieldErrors`. Unchecking the box sends no invoice data. Copy follows DS microcopy (CR-32).
 
-- [ ] **T13.6 — Checkout errors**
+- [x] **T13.6 — Checkout errors** (2026-11-07, 3f48dde)
   - Release: R1 · Gate: task
   - REQs: REQ-002, REQ-010
   - Verifies: P13-V17, P13-V18, P13-V19
