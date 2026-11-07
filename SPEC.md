@@ -4317,7 +4317,7 @@ The checkout's Factura section: a checkbox, "Quiero factura", reveals the fiscal
 
 Checkout error handling: a 409 from `/api/checkout/` renders its per-line errors next to the affected lines ("Solo quedan 2 de …"), and 400 field errors render under their inputs, via `ApiError.fieldErrors`. Per G4's resolution (ADR-0042), "Pagar" also sends `expected_total_cents`, and a 409 with fresh totals re-renders the review section so the customer sees what they will pay.
 
-- [ ] **T13.12 — Purchase-limit message**
+- [x] **T13.12 — Purchase-limit message** (2026-11-07, a62d824)
   - Release: R1 · Gate: task
   - REQs: REQ-061
   - Verifies: P13-V24
