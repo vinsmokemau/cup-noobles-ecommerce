@@ -168,8 +168,10 @@ class ProductAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Blank means "generate it from the name" (T3.2).
-        self.fields["slug"].required = False
+        # Blank means "generate it from the name" (T3.2). A published slug is read-only (see
+        # `get_readonly_fields`), so the form has no such field then (G58).
+        if "slug" in self.fields:
+            self.fields["slug"].required = False
 
     def clean(self) -> dict[str, Any]:
         cleaned = super().clean() or {}

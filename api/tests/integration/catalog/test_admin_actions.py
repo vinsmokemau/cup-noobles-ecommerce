@@ -92,3 +92,21 @@ def test_changelist_shows_variants_stock_and_price_range(admin_client):
     assert "$599.00 – $699.00" in html
     assert 'class="field-available_stock">7<' in html
     assert 'class="field-variant_count">2<' in html
+
+
+def test_g58_published_product_change_page_opens(admin_client):
+    # A published slug is read-only, so the change form has no `slug` field: the page must still open.
+    product = ProductFactory(
+        name="Figura Publicada",
+        product_type=ProductTypeFactory(variant_axes=[]),
+        attributes={},
+    )
+    add_variant(product, {}, 45900, "PUB-1")
+    publish_product(product)
+
+    response = admin_client.get(
+        reverse("admin:catalog_product_change", args=[product.pk])
+    )
+
+    assert response.status_code == 200
+    assert "slug" not in response.context["adminform"].form.fields
