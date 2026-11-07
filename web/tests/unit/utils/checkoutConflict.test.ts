@@ -65,9 +65,15 @@ describe('lineErrorMessage', () => {
     )
   })
 
-  it('asks to adjust the quantity for a purchase limit (T13.12 refines this)', () => {
-    expect(lineErrorMessage(line({ code: 'purchase_limit_exceeded' }), 'Sudadera')).toBe(
-      'Revisa la cantidad de Sudadera.',
+  it('p13_v24 explains a purchase limit and how many are still allowed', () => {
+    const limited = (available: number | null) =>
+      line({ code: 'purchase_limit_exceeded', available })
+    expect(lineErrorMessage(limited(2), 'Sudadera')).toBe(
+      'Sudadera tiene un límite de compra por cliente: solo puedes llevar 2 más. Ajusta la cantidad e inténtalo de nuevo.',
     )
+    expect(lineErrorMessage(limited(0), 'Sudadera')).toBe(
+      'Ya alcanzaste el límite de compra por cliente de Sudadera. Quítalo de tu carrito para continuar.',
+    )
+    expect(lineErrorMessage(limited(null), 'Sudadera')).toContain('Ya alcanzaste el límite')
   })
 })

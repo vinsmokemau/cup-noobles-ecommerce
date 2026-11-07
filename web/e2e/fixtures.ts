@@ -24,7 +24,8 @@ export interface SeedManifest {
     }
     search: Ref & { query: string; typo: string }
     // A product with two units, which the stock-loss spec (P13-V18) uses up; `seed_e2e` refills it.
-    checkoutErrors: { scarce: Ref & { sku: string } }
+    // A product with a per-customer limit that the purchase-limit spec (P13-V24) asks to exceed.
+    checkoutErrors: { scarce: Ref & { sku: string }; limited: Ref & { limit: number } }
   }
   // A fictional staff account (T12.15).
   staff: { email: string; password: string }

@@ -345,3 +345,19 @@ test('p13_v19 price changed before pay', async ({ page, seed }) => {
   expect(requests[1]!.expected_total_cents).toBe(fresh)
   expect(await ordersOf(page, email)).toHaveLength(1)
 })
+
+test('p13_v24 purchase limit message', async ({ page, seed }) => {
+  // The limited product allows `limit` units per customer; the cart asks for one more.
+  const { limited } = seed.catalog.checkoutErrors
+  const email = uniqueEmail()
+  await addProductToCart(page, limited.slug, limited.limit + 1)
+  await openCheckout(page)
+  await fillCheckout(page, email)
+
+  await page.getByRole('button', { name: 'Pagar' }).click()
+  await expect(page.getByTestId('line-error')).toContainText(
+    `${limited.name} tiene un límite de compra por cliente: solo puedes llevar ${limited.limit} más.`,
+  )
+  await expect(page).toHaveURL(/\/checkout/)
+  expect(await ordersOf(page, email)).toHaveLength(0)
+})

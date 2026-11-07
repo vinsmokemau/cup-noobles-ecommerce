@@ -88,7 +88,22 @@ CHECKOUT_SCARCE = (
 )
 
 
-def _checkout_error_product(name: str, sku: str, price: int, units: int) -> Product:
+# P13-V24 (purchase limit) needs a variant with a per-customer limit. The limit and the stock are
+# test values, not catalog data; a spec asks for more than the limit, so no order is ever created
+# and the product keeps its stock. The window is set for the E2E stack in docker-compose.e2e.yml.
+# (name, sku, price in centavos, units available, purchase limit)
+CHECKOUT_LIMITED = (
+    "Figura Limitada E2E",
+    "E2E-CHECKOUT-LIMITED",
+    45900,
+    50,
+    2,
+)
+
+
+def _checkout_error_product(
+    name: str, sku: str, price: int, units: int, purchase_limit: int | None = None
+) -> Product:
     product = Product.objects.filter(name=name).first()
     if product is None:
         product = create_product("figure", name, {"linea": "Figma"})
@@ -98,6 +113,9 @@ def _checkout_error_product(name: str, sku: str, price: int, units: int) -> Prod
     if variant.price_cents != price:
         variant.price_cents = price
         variant.save(update_fields=["price_cents"])
+    if variant.purchase_limit != purchase_limit:
+        variant.purchase_limit = purchase_limit
+        variant.save(update_fields=["purchase_limit"])
     location, _ = Location.objects.get_or_create(
         code="almacen",
         defaults={"name": "Almacén", "kind": Location.Kind.WAREHOUSE},
@@ -173,6 +191,7 @@ def seed_catalog() -> dict[str, Any]:
 
     _keep_checkout_stock(hoodie)
     scarce = _checkout_error_product(*CHECKOUT_SCARCE)
+    limited = _checkout_error_product(*CHECKOUT_LIMITED)
 
     if not hoodie.description_md:
         hoodie.description_md = HOODIE_DESCRIPTION
@@ -214,6 +233,7 @@ def seed_catalog() -> dict[str, Any]:
         },
         "checkoutErrors": {
             "scarce": {**_manifest(scarce), "sku": CHECKOUT_SCARCE[1]},
+            "limited": {**_manifest(limited), "limit": CHECKOUT_LIMITED[4]},
         },
         "search": {"query": "Aurora", "typo": "Auroa", **_manifest(figures[0][0])},
     }

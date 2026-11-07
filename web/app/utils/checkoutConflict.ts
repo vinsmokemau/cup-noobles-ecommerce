@@ -28,5 +28,13 @@ export function lineErrorMessage(error: CheckoutLineError, productName: string):
     return left === 1 ? `Solo queda 1 de ${productName}.` : `Solo quedan ${left} de ${productName}.`
   }
   if (error.code === 'unavailable') return `${productName} ya no está disponible.`
+  if (error.code === 'purchase_limit_exceeded') {
+    // `available` is what the customer may still buy, counting earlier orders (REQ-061).
+    const left = error.available ?? 0
+    if (left <= 0) {
+      return `Ya alcanzaste el límite de compra por cliente de ${productName}. Quítalo de tu carrito para continuar.`
+    }
+    return `${productName} tiene un límite de compra por cliente: solo puedes llevar ${left} más. Ajusta la cantidad e inténtalo de nuevo.`
+  }
   return `Revisa la cantidad de ${productName}.`
 }
