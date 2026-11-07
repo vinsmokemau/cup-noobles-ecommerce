@@ -4330,7 +4330,7 @@ Checkout error handling: a 409 from `/api/checkout/` renders its per-line errors
 
 A 409 from `/api/checkout/` for a line over its per-customer limit renders the server's per-line message next to that line in the Revisión section, the same way as the stock message (T13.6). No order is created.
 
-- [ ] **T13.4 — Error boundaries**
+- [x] **T13.4 — Error boundaries** (2026-11-07, a05f770)
   - Release: R1 · Gate: task
   - REQs: REQ-053
   - Verifies: P13-V20
