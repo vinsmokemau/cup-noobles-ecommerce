@@ -93,8 +93,26 @@ class VariantInlineFormSet(forms.BaseInlineFormSet):
             seen.add(key)
 
 
+class VariantInlineForm(forms.ModelForm):
+    """`{}` is a valid `options` (a product with no axes has one variant like that), but Django's
+    JSON form field treats it as empty and demands a value (G59). The formset checks the keys
+    against the product's axes, so an empty object passes only where the product has none."""
+
+    class Meta:
+        model = Variant
+        fields = "__all__"
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["options"].required = False
+
+    def clean_options(self) -> dict[str, Any]:
+        return self.cleaned_data.get("options") or {}
+
+
 class VariantInline(admin.TabularInline):
     model = Variant
+    form = VariantInlineForm
     formset = VariantInlineFormSet
     extra = 0
     ordering = ("position", "pk")

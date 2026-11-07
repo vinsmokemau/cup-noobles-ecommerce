@@ -1,6 +1,7 @@
 import pytest
 from django.urls import reverse
 
+from apps.catalog.admin import VariantInlineForm
 from apps.catalog.models import Product, Variant
 from apps.catalog.services import add_variant, publish_product
 from apps.inventory.models import StockItem, StockLedger
@@ -110,3 +111,15 @@ def test_g58_published_product_change_page_opens(admin_client):
 
     assert response.status_code == 200
     assert "slug" not in response.context["adminform"].form.fields
+
+
+def test_g59_variant_with_empty_options_is_valid_in_the_admin():
+    # A product with no axes has one variant with options `{}`; the admin form must accept it.
+    form = VariantInlineForm(
+        data={"sku": "FIG-1", "options": "{}", "price_cents": 45900, "is_active": "on"}
+    )
+
+    form.is_valid()
+
+    assert "options" not in form.errors
+    assert form.cleaned_data["options"] == {}
