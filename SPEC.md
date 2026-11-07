@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.66 |
+| Spec version | 1.67 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -457,8 +457,8 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G57 | 13 | T13.3, T13.7, P13-V01 | P13-V01 (T13.3) asserts the "confirmed `gracias` view", but T13.7, which builds `gracias`, runs after T13.3 (phase execution order), so the assertion cannot pass at T13.3. | Narrow P13-V01 to the hand-off: it reaches the simulator, "Aprobar con tarjeta" is pressed, the browser lands on `/pedido/{id}/gracias?t=…` and `/dev/test/orders/` shows the order `paid`. The confirmed view is asserted by P13-V13 (T13.7). | R1 | Resolved (ADR-0067) |
 | G58 | 3 | T3.3, T13.6 | The admin change page of a published product fails with `KeyError: 'slug'` (`ProductAdminForm.__init__`, `api/apps/catalog/admin.py`): a published slug is read-only (T3.2), so the form has no `slug` field to make optional. Staff cannot open any published product, so they cannot edit its variants or prices. Found when T13.6 tried to change a price in the admin for P13-V19; P13-V19 does not need it (see the task report). | In `ProductAdminForm.__init__`, make the slug optional only when the form has the field, and add a test that opens the change page of a published product. | R1 | Resolved (fixed in code at the owner's request, no ADR) |
 | G59 | 3 | T3.3, G58 | The admin cannot save a variant whose options are `{}` (a product with no variant axes, such as every figure): Django's JSON form field treats `{}` as empty and reports "Este campo es requerido" on the `options` field, so staff cannot edit the price of such a variant. Found while checking the G58 fix. | Declare the `options` form field of `VariantInline` as not required (an empty object is valid when the product has no axes; the formset's `check_option_keys` already enforces the axes), and add a test that saves a variant of a product with no axes. | R1 | Resolved (fixed in code at the owner's request, no ADR) |
-| G60 | 13 | T13.4 | The error-boundary fallback (`LoadError`) always says "Revisa tu conexión e inténtalo de nuevo.", which is wrong when the boundary caught a render error and not a failed call. No es-MX wording for a render failure exists in the DS microcopy or this spec. | Owner chooses the wording, or confirms the shared text is enough. Proposal only: keep the shared text until answered. | R1 | Open |
-| G61 | 13 | T13.4 | `LoadError` gives no feedback while its retry is running: the button stays as it was until the data returns. It has no pending state, and the DS has no stated pattern for one. | Check the DS for a loading-button pattern; if none, request one. Proposal only. | R1 | Open |
+| G60 | 13 | T13.4 | The error-boundary fallback (`LoadError`) always says "Revisa tu conexión e inténtalo de nuevo.", which is wrong when the boundary caught a render error and not a failed call. No es-MX wording for a render failure exists in the DS microcopy or this spec. | Owner chooses the wording, or confirms the shared text is enough. Proposal only: keep the shared text until answered. | R1 | Resolved (ADR-0069) |
+| G61 | 13 | T13.4 | `LoadError` gives no feedback while its retry is running: the button stays as it was until the data returns. It has no pending state, and the DS has no stated pattern for one. | Check the DS for a loading-button pattern; if none, request one. Suggested action accepted by the owner (OA-87); done in a later task. | R1 | Open |
 
 #### Design System requests (DSR)
 
@@ -586,6 +586,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-84 | 2026-11-06 | G22: no endpoint retries payment for a `pending_payment` order. Which rule? | Option A: the proposed resolution. `POST /api/orders/{public_id}/pay/`, authorised by the order-status token, returns a fresh `checkout_url` from `payment_provider().create_checkout(order)` while the order is `pending_payment`, keeping its reservations and its deadline. Any other state returns 409. The cart half was decided at T1 (OA-58, ADR-0049). P13-V15 and P13-V27 lose their `xfail`. ADR-0066. |
 | OA-85 | 2026-11-06 | G57: P13-V01 asserts the confirmed `gracias` view at T13.3, but `gracias` is built by T13.7. Which rule? | Option A: the proposed resolution. P13-V01 passes when the mobile delivery purchase reaches the simulator, "Aprobar con tarjeta" is pressed, the browser lands on `/pedido/{id}/gracias?t=…` and `/dev/test/orders/` shows the order `paid`. The "confirmed view" assertion stays with P13-V13 in T13.7. ADR-0067. |
 | OA-86 | 2026-11-07 | D15: how long is the purchase-limit window, and which variants carry a limit? | Window: 30 days (`PURCHASE_LIMIT_WINDOW_DAYS=30`). Limits: only the variants the owner names, with the number of each set in the admin at the opening stock count; no limit elsewhere and no default limit. ADR-0068. |
+| OA-87 | 2026-11-07 | G60: what should the shared load-error alert say, now that it also covers a render error? | Option A: title "No pudimos mostrar esta sección", description "Algo salió mal de nuestro lado. Inténtalo de nuevo.", for every use of `LoadError`. G61 stays Open; the owner accepted its suggested action. ADR-0069. |
 
 ---
 
@@ -5677,6 +5678,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.64 | 2026-11-06 | G22 resolved as proposed: `POST /api/orders/{public_id}/pay/`, authorised by the order-status token, returns a fresh `checkout_url` while the order is `pending_payment`, keeping reservations and deadline; any other state returns 409. T13.10, T13.7 and the Phase 13 execution note lose the G22 `xfail`; the ⚠️ marks of P13-V15 and P13-V27 are removed. No new task, Verify ID or schema change. | OA-84; ADR-0066 |
 | 1.65 | 2026-11-06 | G57 resolved as proposed: P13-V01 is narrowed to the hand-off (simulator approval, landing on `gracias?t=…`, order `paid` in `/dev/test/orders/`); the confirmed `gracias` view is asserted by P13-V13 in T13.7. T13.3 and T13.7 cite G57. No new task, Verify ID or schema change. | OA-85; ADR-0067 |
 | 1.66 | 2026-11-07 | D15 decided: the purchase-limit window is 30 days, and only the variants the owner names carry a limit, each number set in the admin at the opening stock count. The value is applied in production through `PURCHASE_LIMIT_WINDOW_DAYS=30` (Phase 22); the code keeps no default. No new task, Verify ID or schema change. | OA-86; ADR-0068 |
+| 1.67 | 2026-11-07 | G60 resolved: the shared `LoadError` alert reads "No pudimos mostrar esta sección" / "Algo salió mal de nuestro lado. Inténtalo de nuevo.". G61 stays Open with its suggested action accepted. No task, Verify ID or schema change. | OA-87; ADR-0069 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5794,6 +5796,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0066 | The pay-retry endpoint | `docs/decisions/0066-pay-retry-endpoint.md` | G22; OA-84 |
 | ADR-0067 | P13-V01 asserts the hand-off, not the confirmed view | `docs/decisions/0067-p13-v01-handoff.md` | G57; OA-85 |
 | ADR-0068 | The purchase-limit window and which variants carry a limit | `docs/decisions/0068-purchase-limit-window.md` | D15; OA-86 |
+| ADR-0069 | The shared wording of the load-error alert | `docs/decisions/0069-load-error-wording.md` | G60; OA-87 |
 
 ## Appendix C — Dated market facts
 

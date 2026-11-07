@@ -73,3 +73,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0066](0066-pay-retry-endpoint.md) | The pay-retry endpoint | accepted | G22; OA-84 |
 | [ADR-0067](0067-p13-v01-handoff.md) | P13-V01 asserts the hand-off, not the confirmed view | accepted | G57; OA-85 |
 | [ADR-0068](0068-purchase-limit-window.md) | The purchase-limit window and which variants carry a limit | accepted | D15; OA-86 |
+| [ADR-0069](0069-load-error-wording.md) | The shared wording of the load-error alert | accepted | G60; OA-87 |
