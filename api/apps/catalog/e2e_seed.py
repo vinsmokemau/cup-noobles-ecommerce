@@ -76,6 +76,39 @@ def _keep_checkout_stock(hoodie: Product) -> None:
         receive_stock(variant, location, missing, note="seed_e2e")
 
 
+# P13-V18 (stock lost between cart and pay) needs a product whose last units a spec can buy
+# without touching the products other specs read. Each run of `seed_e2e` puts it back to two units
+# and one price: a re-run is what resets it after a local run of the specs.
+# (name, sku, price in centavos, units available)
+CHECKOUT_SCARCE = (
+    "Figura Escasa E2E",
+    "E2E-CHECKOUT-SCARCE",
+    45900,
+    2,
+)
+
+
+def _checkout_error_product(name: str, sku: str, price: int, units: int) -> Product:
+    product = Product.objects.filter(name=name).first()
+    if product is None:
+        product = create_product("figure", name, {"linea": "Figma"})
+        add_variant(product, {}, price, sku)
+        publish_product(product)
+    variant = product.variants.get(sku=sku)
+    if variant.price_cents != price:
+        variant.price_cents = price
+        variant.save(update_fields=["price_cents"])
+    location, _ = Location.objects.get_or_create(
+        code="almacen",
+        defaults={"name": "Almacén", "kind": Location.Kind.WAREHOUSE},
+    )
+    item, _ = StockItem.objects.get_or_create(variant=variant, location=location)
+    missing = units - (item.on_hand - item.reserved)
+    if missing > 0:
+        receive_stock(variant, location, missing, note="seed_e2e")
+    return product
+
+
 def _test_picture() -> ContentFile:
     """A plain grey rectangle: test data, so the product page has a picture to share (P12-V23)."""
     buffer = BytesIO()
@@ -139,6 +172,7 @@ def seed_catalog() -> dict[str, Any]:
         publish_product(hoodie)
 
     _keep_checkout_stock(hoodie)
+    scarce = _checkout_error_product(*CHECKOUT_SCARCE)
 
     if not hoodie.description_md:
         hoodie.description_md = HOODIE_DESCRIPTION
@@ -177,6 +211,9 @@ def seed_catalog() -> dict[str, Any]:
                 {"options": options, "price_cents": price, "in_stock": units > 0}
                 for options, price, units in HOODIE_VARIANTS
             ],
+        },
+        "checkoutErrors": {
+            "scarce": {**_manifest(scarce), "sku": CHECKOUT_SCARCE[1]},
         },
         "search": {"query": "Aurora", "typo": "Auroa", **_manifest(figures[0][0])},
     }

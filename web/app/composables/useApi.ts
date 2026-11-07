@@ -13,12 +13,15 @@ export class ApiError extends Error {
   readonly fieldErrors: Record<string, string[]>
   /** The API answered `{"prelaunch": true}`: pre-launch mode is on (G32, ADR-0038). */
   readonly prelaunch: boolean
+  /** The response payload as the API sent it, for answers that carry more than messages (a 409's `line_errors`). */
+  readonly body: unknown
 
   constructor(
     status: number,
     detail: string,
     fieldErrors: Record<string, string[]> = {},
     prelaunch = false,
+    body: unknown = undefined,
   ) {
     super(detail)
     this.name = 'ApiError'
@@ -26,6 +29,7 @@ export class ApiError extends Error {
     this.detail = detail
     this.fieldErrors = fieldErrors
     this.prelaunch = prelaunch
+    this.body = body
   }
 }
 
@@ -77,7 +81,7 @@ export function toApiError(failure: unknown): ApiError {
     typeof payload === 'object' &&
     payload !== null &&
     (payload as { prelaunch?: unknown }).prelaunch === true
-  return new ApiError(status, detail || MESSAGE_GENERIC, fieldErrors, prelaunch)
+  return new ApiError(status, detail || MESSAGE_GENERIC, fieldErrors, prelaunch, payload)
 }
 
 function readCookie(cookies: string | undefined, name: string): string | undefined {

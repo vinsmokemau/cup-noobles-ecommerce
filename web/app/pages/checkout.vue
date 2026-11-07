@@ -39,6 +39,10 @@ const addressForm = useTemplateRef<{ validate: () => Promise<boolean> }>('addres
 const invoice = ref<CheckoutInvoice | null>(null)
 const invoiceForm = useTemplateRef<{ validate: () => Promise<boolean> }>('invoiceForm')
 const invoiceErrors = ref<Record<string, string[]>>({})
+// Server errors of the other sections, and of the review lines (T13.6).
+const addressErrors = ref<Record<string, string[]>>({})
+const lineErrors = ref<Record<string, string>>({})
+const totalNotice = ref('')
 const {
   data: catalogs,
   error: catalogsError,
@@ -76,12 +80,60 @@ const submitting = ref(false)
 const redirecting = ref(false)
 const payError = ref('')
 
+// Field errors of one nested serializer (`address_payload.street` → `street`).
+function nested(failure: ApiError, prefix: string): Record<string, string[]> {
+  return Object.fromEntries(
+    Object.entries(failure.fieldErrors)
+      .filter(([key]) => key.startsWith(`${prefix}.`))
+      .map(([key, messages]) => [key.slice(prefix.length + 1), messages]),
+  )
+}
+
+// Puts each server error next to what it is about. Nothing was reserved in any of these cases.
+async function showFailure(failure: ApiError) {
+  const conflict = failure.status === 409 ? parseCheckoutConflict(failure.body) : null
+  if (conflict) {
+    // The cart is read again, so the lines and totals on screen are the server's.
+    await refresh(address.value.postal_code).catch(() => undefined)
+    if (conflict.kind === 'total') {
+      totalNotice.value = `El total cambió y ahora es ${formatMXN(conflict.totals.total_cents)}. Revísalo y vuelve a presionar Pagar.`
+      return
+    }
+    lineErrors.value = Object.fromEntries(
+      conflict.lineErrors.map((item) => {
+        const name =
+          lines.value.find((line) => line.variant_public_id === item.variant_public_id)
+            ?.product_name ?? 'este producto'
+        return [item.variant_public_id, lineErrorMessage(item, name)]
+      }),
+    )
+    payError.value =
+      'Algunos productos de tu carrito cambiaron. Revisa los avisos e inténtalo de nuevo.'
+    return
+  }
+
+  invoiceErrors.value = nested(failure, 'invoice')
+  addressErrors.value = nested(failure, 'address_payload')
+  const contactErrors = ['email', 'phone']
+    .filter((name) => failure.fieldErrors[name])
+    .map((name) => ({ name, message: failure.fieldErrors[name]!.join(' ') }))
+  if (contactErrors.length) contactForm.value?.setErrors(contactErrors)
+
+  if (Object.keys(invoiceErrors.value).length) payError.value = 'Revisa los datos de tu factura.'
+  else if (contactErrors.length || Object.keys(addressErrors.value).length)
+    payError.value = 'Revisa los datos marcados.'
+  else payError.value = failure.fieldErrors.cart?.join(' ') ?? failure.detail
+}
+
 async function pay() {
   // Read before the first await: two clicks in the same tick must not both pass.
   if (submitting.value || redirecting.value || !idempotencyKey.value) return
   submitting.value = true
   payError.value = ''
+  totalNotice.value = ''
   invoiceErrors.value = {}
+  addressErrors.value = {}
+  lineErrors.value = {}
   try {
     const contactValid = await contactForm.value
       ?.validate({ silent: true })
@@ -90,10 +142,13 @@ async function pay() {
     const invoiceValid = (await invoiceForm.value?.validate()) !== false
     if (!contactValid || !addressValid || !invoiceValid) return
 
+    // The total the customer is looking at: the server refuses the order if it has changed (G4).
+    const expectedTotal = totals.value?.total_cents
     const response = await api<CheckoutResponse>('/checkout/', {
       method: 'POST',
       headers: { 'Idempotency-Key': idempotencyKey.value },
       body: {
+        ...(expectedTotal !== undefined ? { expected_total_cents: expectedTotal } : {}),
         email: contact.email,
         phone: contact.phone,
         fulfillment_method: 'delivery',
@@ -107,15 +162,10 @@ async function pay() {
     window.location.href = response.checkout_url
   } catch (failure) {
     if (failure instanceof ApiError) {
-      // Server field errors of the invoice render under their inputs (`invoice.rfc` → `rfc`).
-      invoiceErrors.value = Object.fromEntries(
-        Object.entries(failure.fieldErrors)
-          .filter(([key]) => key.startsWith('invoice.'))
-          .map(([key, messages]) => [key.slice('invoice.'.length), messages]),
-      )
-      payError.value = Object.keys(invoiceErrors.value).length
-        ? 'Revisa los datos de tu factura.'
-        : failure.detail
+      await showFailure(failure)
+      // The first field with a server error takes the focus, so a keyboard user lands on it.
+      await nextTick()
+      document.querySelector<HTMLElement>('main [aria-invalid="true"]')?.focus()
     } else {
       payError.value = 'Algo salió mal. Inténtalo de nuevo.'
     }
@@ -204,6 +254,7 @@ usePageSeo({ title: 'Checkout', noindex: true })
           <AddressForm
             ref="addressForm"
             v-model="address"
+            :field-errors="addressErrors"
             hide-submit
             :disabled="submitting"
             @update:postal-code="onPostalCode"
@@ -249,11 +300,21 @@ usePageSeo({ title: 'Checkout', noindex: true })
               <li
                 v-for="line in lines"
                 :key="line.id"
-                class="flex justify-between gap-4"
+                class="flex flex-wrap justify-between gap-4"
                 :data-line-id="line.id"
               >
-                <span>{{ line.quantity }} × {{ line.product_name }}</span>
+                <span class="min-w-0 break-words"
+                  >{{ line.quantity }} × {{ line.product_name }}</span
+                >
                 <span>{{ formatMXN(line.line_total_cents) }}</span>
+                <p
+                  v-if="lineErrors[line.variant_public_id]"
+                  class="basis-full"
+                  role="alert"
+                  data-testid="line-error"
+                >
+                  {{ lineErrors[line.variant_public_id] }}
+                </p>
               </li>
             </ul>
 
@@ -285,6 +346,14 @@ usePageSeo({ title: 'Checkout', noindex: true })
             </p>
 
             <UAlert
+              v-if="totalNotice"
+              :description="totalNotice"
+              color="warning"
+              variant="subtle"
+              role="status"
+              data-testid="total-notice"
+            />
+            <UAlert
               v-if="payError"
               :description="payError"
               color="error"
@@ -292,6 +361,15 @@ usePageSeo({ title: 'Checkout', noindex: true })
               role="alert"
             />
 
+            <UButton
+              v-if="needsAttention"
+              to="/carrito"
+              label="Revisar mi carrito"
+              color="neutral"
+              variant="outline"
+              size="xl"
+              block
+            />
             <UButton
               label="Pagar"
               color="primary"

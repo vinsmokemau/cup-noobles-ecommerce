@@ -23,6 +23,8 @@ export interface SeedManifest {
       variants: { options: Record<string, string>; price_cents: number; in_stock: boolean }[]
     }
     search: Ref & { query: string; typo: string }
+    // A product with two units, which the stock-loss spec (P13-V18) uses up; `seed_e2e` refills it.
+    checkoutErrors: { scarce: Ref & { sku: string } }
   }
   // A fictional staff account (T12.15).
   staff: { email: string; password: string }

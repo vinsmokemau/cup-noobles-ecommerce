@@ -72,6 +72,7 @@ test('p13_v01 mobile viewport purchase delivery', async ({ page, seed }, testInf
 })
 
 test('p13_v02 double-click Pagar creates one order', async ({ page, seed }) => {
+  test.setTimeout(60_000) // two full purchases; close to the 30 s default when both projects run
   async function attempt(fire: () => Promise<void>) {
     const email = uniqueEmail()
     await page.context().clearCookies()
@@ -128,6 +129,7 @@ test('p13_v11 delivery quote follows the cp', async ({ page, seed }) => {
 })
 
 test('p13_v21 idempotency key lifecycle', async ({ page, seed }) => {
+  test.setTimeout(60_000) // two full purchases; close to the 30 s default when both projects run
   const keys: string[] = []
   await page.route('**/api/checkout/', async (route) => {
     keys.push(route.request().headers()['idempotency-key'] ?? '')
@@ -172,4 +174,174 @@ test('p13_v21 idempotency key lifecycle', async ({ page, seed }) => {
   await page.getByRole('button', { name: 'Pagar' }).click()
   await expect.poll(() => reloadKeys.length).toBe(2)
   expect(reloadKeys[1]).not.toBe(reloadKeys[0])
+})
+
+// ---- T13.6: checkout errors ------------------------------------------------------------------
+
+// Puts the single variant of a seeded checkout-error product in the page's cart.
+async function addProductToCart(page: Page, slug: string, quantity: number): Promise<void> {
+  const detail = await page.request.get(`/api/catalog/products/${slug}/`)
+  const product = (await detail.json()) as { variants: { public_id: string }[] }
+  await page.request.get('/api/cart/')
+  const cookies = await page.context().cookies()
+  const csrf = cookies.find((c) => c.name === 'csrftoken')!.value
+  const response = await page.request.post('/api/cart/lines/', {
+    data: { variant_public_id: product.variants[0]!.public_id, quantity },
+    headers: { 'X-CSRFToken': csrf },
+  })
+  expect(response.ok()).toBe(true)
+}
+
+test('p13_v17 server validation errors inline', async ({ page, seed }) => {
+  const email = uniqueEmail()
+  await addToCart(page, seed, 1)
+  await openCheckout(page)
+  await fillCheckout(page, email)
+
+  // The form is valid, so the page sends it. The request is changed on its way out so the real
+  // server answers with its own field errors: first an invalid email, then no address fields.
+  const serverErrors: Record<string, unknown>[] = []
+  let attempt = 0
+  await page.route('**/api/checkout/', async (route) => {
+    const body = route.request().postDataJSON() as Record<string, unknown>
+    const changed =
+      attempt++ === 0 ? { ...body, email: 'no-es-un-correo' } : { ...body, address_payload: {} }
+    const response = await route.fetch({ postData: JSON.stringify(changed) })
+    serverErrors.push((await response.json()) as Record<string, unknown>)
+    await route.fulfill({ response })
+  })
+
+  await page.getByRole('button', { name: 'Pagar' }).click()
+  await expect.poll(() => serverErrors.length).toBe(1)
+  const emailMessage = (serverErrors[0]!.email as string[])[0]!
+  await expect(page.getByText(emailMessage)).toBeVisible()
+  await expect(page.getByLabel('Correo electrónico')).toHaveAttribute('aria-invalid', 'true')
+
+  await page.getByRole('button', { name: 'Pagar' }).click()
+  await expect.poll(() => serverErrors.length).toBe(2)
+  const address = serverErrors[1]!.address_payload as Record<string, string[]>
+  await expect(page.getByText(address.street![0]!).first()).toBeVisible()
+  await expect(page.getByLabel('Calle')).toHaveAttribute('aria-invalid', 'true')
+
+  await expect(page).toHaveURL(/\/checkout/)
+  expect(await ordersOf(page, email)).toHaveLength(0)
+})
+
+test('p13_v18 stock lost between cart and pay', async ({ page, seed, playwright }, testInfo) => {
+  // `seed_e2e` leaves two units: one run of this spec uses them. Both projects share the stack.
+  test.skip(testInfo.project.name !== 'desktop', 'P13-V18 runs on the desktop project')
+  const { scarce } = seed.catalog.checkoutErrors
+  const email = uniqueEmail()
+  await addProductToCart(page, scarce.slug, 2)
+  await openCheckout(page)
+  await fillCheckout(page, email)
+  const inventory = async () =>
+    (await (await page.request.get(`/dev/test/inventory/${scarce.sku}/`)).json()) as {
+      on_hand: number
+      reserved: number
+    }
+  const before = await inventory()
+
+  // A second client buys one of the two units while the first one is still on the page.
+  const baseURL = testInfo.project.use.baseURL ?? 'http://localhost:8080'
+  const other = await playwright.request.newContext({ baseURL })
+  try {
+    const detail = (await (await other.get(`/api/catalog/products/${scarce.slug}/`)).json()) as {
+      variants: { public_id: string }[]
+    }
+    await other.get('/api/cart/')
+    const csrf = (await other.storageState()).cookies.find((c) => c.name === 'csrftoken')!.value
+    const headers = { 'X-CSRFToken': csrf }
+    await other.post('/api/cart/lines/', {
+      data: { variant_public_id: detail.variants[0]!.public_id, quantity: 1 },
+      headers,
+    })
+    const cp = (await (await other.get('/api/postal-codes/06700/')).json()) as {
+      state_code: string
+      municipality: string
+      neighborhoods: string[]
+    }
+    const purchase = await other.post('/api/checkout/', {
+      headers,
+      data: {
+        email: uniqueEmail(),
+        phone: '5555555555',
+        fulfillment_method: 'delivery',
+        address_payload: {
+          recipient_name: 'Otro cliente',
+          street: 'Calle de prueba',
+          ext_number: '1',
+          neighborhood: cp.neighborhoods[0],
+          municipality: cp.municipality,
+          state_code: cp.state_code,
+          postal_code: '06700',
+        },
+      },
+    })
+    expect(purchase.status()).toBe(201)
+  } finally {
+    await other.dispose()
+  }
+  const during = await inventory()
+
+  await page.getByRole('button', { name: 'Pagar' }).click()
+  await expect(page.getByTestId('line-error')).toContainText(`Solo queda 1 de ${scarce.name}.`)
+  await expect(page).toHaveURL(/\/checkout/)
+  expect(await ordersOf(page, email)).toHaveLength(0)
+  expect(during.reserved).toBe(before.reserved + 1)
+  expect(await inventory()).toEqual(during)
+})
+
+test('p13_v19 price changed before pay', async ({ page, seed }) => {
+  // The page's last view of the cart is older than the server's prices: every cart answer shows a
+  // total that is 50 pesos too low, as if the price had risen since the customer last looked. The
+  // server stays real. The admin cannot change a price here (G58), so the staleness is on the page.
+  const STALE_BY = 5000
+  let stale = true
+  await page.route(/\/api\/cart\//, async (route) => {
+    const response = await route.fetch()
+    const cart = (await response.json()) as { totals?: { total_cents: number } }
+    if (stale && cart.totals) cart.totals.total_cents -= STALE_BY
+    await route.fulfill({ response, json: cart })
+  })
+
+  const email = uniqueEmail()
+  await addToCart(page, seed, 1)
+  await openCheckout(page)
+  await fillCheckout(page, email)
+  const totals = page.getByTestId('checkout-totals')
+  await expect(totals).toBeVisible()
+  const staleTotal = await totals.innerText()
+
+  const requests: Record<string, unknown>[] = []
+  const answers: { status: number; totals?: { total_cents: number } }[] = []
+  page.on('response', async (response) => {
+    if (response.request().method() === 'POST' && response.url().endsWith('/api/checkout/')) {
+      requests.push(response.request().postDataJSON() as Record<string, unknown>)
+      const body = (await response.json().catch(() => ({}))) as { totals?: { total_cents: number } }
+      answers.push({ status: response.status(), totals: body.totals })
+      stale = false // the next cart read is the server's own
+    }
+  })
+
+  // First press: the server refuses the total the customer saw and creates nothing.
+  await page.getByRole('button', { name: 'Pagar' }).click()
+  await expect(page.getByTestId('total-notice')).toBeVisible()
+  await expect(page).toHaveURL(/\/checkout/)
+  expect(answers[0]?.status).toBe(409)
+  const fresh = answers[0]!.totals!.total_cents
+  expect(fresh).toBe((requests[0]!.expected_total_cents as number) + STALE_BY)
+  expect(await ordersOf(page, email)).toHaveLength(0)
+
+  // The review section now shows what the customer will pay.
+  await expect(totals).not.toHaveText(staleTotal)
+  await expect(totals).toContainText(
+    (fresh / 100).toLocaleString('es-MX', { minimumFractionDigits: 2 }),
+  )
+
+  // Second press pays that total.
+  await page.getByRole('button', { name: 'Pagar' }).click()
+  await expect(page).toHaveURL(/\/dev\/payments\/checkout\//)
+  expect(requests[1]!.expected_total_cents).toBe(fresh)
+  expect(await ordersOf(page, email)).toHaveLength(1)
 })
