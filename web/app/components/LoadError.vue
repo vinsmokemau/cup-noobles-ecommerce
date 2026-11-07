@@ -7,8 +7,8 @@ withDefaults(
     retryLabel?: string
   }>(),
   {
-    title: 'No pudimos cargar esta página',
-    description: 'Revisa tu conexión e inténtalo de nuevo.',
+    title: 'No pudimos mostrar esta sección',
+    description: 'Algo salió mal de nuestro lado. Inténtalo de nuevo.',
     retryLabel: 'Reintentar',
   },
 )
