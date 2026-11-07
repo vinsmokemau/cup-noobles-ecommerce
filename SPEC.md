@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.65 |
+| Spec version | 1.66 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -387,7 +387,7 @@ Status values: **Open**; **Decided** (an owner answer exists; its ADR is written
 | D12 | The initial catalog file for the importer (3.6), from GE:T31. It is never committed (CR-49). | Phase 22 | R1 | `seed_demo`, generated CSVs | Open |
 | D13 | Mercado Pago settlement speed. Faster settlement costs a higher fee. | Phase 16 | R1 | — | Open |
 | D14 | **New.** Launch product types and their attribute schemas. GE adds an accessories type (GE:§0.3), puts apparel after launch, and asks for language, edition and condition (sealed) on TCG and board games (GE:M1, GE:§7.1). | T2.8 | R1 | §2.5 | Open |
-| D15 | **New.** The purchase-limit value of each limited variant, and the length of the window the guard counts over, in days (`PURCHASE_LIMIT_WINDOW_DAYS`) (GE:T20). The mechanism is G31 (ADR-0030). | Phase 22 | R1 | Factory values in tests | Open |
+| D15 | **New.** The purchase-limit value of each limited variant, and the length of the window the guard counts over, in days (`PURCHASE_LIMIT_WINDOW_DAYS`) (GE:T20). The mechanism is G31 (ADR-0030). Decided: 30 days; only named variants carry a limit, each number entered in the admin at the opening stock count (OA-86). | Phase 22 | R1 | Factory values in tests | Decided (ADR-0068) |
 | D16 | **New.** CFDI details for the accountant: the list of fiscal fields to capture, how long a customer has to request a CFDI, the global-invoice period, and how a refund of an invoiced order is handled | Fields: T2.1. The rest: Phase 22. | R1 | §2.5 | Open |
 | D17 | **New.** Out-of-stock interest list: link to the external form or WhatsApp list of GE:T26, or show nothing | Phase 12 | R1 | Nothing shown | Open |
 | D18 | **New.** Analytics: which tool, if any (for example Plausible or GA4)? The aviso de privacidad must match (D2). | Phase 22 | R1 | None installed | Open |
@@ -583,6 +583,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-83 | 2026-11-05 | G21: the guest landing pages must poll the order, but the guest lookup needs the number and the email and allows 5 calls an hour. How do they read the order state, and when does the token expire? | Option A: the proposed resolution. A signed order-status token is carried in the `back_urls`, read by a read-only status endpoint that returns the same 404 for a missing, expired or tampered token. The token expires at the order's `payment_deadline_at`, so it reuses the D6 windows and adds no new number. P13-V26, P13-V13 and P13-V14 lose their `xfail`. ADR-0065. |
 | OA-84 | 2026-11-06 | G22: no endpoint retries payment for a `pending_payment` order. Which rule? | Option A: the proposed resolution. `POST /api/orders/{public_id}/pay/`, authorised by the order-status token, returns a fresh `checkout_url` from `payment_provider().create_checkout(order)` while the order is `pending_payment`, keeping its reservations and its deadline. Any other state returns 409. The cart half was decided at T1 (OA-58, ADR-0049). P13-V15 and P13-V27 lose their `xfail`. ADR-0066. |
 | OA-85 | 2026-11-06 | G57: P13-V01 asserts the confirmed `gracias` view at T13.3, but `gracias` is built by T13.7. Which rule? | Option A: the proposed resolution. P13-V01 passes when the mobile delivery purchase reaches the simulator, "Aprobar con tarjeta" is pressed, the browser lands on `/pedido/{id}/gracias?t=…` and `/dev/test/orders/` shows the order `paid`. The "confirmed view" assertion stays with P13-V13 in T13.7. ADR-0067. |
+| OA-86 | 2026-11-07 | D15: how long is the purchase-limit window, and which variants carry a limit? | Window: 30 days (`PURCHASE_LIMIT_WINDOW_DAYS=30`). Limits: only the variants the owner names, with the number of each set in the admin at the opening stock count; no limit elsewhere and no default limit. ADR-0068. |
 
 ---
 
@@ -1226,7 +1227,7 @@ Coverage never decreases (CR-44). `coverage-baseline.json` records each scope's 
 | `WEBHOOK_MAX_AGE_SECONDS` | api | `300` | `300` | Signature timestamp tolerance, applied on both sides of now (9.A, G8, ADR-0044) |
 | `WEBHOOK_INLINE_BUDGET_MS` | api | `2000` | `2000` | Inline processing budget before `process_webhooks` takes over (9.A, OA-54, ADR-0045) |
 | `PICKUP_HOLD_DAYS` | api | `7` | D4 | `[R2]`, with pickup |
-| `PURCHASE_LIMIT_WINDOW_DAYS` | api | No default; tests set it (D15) | D15 | Days the purchase-limit guard looks back (G31, ADR-0030). Required while any variant carries a limit. |
+| `PURCHASE_LIMIT_WINDOW_DAYS` | api | No default in code; tests set it. Production sets `30` (D15, OA-86, ADR-0068) | D15 | Days the purchase-limit guard looks back (G31, ADR-0030). Required while any variant carries a limit. |
 
 The pre-launch switch (G32, ADR-0038) is not an environment variable: it is the `prelaunch_mode` column of the `site_setting` table, edited in the admin. The store timezone (G5, ADR-0030) is the constant `America/Mexico_City`, not a setting.
 
@@ -5673,6 +5674,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.63 | 2026-11-05 | G21 resolved: a signed order-status token in the `back_urls`, read by a status endpoint that returns one 404 for a missing, expired or tampered token; it expires at `payment_deadline_at`. T13.9 and the Phase 13 execution note lose the G21 `xfail`; the ⚠️ marks of P13-V13, V14, V26 and REQ-052 are removed. G22 stays open. No new task, Verify ID or schema change. | OA-83; ADR-0065 |
 | 1.64 | 2026-11-06 | G22 resolved as proposed: `POST /api/orders/{public_id}/pay/`, authorised by the order-status token, returns a fresh `checkout_url` while the order is `pending_payment`, keeping reservations and deadline; any other state returns 409. T13.10, T13.7 and the Phase 13 execution note lose the G22 `xfail`; the ⚠️ marks of P13-V15 and P13-V27 are removed. No new task, Verify ID or schema change. | OA-84; ADR-0066 |
 | 1.65 | 2026-11-06 | G57 resolved as proposed: P13-V01 is narrowed to the hand-off (simulator approval, landing on `gracias?t=…`, order `paid` in `/dev/test/orders/`); the confirmed `gracias` view is asserted by P13-V13 in T13.7. T13.3 and T13.7 cite G57. No new task, Verify ID or schema change. | OA-85; ADR-0067 |
+| 1.66 | 2026-11-07 | D15 decided: the purchase-limit window is 30 days, and only the variants the owner names carry a limit, each number set in the admin at the opening stock count. The value is applied in production through `PURCHASE_LIMIT_WINDOW_DAYS=30` (Phase 22); the code keeps no default. No new task, Verify ID or schema change. | OA-86; ADR-0068 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5789,6 +5791,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0065 | The order-status token | `docs/decisions/0065-order-status-token.md` | G21; OA-83 |
 | ADR-0066 | The pay-retry endpoint | `docs/decisions/0066-pay-retry-endpoint.md` | G22; OA-84 |
 | ADR-0067 | P13-V01 asserts the hand-off, not the confirmed view | `docs/decisions/0067-p13-v01-handoff.md` | G57; OA-85 |
+| ADR-0068 | The purchase-limit window and which variants carry a limit | `docs/decisions/0068-purchase-limit-window.md` | D15; OA-86 |
 
 ## Appendix C — Dated market facts
 
