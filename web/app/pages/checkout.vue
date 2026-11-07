@@ -20,6 +20,12 @@ const { error, refresh: reload } = await useAsyncData('checkout-page', async () 
 })
 failOnServer(error)
 
+// The boundary's retry clears the failed render and asks for the cart again.
+async function onBoundaryRetry(clearError: () => void) {
+  clearError()
+  await reload()
+}
+
 const REQUIRED = 'Este campo es obligatorio.'
 const contactSchema = z.object({
   email: z
@@ -181,208 +187,217 @@ usePageSeo({ title: 'Checkout', noindex: true })
   <main class="mx-auto flex w-full max-w-4xl flex-col gap-6 p-4">
     <h1>Checkout</h1>
 
-    <LoadError v-if="error && !cart" @retry="reload()" />
+    <!-- A failure while the region renders stays inside it: the header and the navigation keep
+         working and the customer gets a retry, never a blank page (REQ-053). -->
+    <NuxtErrorBoundary>
+      <LoadError v-if="error" @retry="reload()" />
 
-    <div
-      v-else-if="cart && !lines.length"
-      class="flex flex-col items-center gap-4 py-12 text-center"
-      data-testid="empty-cart"
-    >
-      <h2>Tu carrito está vacío</h2>
-      <p>Agrega productos para continuar con tu compra.</p>
-      <UButton
-        to="/catalogo"
-        color="primary"
-        variant="solid"
-        size="xl"
-        label="Explorar el catálogo"
-      />
-    </div>
-
-    <template v-else-if="cart">
-      <UCollapsible default-open :unmount-on-hide="false" class="flex flex-col gap-4">
+      <div
+        v-else-if="cart && !lines.length"
+        class="flex flex-col items-center gap-4 py-12 text-center"
+        data-testid="empty-cart"
+      >
+        <h2>Tu carrito está vacío</h2>
+        <p>Agrega productos para continuar con tu compra.</p>
         <UButton
-          label="Contacto"
-          color="neutral"
-          variant="ghost"
+          to="/catalogo"
+          color="primary"
+          variant="solid"
           size="xl"
-          trailing-icon="i-ph-caret-down-bold"
-          class="justify-between"
+          label="Explorar el catálogo"
         />
-        <template #content>
-          <UForm
-            ref="contactForm"
-            :schema="contactSchema"
-            :state="contact"
-            :validate-on="['blur', 'change']"
-            class="flex flex-col gap-4"
-          >
-            <UFormField name="email" label="Correo electrónico" required>
-              <UInput
-                v-model="contact.email"
-                type="email"
-                size="xl"
-                autocomplete="email"
-                spellcheck="false"
-                :disabled="submitting"
-              />
-            </UFormField>
-            <UFormField name="phone" label="Teléfono">
-              <UInput
-                v-model="contact.phone"
-                type="tel"
-                size="xl"
-                autocomplete="tel"
-                inputmode="tel"
-                :disabled="submitting"
-              />
-            </UFormField>
-          </UForm>
-        </template>
-      </UCollapsible>
+      </div>
 
-      <UCollapsible default-open :unmount-on-hide="false" class="flex flex-col gap-4">
-        <UButton
-          label="Entrega"
-          color="neutral"
-          variant="ghost"
-          size="xl"
-          trailing-icon="i-ph-caret-down-bold"
-          class="justify-between"
-        />
-        <template #content>
-          <AddressForm
-            ref="addressForm"
-            v-model="address"
-            :field-errors="addressErrors"
-            hide-submit
-            :disabled="submitting"
-            @update:postal-code="onPostalCode"
+      <template v-else-if="cart">
+        <UCollapsible default-open :unmount-on-hide="false" class="flex flex-col gap-4">
+          <UButton
+            label="Contacto"
+            color="neutral"
+            variant="ghost"
+            size="xl"
+            trailing-icon="i-ph-caret-down-bold"
+            class="justify-between"
           />
-        </template>
-      </UCollapsible>
-
-      <UCollapsible default-open :unmount-on-hide="false" class="flex flex-col gap-4">
-        <UButton
-          label="Factura"
-          color="neutral"
-          variant="ghost"
-          size="xl"
-          trailing-icon="i-ph-caret-down-bold"
-          class="justify-between"
-        />
-        <template #content>
-          <InvoiceForm
-            ref="invoiceForm"
-            v-model="invoice"
-            :regimes="catalogs?.regimen_fiscal"
-            :uses="catalogs?.uso_cfdi"
-            :catalogs-failed="!!catalogsError"
-            :field-errors="invoiceErrors"
-            :disabled="submitting"
-            @retry-catalogs="reloadCatalogs()"
-          />
-        </template>
-      </UCollapsible>
-
-      <UCollapsible default-open :unmount-on-hide="false" class="flex flex-col gap-4">
-        <UButton
-          label="Revisión"
-          color="neutral"
-          variant="ghost"
-          size="xl"
-          trailing-icon="i-ph-caret-down-bold"
-          class="justify-between"
-        />
-        <template #content>
-          <div class="flex flex-col gap-4">
-            <ul class="flex flex-col gap-2">
-              <li
-                v-for="line in lines"
-                :key="line.id"
-                class="flex flex-wrap justify-between gap-4"
-                :data-line-id="line.id"
-              >
-                <span class="min-w-0 break-words"
-                  >{{ line.quantity }} × {{ line.product_name }}</span
-                >
-                <span>{{ formatMXN(line.line_total_cents) }}</span>
-                <p
-                  v-if="lineErrors[line.variant_public_id]"
-                  class="basis-full"
-                  role="alert"
-                  data-testid="line-error"
-                >
-                  {{ lineErrors[line.variant_public_id] }}
-                </p>
-              </li>
-            </ul>
-
-            <p v-if="quoteError" role="alert" data-testid="quote-error">{{ quoteError }}</p>
-
-            <dl
-              v-if="totals"
-              class="flex flex-col gap-1"
-              aria-live="polite"
-              data-testid="checkout-totals"
+          <template #content>
+            <UForm
+              ref="contactForm"
+              :schema="contactSchema"
+              :state="contact"
+              :validate-on="['blur', 'change']"
+              class="flex flex-col gap-4"
             >
-              <div class="flex justify-between gap-4">
-                <dt>Subtotal</dt>
-                <dd>{{ formatMXN(totals.subtotal_cents) }}</dd>
-              </div>
-              <div class="flex justify-between gap-4" data-testid="checkout-shipping">
-                <dt>Envío</dt>
-                <dd v-if="!quote">Se calcula con tu código postal</dd>
-                <dd v-else-if="quote.price_cents === 0">Gratis</dd>
-                <dd v-else>{{ formatMXN(quote.price_cents) }}</dd>
-              </div>
-              <div class="flex justify-between gap-4">
-                <dt>Total</dt>
-                <dd>{{ formatMXN(totals.total_cents) }}</dd>
-              </div>
-            </dl>
-            <p v-if="quote" data-testid="checkout-eta">
-              Entrega estimada: {{ quote.eta_min_days }} a {{ quote.eta_max_days }} días.
-            </p>
+              <UFormField name="email" label="Correo electrónico" required>
+                <UInput
+                  v-model="contact.email"
+                  type="email"
+                  size="xl"
+                  autocomplete="email"
+                  spellcheck="false"
+                  :disabled="submitting"
+                />
+              </UFormField>
+              <UFormField name="phone" label="Teléfono">
+                <UInput
+                  v-model="contact.phone"
+                  type="tel"
+                  size="xl"
+                  autocomplete="tel"
+                  inputmode="tel"
+                  :disabled="submitting"
+                />
+              </UFormField>
+            </UForm>
+          </template>
+        </UCollapsible>
 
-            <UAlert
-              v-if="totalNotice"
-              :description="totalNotice"
-              color="warning"
-              variant="subtle"
-              role="status"
-              data-testid="total-notice"
+        <UCollapsible default-open :unmount-on-hide="false" class="flex flex-col gap-4">
+          <UButton
+            label="Entrega"
+            color="neutral"
+            variant="ghost"
+            size="xl"
+            trailing-icon="i-ph-caret-down-bold"
+            class="justify-between"
+          />
+          <template #content>
+            <AddressForm
+              ref="addressForm"
+              v-model="address"
+              :field-errors="addressErrors"
+              hide-submit
+              :disabled="submitting"
+              @update:postal-code="onPostalCode"
             />
-            <UAlert
-              v-if="payError"
-              :description="payError"
-              color="error"
-              variant="subtle"
-              role="alert"
-            />
+          </template>
+        </UCollapsible>
 
-            <UButton
-              v-if="needsAttention"
-              to="/carrito"
-              label="Revisar mi carrito"
-              color="neutral"
-              variant="outline"
-              size="xl"
-              block
+        <UCollapsible default-open :unmount-on-hide="false" class="flex flex-col gap-4">
+          <UButton
+            label="Factura"
+            color="neutral"
+            variant="ghost"
+            size="xl"
+            trailing-icon="i-ph-caret-down-bold"
+            class="justify-between"
+          />
+          <template #content>
+            <InvoiceForm
+              ref="invoiceForm"
+              v-model="invoice"
+              :regimes="catalogs?.regimen_fiscal"
+              :uses="catalogs?.uso_cfdi"
+              :catalogs-failed="!!catalogsError"
+              :field-errors="invoiceErrors"
+              :disabled="submitting"
+              @retry-catalogs="reloadCatalogs()"
             />
-            <UButton
-              label="Pagar"
-              color="primary"
-              variant="solid"
-              size="xl"
-              block
-              :loading="submitting"
-              :disabled="submitting || redirecting || pending || needsAttention || !idempotencyKey"
-              @click="pay"
-            />
-          </div>
-        </template>
-      </UCollapsible>
-    </template>
+          </template>
+        </UCollapsible>
+
+        <UCollapsible default-open :unmount-on-hide="false" class="flex flex-col gap-4">
+          <UButton
+            label="Revisión"
+            color="neutral"
+            variant="ghost"
+            size="xl"
+            trailing-icon="i-ph-caret-down-bold"
+            class="justify-between"
+          />
+          <template #content>
+            <div class="flex flex-col gap-4">
+              <ul class="flex flex-col gap-2">
+                <li
+                  v-for="line in lines"
+                  :key="line.id"
+                  class="flex flex-wrap justify-between gap-4"
+                  :data-line-id="line.id"
+                >
+                  <span class="min-w-0 break-words"
+                    >{{ line.quantity }} × {{ line.product_name }}</span
+                  >
+                  <span>{{ formatMXN(line.line_total_cents) }}</span>
+                  <p
+                    v-if="lineErrors[line.variant_public_id]"
+                    class="basis-full"
+                    role="alert"
+                    data-testid="line-error"
+                  >
+                    {{ lineErrors[line.variant_public_id] }}
+                  </p>
+                </li>
+              </ul>
+
+              <p v-if="quoteError" role="alert" data-testid="quote-error">{{ quoteError }}</p>
+
+              <dl
+                v-if="totals"
+                class="flex flex-col gap-1"
+                aria-live="polite"
+                data-testid="checkout-totals"
+              >
+                <div class="flex justify-between gap-4">
+                  <dt>Subtotal</dt>
+                  <dd>{{ formatMXN(totals.subtotal_cents) }}</dd>
+                </div>
+                <div class="flex justify-between gap-4" data-testid="checkout-shipping">
+                  <dt>Envío</dt>
+                  <dd v-if="!quote">Se calcula con tu código postal</dd>
+                  <dd v-else-if="quote.price_cents === 0">Gratis</dd>
+                  <dd v-else>{{ formatMXN(quote.price_cents) }}</dd>
+                </div>
+                <div class="flex justify-between gap-4">
+                  <dt>Total</dt>
+                  <dd>{{ formatMXN(totals.total_cents) }}</dd>
+                </div>
+              </dl>
+              <p v-if="quote" data-testid="checkout-eta">
+                Entrega estimada: {{ quote.eta_min_days }} a {{ quote.eta_max_days }} días.
+              </p>
+
+              <UAlert
+                v-if="totalNotice"
+                :description="totalNotice"
+                color="warning"
+                variant="subtle"
+                role="status"
+                data-testid="total-notice"
+              />
+              <UAlert
+                v-if="payError"
+                :description="payError"
+                color="error"
+                variant="subtle"
+                role="alert"
+              />
+
+              <UButton
+                v-if="needsAttention"
+                to="/carrito"
+                label="Revisar mi carrito"
+                color="neutral"
+                variant="outline"
+                size="xl"
+                block
+              />
+              <UButton
+                label="Pagar"
+                color="primary"
+                variant="solid"
+                size="xl"
+                block
+                :loading="submitting"
+                :disabled="
+                  submitting || redirecting || pending || needsAttention || !idempotencyKey
+                "
+                @click="pay"
+              />
+            </div>
+          </template>
+        </UCollapsible>
+      </template>
+      <template #error="{ clearError }">
+        <LoadError @retry="onBoundaryRetry(clearError)" />
+      </template>
+    </NuxtErrorBoundary>
   </main>
 </template>
