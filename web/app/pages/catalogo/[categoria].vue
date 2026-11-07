@@ -17,6 +17,7 @@ const {
   data: tree,
   error,
   refresh,
+  status,
 } = await useAsyncData('categories', () => api<CategoryNode[]>('/catalog/categories/'))
 const category = computed(() => (tree.value ? find(tree.value) : undefined))
 // An unknown category is a real 404, not an empty list (REQ-053).
@@ -29,6 +30,6 @@ failOnServer(error)
 <template>
   <CatalogListing v-if="category" :title="category.name" :category="category.slug" />
   <main v-else-if="error" class="mx-auto w-full max-w-6xl p-4">
-    <LoadError @retry="refresh()" />
+    <LoadError :loading="status === 'pending'" @retry="refresh()" />
   </main>
 </template>

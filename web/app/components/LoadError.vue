@@ -5,11 +5,14 @@ withDefaults(
     title?: string
     description?: string
     retryLabel?: string
+    /** True while the retry runs: the button shows the spinner and keeps its label (DS: loading pattern). */
+    loading?: boolean
   }>(),
   {
     title: 'No pudimos mostrar esta sección',
     description: 'Algo salió mal de nuestro lado. Inténtalo de nuevo.',
     retryLabel: 'Reintentar',
+    loading: false,
   },
 )
 const emit = defineEmits<{ retry: [] }>()
@@ -23,6 +26,8 @@ const emit = defineEmits<{ retry: [] }>()
         variant="solid"
         size="xl"
         :label="retryLabel"
+        :loading="loading"
+        :aria-busy="loading ? 'true' : undefined"
         @click="emit('retry')"
       />
     </template>

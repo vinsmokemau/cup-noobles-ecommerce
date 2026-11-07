@@ -3,7 +3,7 @@ import type { CategoryNode, ProductPage } from '~/types/catalog'
 
 const api = useApi()
 
-const { data, error, refresh } = await useAsyncData('home', async () => {
+const { data, error, refresh, status } = await useAsyncData('home', async () => {
   const [featured, categories] = await Promise.all([
     api<ProductPage>('/catalog/products/', { query: { featured: true, page_size: 8 } }),
     api<CategoryNode[]>('/catalog/categories/'),
@@ -25,7 +25,7 @@ usePageSeo({
     <h1>
       <CnLogo variant="horizontal" label="Cup Noobles" />
     </h1>
-    <LoadError v-if="error" @retry="refresh()" />
+    <LoadError v-if="error" :loading="status === 'pending'" @retry="refresh()" />
     <template v-else-if="data">
       <section
         v-if="data.featured.length"

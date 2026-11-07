@@ -54,7 +54,7 @@ usePageSeo({ title: () => props.title, description: () => props.description })
 <template>
   <main class="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4">
     <h1>{{ title }}</h1>
-    <LoadError v-if="error" @retry="refresh()" />
+    <LoadError v-if="error" :loading="status === 'pending'" @retry="refresh()" />
     <div v-else-if="data" class="flex flex-col gap-6 lg:flex-row">
       <FilterSidebar
         class="lg:w-64 lg:shrink-0"

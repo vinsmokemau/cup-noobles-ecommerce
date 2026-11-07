@@ -9,6 +9,7 @@ const {
   data: product,
   error,
   refresh,
+  status,
 } = await useAsyncData(`product:${slug}`, () =>
   api<ProductDetailData>(`/catalog/products/${encodeURIComponent(slug)}/`),
 )
@@ -107,7 +108,7 @@ useHead({
 
 <template>
   <main class="mx-auto flex w-full max-w-6xl flex-col gap-8 p-4">
-    <LoadError v-if="error" @retry="refresh()" />
+    <LoadError v-if="error" :loading="status === 'pending'" @retry="refresh()" />
     <template v-else-if="product">
       <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <ProductGallery

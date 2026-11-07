@@ -45,7 +45,7 @@ usePageSeo({ title: 'Buscar', noindex: true })
       />
       <UButton type="submit" color="primary" variant="solid" size="xl" label="Buscar" />
     </form>
-    <LoadError v-if="error" @retry="refresh()" />
+    <LoadError v-if="error" :loading="status === 'pending'" @retry="refresh()" />
     <div v-else-if="term && data" class="flex flex-col gap-6" :aria-busy="status === 'pending'">
       <ProductGrid v-if="data.length" :products="data" as="h2" :priority-count="1" />
       <p v-else>No encontramos resultados para «{{ term }}».</p>

@@ -26,6 +26,8 @@ test('p13_v20 cart failure stays inside its boundary', async ({ page }) => {
   // Once the API answers again, the retry shows the cart.
   await page.goBack()
   await expect(retry).toBeVisible()
+  // While the failed read is still running the button is busy and disabled (DS loading pattern).
+  await expect(retry).toBeEnabled()
   await page.unroute('**/api/cart/**', fail)
   await retry.click()
   await expect(page.getByTestId('empty-cart')).toBeVisible()

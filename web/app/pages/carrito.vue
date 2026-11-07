@@ -6,7 +6,11 @@ import { ApiError } from '~/composables/useApi'
 // quantity on its own (CR-02, REQ-002); a `reduced` line is reported and the customer decides.
 const { cart, pending, refresh, update, remove } = useCart()
 
-const { error, refresh: reload } = await useAsyncData('cart-page', async () => {
+const {
+  error,
+  refresh: reload,
+  status,
+} = await useAsyncData('cart-page', async () => {
   await refresh()
   return true
 })
@@ -51,7 +55,7 @@ usePageSeo({ title: 'Tu carrito', noindex: true })
     <!-- A failure while the region renders stays inside it: the header and the navigation keep
          working and the customer gets a retry, never a blank page (REQ-053). -->
     <NuxtErrorBoundary>
-      <LoadError v-if="error" @retry="reload()" />
+      <LoadError v-if="error" :loading="status === 'pending'" @retry="reload()" />
 
       <div
         v-else-if="cart && !lines.length"
@@ -132,7 +136,7 @@ usePageSeo({ title: 'Tu carrito', noindex: true })
         </div>
       </template>
       <template #error="{ clearError }">
-        <LoadError @retry="onBoundaryRetry(clearError)" />
+        <LoadError :loading="status === 'pending'" @retry="onBoundaryRetry(clearError)" />
       </template>
     </NuxtErrorBoundary>
   </main>
