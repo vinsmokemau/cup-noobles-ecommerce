@@ -4341,7 +4341,7 @@ A 409 from `/api/checkout/` for a line over its per-customer limit renders the s
 
 A `<NuxtErrorBoundary>` around the cart and checkout regions. A failed API call must show a retry affordance, never a blank page.
 
-- [ ] **T13.7 — Landing pages**
+- [x] **T13.7 — Landing pages** (2026-11-08, dd46d78)
   - Release: R1 · Gate: phase-close
   - REQs: REQ-051, REQ-052
   - Verifies: P13-V13, P13-V14, P13-V15, P13-V16
