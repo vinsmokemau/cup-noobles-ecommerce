@@ -74,3 +74,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0067](0067-p13-v01-handoff.md) | P13-V01 asserts the hand-off, not the confirmed view | accepted | G57; OA-85 |
 | [ADR-0068](0068-purchase-limit-window.md) | The purchase-limit window and which variants carry a limit | accepted | D15; OA-86 |
 | [ADR-0069](0069-load-error-wording.md) | The shared wording of the load-error alert | accepted | G60; OA-87 |
+| [ADR-0070](0070-separate-e2e-database.md) | The E2E stack uses its own database volume | accepted | G63; OA-88 |
