@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatMXN } from '~/utils/money'
+import { formatDateTime, formatMXN } from '~/utils/money'
 
 describe('formatMXN', () => {
   it.each([
@@ -17,4 +17,17 @@ describe('formatMXN', () => {
       expect(() => formatMXN(cents)).toThrow(TypeError)
     },
   )
+})
+
+describe('formatDateTime', () => {
+  it('p13_v14 formats a timestamp in the store timezone, with its time', () => {
+    // 18:30 UTC is 12:30 in Mexico City (UTC-6 in November).
+    expect(formatDateTime('2026-11-15T18:30:00Z')).toMatch(
+      /^15 de noviembre de 2026(,| a las) 12:30/,
+    )
+    // Late evening UTC falls on the next calendar day in UTC but the same day in the store.
+    expect(formatDateTime('2026-11-16T03:15:00Z')).toMatch(
+      /^15 de noviembre de 2026(,| a las) 9:15/,
+    )
+  })
 })

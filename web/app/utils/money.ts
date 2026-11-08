@@ -27,3 +27,15 @@ export function formatDate(value: string, dateStyle: 'long' | 'medium' = 'long')
   const timeZone = DATE_ONLY.test(value) ? 'UTC' : STORE_TIME_ZONE
   return new Intl.DateTimeFormat(LOCALE, { dateStyle, timeZone }).format(new Date(value))
 }
+
+/**
+ * Formats a timestamp with its time, e.g. `2026-11-15T18:30:00Z` → `15 de noviembre de 2026, 12:30 p.m.`
+ * in the store timezone (CR-31). For a deadline the customer must act on, such as a voucher expiry.
+ */
+export function formatDateTime(value: string): string {
+  return new Intl.DateTimeFormat(LOCALE, {
+    dateStyle: 'long',
+    timeStyle: 'short',
+    timeZone: STORE_TIME_ZONE,
+  }).format(new Date(value))
+}
