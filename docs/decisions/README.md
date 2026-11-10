@@ -75,3 +75,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0068](0068-purchase-limit-window.md) | The purchase-limit window and which variants carry a limit | accepted | D15; OA-86 |
 | [ADR-0069](0069-load-error-wording.md) | The shared wording of the load-error alert | accepted | G60; OA-87 |
 | [ADR-0070](0070-separate-e2e-database.md) | The E2E stack uses its own database volume | accepted | G63; OA-88 |
+| [ADR-0071](0071-seed-e2e-resets-scarce-stock.md) | `seed_e2e` resets the scarce product to exactly two units | accepted | G62; OA-89 |

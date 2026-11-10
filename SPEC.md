@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.68 |
+| Spec version | 1.69 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -459,7 +459,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G59 | 3 | T3.3, G58 | The admin cannot save a variant whose options are `{}` (a product with no variant axes, such as every figure): Django's JSON form field treats `{}` as empty and reports "Este campo es requerido" on the `options` field, so staff cannot edit the price of such a variant. Found while checking the G58 fix. | Declare the `options` form field of `VariantInline` as not required (an empty object is valid when the product has no axes; the formset's `check_option_keys` already enforces the axes), and add a test that saves a variant of a product with no axes. | R1 | Resolved (fixed in code at the owner's request, no ADR) |
 | G60 | 13 | T13.4 | The error-boundary fallback (`LoadError`) always says "Revisa tu conexión e inténtalo de nuevo.", which is wrong when the boundary caught a render error and not a failed call. No es-MX wording for a render failure exists in the DS microcopy or this spec. | Owner chooses the wording, or confirms the shared text is enough. Proposal only: keep the shared text until answered. | R1 | Resolved (ADR-0069) |
 | G61 | 13 | T13.4 | `LoadError` gives no feedback while its retry is running: the button stays as it was until the data returns. It has no pending state, and the DS has no stated pattern for one. | Check the DS for a loading-button pattern; if none, request one. Suggested action accepted by the owner (OA-87). The DS has the pattern (DS:loading.md, DS:button.md): the `loading` prop with `aria-busy`, same label. `LoadError` takes a `loading` prop and every caller passes its refresh state. | R1 | Resolved (fixed in code at the owner's request, no ADR) |
-| G62 | 13 | T13.6, T13.7 | P13-V18 (T13.6) cannot be run twice on the same E2E stack. `seed_e2e` only raises the scarce product to two available units and never lowers it, and the spec leaves pending orders that hold units for 30 minutes, which expire later and give the units back. A second run within 30 minutes, or after the held units expire, finds more than two units and the order is created instead of refused (found while closing T13.7, where repeated local runs raised the stock to 11). A clean stack such as CI is not affected. | Proposal, not applied: each run of `seed_e2e` sets the scarce product to exactly two available units, lowering any surplus through the inventory service with a `count_correction` ledger row, so re-running the seed resets it after a local run. Test code and seed only; no spec assertion changes. | R1 | Open. To be closed by T13.16 if its checks pass (G63, ADR-0070) |
+| G62 | 13 | T13.6, T13.7 | P13-V18 (T13.6) cannot be run twice on the same E2E stack. `seed_e2e` only raises the scarce product to two available units and never lowers it, and the spec leaves pending orders that hold units for 30 minutes, which expire later and give the units back. A second run within 30 minutes, or after the held units expire, finds more than two units and the order is created instead of refused (found while closing T13.7, where repeated local runs raised the stock to 11). A clean stack such as CI is not affected. | Owner decided (OA-89, ADR-0071): each run of `seed_e2e` sets the scarce product to exactly two available units, lowering any surplus through the inventory service with a `count_correction` ledger row, so re-running the seed resets it after a local run. Test code and seed only; no spec assertion changes. Built by T13.16. | R1 | Decided (ADR-0071). Resolved when T13.16 passes P13-V30 (G63, ADR-0070) |
 | G63 | 1 | T1.13b, G62, T13.16 | The E2E stack and the development stack share one Postgres volume (`pgdata`). Every E2E run writes test products, orders and stock into the same database as the owner's development data, and the only way to get a clean E2E state is to wipe that volume, which would delete the development data (found while closing T13.7, where P13-V18 needed a manual stock correction). | Owner decided (OA-88, ADR-0070): the E2E stack uses its own Postgres volume (for example `pgdata_e2e`), and a `make e2e-reset` target wipes only that volume and re-seeds it. Pass when, after `make e2e-reset`, the scarce product shows 2 on hand and 0 reserved; `make test-all` run twice in a row on the same stack is green both times; and the development database's row counts are unchanged after an E2E run. Costly to reverse once data lives in two volumes. Built by T13.16. | R1 | Decided (ADR-0070) |
 
 #### Design System requests (DSR)
@@ -590,6 +590,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-86 | 2026-11-07 | D15: how long is the purchase-limit window, and which variants carry a limit? | Window: 30 days (`PURCHASE_LIMIT_WINDOW_DAYS=30`). Limits: only the variants the owner names, with the number of each set in the admin at the opening stock count; no limit elsewhere and no default limit. ADR-0068. |
 | OA-87 | 2026-11-07 | G60: what should the shared load-error alert say, now that it also covers a render error? | Option A: title "No pudimos mostrar esta sección", description "Algo salió mal de nuestro lado. Inténtalo de nuevo.", for every use of `LoadError`. G61 stays Open; the owner accepted its suggested action. ADR-0069. |
 | OA-88 | 2026-11-08 | G63: the E2E stack and the development stack share one Postgres volume, so the E2E data cannot be reset without deleting the development data. Which rule? | Option A: the proposed resolution. The E2E stack uses its own volume (`pgdata_e2e`) and a new `make e2e-reset` target wipes only that volume and re-seeds it. Accepted when, after `make e2e-reset`, the scarce product shows 2 on hand and 0 reserved; `make test-all` run twice in a row on the same stack is green both times; and the development database's row counts are unchanged after an E2E run. G62 stays Open until T13.16 passes these checks. New task T13.16. ADR-0070. |
+| OA-89 | 2026-11-09 | G62: P13-V18 cannot be run twice on the same E2E stack, because `seed_e2e` never lowers the scarce product's stock. Apply the proposed resolution? | Option A (Y): the proposed resolution. Each run of `seed_e2e` sets the scarce product to exactly two available units, lowering any surplus through the inventory service with a `count_correction` ledger row. Test code and seed only; no spec assertion changes. Built by T13.16. ADR-0071. |
 
 ---
 
@@ -4365,10 +4366,10 @@ Landing pages:
   - REQs: —
   - Verifies: P13-V30
   - Depends on: T13.7
-  - Context: 4.6; G62, G63, ADR-0070
+  - Context: 4.6; G62, G63, ADR-0070, ADR-0071
   - Done when: the three checks of P13-V30 pass and are listed in the task report.
 
-The E2E stack uses its own Postgres volume, `pgdata_e2e`, set in `docker-compose.e2e.yml`, and `make e2e-reset` wipes only that volume and starts the stack again (migrate, then `seed_e2e`). The development volume `pgdata` is not used by the E2E stack. Add `make e2e-reset` to the commands table in §0.3 and to `make help`. Ask the owner whether the E2E rows already in `pgdata` should be removed once; do not remove them unasked. Close G62 if the checks pass.
+The E2E stack uses its own Postgres volume, `pgdata_e2e`, set in `docker-compose.e2e.yml`, and `make e2e-reset` wipes only that volume and starts the stack again (migrate, then `seed_e2e`). The development volume `pgdata` is not used by the E2E stack. Add `make e2e-reset` to the commands table in §0.3 and to `make help`. Ask the owner whether the E2E rows already in `pgdata` should be removed once; do not remove them unasked. Each run of `seed_e2e` also sets the scarce product to exactly two available units, lowering any surplus with `adjust_stock(reason='count_correction')` (OA-89, ADR-0071), so P13-V18 can be run again on the same stack. `make e2e` and `make e2e-all` start the E2E stack first, so Playwright never reuses a running development stack. Close G62 if the checks pass.
 
 - [ ] **T13.14 — Pickup and pre-orders in the cart and checkout**
   - Release: R2 · Gate: —
@@ -5695,6 +5696,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.66 | 2026-11-07 | D15 decided: the purchase-limit window is 30 days, and only the variants the owner names carry a limit, each number set in the admin at the opening stock count. The value is applied in production through `PURCHASE_LIMIT_WINDOW_DAYS=30` (Phase 22); the code keeps no default. No new task, Verify ID or schema change. | OA-86; ADR-0068 |
 | 1.67 | 2026-11-07 | G60 resolved: the shared `LoadError` alert reads "No pudimos mostrar esta sección" / "Algo salió mal de nuestro lado. Inténtalo de nuevo.". G61 stays Open with its suggested action accepted. No task, Verify ID or schema change. | OA-87; ADR-0069 |
 | 1.68 | 2026-11-08 | G63 decided: the E2E stack uses its own Postgres volume (`pgdata_e2e`) and `make e2e-reset` wipes only that volume. G63 is Decided (ADR-0070); G62 stays Open until T13.16 passes. New task T13.16 and Verify ID P13-V30 `[manual]`. No schema change. | OA-88; ADR-0070 |
+| 1.69 | 2026-11-09 | G62 decided: each run of `seed_e2e` sets the scarce product to exactly two available units, lowering any surplus through `adjust_stock` with a `count_correction` row. G62 is Decided (ADR-0071) and resolves when T13.16 passes. T13.16 gains the seed change and the rule that `make e2e` and `make e2e-all` start the E2E stack first. No schema change. | OA-89; ADR-0071 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5814,6 +5816,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0068 | The purchase-limit window and which variants carry a limit | `docs/decisions/0068-purchase-limit-window.md` | D15; OA-86 |
 | ADR-0069 | The shared wording of the load-error alert | `docs/decisions/0069-load-error-wording.md` | G60; OA-87 |
 | ADR-0070 | The E2E stack uses its own database volume | `docs/decisions/0070-separate-e2e-database.md` | G63; OA-88 |
+| ADR-0071 | `seed_e2e` resets the scarce product to exactly two units | `docs/decisions/0071-seed-e2e-resets-scarce-stock.md` | G62; OA-89 |
 
 ## Appendix C — Dated market facts
 
