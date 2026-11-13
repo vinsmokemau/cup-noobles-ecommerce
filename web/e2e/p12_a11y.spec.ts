@@ -3,7 +3,7 @@ import { catalogRoutes } from './routes'
 
 test('p12_v19 axe on every catalog page', async ({ page, seed }) => {
   // Many routes in one test, and the dev server compiles each page on first visit.
-  test.setTimeout(120_000)
+  test.setTimeout(300_000)
   for (const route of catalogRoutes(seed)) {
     await test.step(route, async () => {
       const response = await page.goto(route)
