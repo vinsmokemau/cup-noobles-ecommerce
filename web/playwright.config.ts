@@ -25,7 +25,9 @@ export default defineConfig({
     command:
       'docker compose -f ../docker-compose.yml -f ../docker-compose.e2e.yml up --wait && node -e "setInterval(() => {}, 1 << 30)"',
     url: `${BASE_URL}/api/health/`,
-    reuseExistingServer: !process.env.CI,
+    // `make e2e` and `make e2e-all` start the E2E stack first (T13.16), so the stack is always
+    // running by now; Playwright only checks it, in CI as well.
+    reuseExistingServer: true,
     timeout: 10 * 60 * 1000,
   },
   projects: [
