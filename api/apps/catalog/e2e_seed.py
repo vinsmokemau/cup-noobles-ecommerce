@@ -18,6 +18,7 @@ from apps.catalog.models import (
     Product,
     ProductCategory,
     ProductType,
+    Variant,
 )
 from apps.catalog.seeds import seed_product_types
 from apps.catalog.services import (
@@ -26,8 +27,10 @@ from apps.catalog.services import (
     create_product,
     publish_product,
 )
-from apps.inventory.models import Location, StockItem
-from apps.inventory.services import receive_stock
+from apps.inventory.models import InventoryReservation, Location, StockItem
+from apps.inventory.services import adjust_stock, receive_stock, release_reservations
+from apps.orders.models import Order
+from apps.orders.state_machine import apply_event
 
 FRANCHISE_SLUG = "franquicia-e2e"
 CATEGORY_SLUG = "figuras-e2e"
@@ -101,8 +104,33 @@ CHECKOUT_LIMITED = (
 )
 
 
+def _release_earlier_holds(variant: Variant) -> None:
+    """Give back the units that orders of earlier runs still hold on `variant` (G62, ADR-0072).
+
+    A pending order holds its units until its payment deadline, which can fall in the middle of a
+    later run and change the stock under a spec. Cancelling them here, through the order machine,
+    settles every hold before the specs start.
+    """
+    held = InventoryReservation.objects.filter(
+        variant=variant,
+        kind=InventoryReservation.Kind.STOCK,
+        state=InventoryReservation.State.HELD,
+    ).values_list("order_id", flat=True)
+    for order in Order.objects.filter(pk__in=set(held)):
+        if order.state == "pending_payment":
+            apply_event(order.pk, "cancelled_by_customer", actor="seed_e2e")
+        elif order.state == "draft":
+            release_reservations(order, reason="seed_e2e")
+
+
 def _checkout_error_product(
-    name: str, sku: str, price: int, units: int, purchase_limit: int | None = None
+    name: str,
+    sku: str,
+    price: int,
+    units: int,
+    purchase_limit: int | None = None,
+    *,
+    exact: bool = False,
 ) -> Product:
     product = Product.objects.filter(name=name).first()
     if product is None:
@@ -121,9 +149,22 @@ def _checkout_error_product(
         defaults={"name": "Almacén", "kind": Location.Kind.WAREHOUSE},
     )
     item, _ = StockItem.objects.get_or_create(variant=variant, location=location)
+    if exact:
+        _release_earlier_holds(variant)
+        item.refresh_from_db()
     missing = units - (item.on_hand - item.reserved)
     if missing > 0:
         receive_stock(variant, location, missing, note="seed_e2e")
+    elif exact and missing < 0:
+        # Units held by a pending order stay held: only the available surplus is removed.
+        adjust_stock(
+            variant,
+            location,
+            missing,
+            reason="count_correction",
+            actor=None,
+            note="seed_e2e",
+        )
     return product
 
 
@@ -190,7 +231,7 @@ def seed_catalog() -> dict[str, Any]:
         publish_product(hoodie)
 
     _keep_checkout_stock(hoodie)
-    scarce = _checkout_error_product(*CHECKOUT_SCARCE)
+    scarce = _checkout_error_product(*CHECKOUT_SCARCE, exact=True)
     limited = _checkout_error_product(*CHECKOUT_LIMITED)
 
     if not hoodie.description_md:

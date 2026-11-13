@@ -41,7 +41,7 @@ WEB_THRESHOLDS := --coverage.thresholds.lines=0 --coverage.thresholds.branches=0
                   --coverage.thresholds.functions=0 --coverage.thresholds.statements=0
 endif
 
-.PHONY: help test test-all e2e check-migrations schema-update coverage-ratchet \
+.PHONY: help test test-all e2e e2e-reset check-migrations schema-update coverage-ratchet \
         test-integrations test-sandbox test-all-offline clean-clone-check demo demo-reset \
         lint types register scripts-tests web-unit api-tests api-ci api-slow schemathesis-full \
         migration-roundtrip e2e-all lighthouse coverage-report coverage-gates \
@@ -50,7 +50,7 @@ endif
 help:
 	@echo "make test | e2e FILES=... | check-migrations | test-all [PHASE_CLOSE=1] | test-integrations"
 	@echo "make test-sandbox | schema-update | coverage-ratchet | test-all-offline | clean-clone-check"
-	@echo "make demo | demo-reset"
+	@echo "make demo | demo-reset | e2e-reset"
 
 # --- The commands -----------------------------------------------------------------------------
 
@@ -62,8 +62,20 @@ test-all: lint types register scripts-tests web-unit \
           e2e-all lighthouse coverage-report coverage-gates coverage-ratchet-check traceability
 	@echo "make test-all: green"
 
+# Wipes the E2E database volume only (ADR-0070) and starts the E2E stack again, which migrates and
+# runs seed_e2e. The development volume `pgdata` is never touched. The stack is one Compose project,
+# so `down` also stops the development containers; `docker compose up -d` brings them back.
+E2E_DC := $(DC) -f docker-compose.yml -f docker-compose.e2e.yml
+
+e2e-reset:
+	@$(STEP) "stop the stack" $(E2E_DC) --profile "*" down --remove-orphans
+	@$(STEP) "remove the E2E database volume" docker volume rm -f cupnoobles_pgdata_e2e
+	@$(STEP) "start the E2E stack (migrate, seed_e2e)" $(E2E_DC) up -d --wait
+
 e2e:
 	@test -n "$(FILES)" || { echo "usage: make e2e FILES=e2e/p1_smoke.spec.ts"; exit 2; }
+	@$(STEP) "start the E2E stack" $(E2E_DC) up -d --wait
+	@$(STEP) "seed_e2e (reset the scarce stock)" $(E2E_DC) exec -T api python manage.py seed_e2e
 	@$(STEP) "playwright $(FILES)" sh -c 'cd web && pnpm exec playwright test $(FILES)'
 
 check-migrations:
@@ -135,10 +147,17 @@ migration-roundtrip:
 	@$(STEP) "migration round trip" $(API) pytest -q tests/migrations $(COV) --cov-append
 
 e2e-all:
+	@$(STEP) "start the E2E stack" $(E2E_DC) up -d --wait
+	@$(STEP) "seed_e2e (reset the scarce stock)" $(E2E_DC) exec -T api python manage.py seed_e2e
 	@$(STEP) "playwright (all specs, axe)" sh -c 'cd web && pnpm exec playwright test'
 
+# CI judges the budget; outside CI a score below budget is only a warning (G64, ADR-0073).
 lighthouse:
+ifeq ($(CI),true)
 	@$(STEP) "lighthouse budgets" sh -c 'cd web && pnpm exec vitest run tests/perf/lighthouse.test.ts'
+else
+	@$(STEP) "lighthouse budgets (warning only outside CI)" sh -c 'cd web && pnpm exec vitest run tests/perf/lighthouse.test.ts || echo "WARNING: lighthouse below budget on this machine; CI judges it (ADR-0073)"'
+endif
 
 coverage-report:
 	@$(STEP) "coverage" $(API) $(RATCHET) --only report

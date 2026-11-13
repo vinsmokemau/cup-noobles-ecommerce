@@ -18,6 +18,13 @@ x-e2e-env: &e2e-env
   PURCHASE_LIMIT_WINDOW_DAYS: "30"
 
 services:
+  # The E2E stack has its own database volume (ADR-0070, G63): the development volume `pgdata` is
+  # never mounted here, so an E2E run cannot touch development data and `make e2e-reset` can wipe
+  # this one alone. The mount replaces the one in docker-compose.yml (same container path).
+  db:
+    volumes:
+      - pgdata_e2e:/var/lib/postgresql/data
+
   api:
     environment:
       <<: *e2e-env
@@ -157,5 +164,8 @@ services:
       retries: 20
 
 volumes:
+  # A fixed name, so `make e2e-reset` removes exactly this volume whatever the Compose project is.
+  pgdata_e2e:
+    name: cupnoobles_pgdata_e2e
   web_nuxt_api_down:
   web_nuxt_prod:
