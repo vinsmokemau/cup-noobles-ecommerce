@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.75 |
+| Spec version | 1.76 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -471,7 +471,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G70 | 14 | T14.6, T6.7b | `/rastrear` shows a shipped order as the badge "Enviado" and nothing else. The lookup already returns the shipment's tracking number and link (T6.7b), and the shipped email carries the link, but a customer who lost that email cannot follow the parcel from the store's tracking page. T14.6's text asks only for the status badge. Raised in the T14.6 report. | Owner chose option A in chat (2026-11-13): under the badge, each shipment of the order shows its tracking number ("Número de guía") and a "Rastrear mi envío" button that opens the carrier's page. The carrier's name is left out until its display names exist (Phase 19). Option not chosen: leave the page as it is. Test: `web/e2e/p14_tracking.spec.ts` › `g70 a shipped order shows its tracking link`, which gives the API's answer a mock-carrier shipment, because no spec can ship an order before the Phase 15 journeys. No Verify ID or business value changes. | R1 | Resolved (built at the owner's request, no ADR) |
 | G71 | 22 | T14.6, T22.1 | Nothing on the site links to `/rastrear`. The order emails do (the "Consultar mi pedido" button of the confirmation, cancelled, refund and CFDI emails), so a customer with the email reaches the page; one who only remembers the store's address has to type it. The header has the logo and the cart, and the storefront has no footer yet. Raised in the T14.6 report. | Owner chose option A in chat (2026-11-13): the link goes in the site footer when T22.1 builds it with the business details. Until then the emails are the way in. Options not chosen: a header link now; no link on the site. Pass: the footer of every page has a link to `/rastrear` (P22-V24, OA-94). | R1 | Decided (OA-93); written into T22.1, which builds it |
 | G72 | 12 | T12.10, P12-V25, T14.6, G64 | P12-V25 takes as long as the whole Playwright suite. It starts a second storefront server (compose profile `api-down`), and while the other specs run that server does not answer its first page: in three full runs it was ready after about a minute and answered 195 to 237 seconds later, when the other specs were winding down. Alone the test takes about 40 seconds. On the commit before T14.6 it finished in 233 s of its 240 s limit; the specs T14.6 adds make the suite about 20 s longer, and it timed out in two `make test-all` runs in a row. G64 recorded the same timeout once and read it as machine load. Why the server waits is not known (a guess: its file reads and DNS lookups queue behind the dev server's file polling on the shared bind mount). Found while closing T14.6. | First applied in T14.6: a 480 s time limit, which only bought room. Suggested action accepted by the owner in chat (2026-11-13): P12-V25 runs in its own step after the other specs. It has its own Playwright project, `api-down`, with no `dependencies` (with them, a run filtered by file executes every spec, and the test is skipped when another spec fails); `make e2e-all` runs the other projects first and `api-down` second, and `make e2e` does the same when `FILES` names `p12_errors`. The time limit is back to 240 s. Result: 84 specs pass in the first step and P12-V25 passes alone in about 35 s. `playwright test --list` still names it, so traceability is unchanged. Running `pnpm exec playwright test` by hand still runs every project together. Why the server waits under load was not investigated. | R1 | Resolved (fixed in code at the owner's request, no ADR) |
-| G73 | 15 | T15.4, T15.6a, T15.6b, P15-V01, P15-V03, P15-V04, P15-V08, P15-V15 | T15.4 says `inspect.*` (13.8) and `readLatestEmail` (Phase 14) are reused, but neither exists in `web/e2e/`. `readLatestEmail` is listed in Phase 14's fixtures, and its only Phase 14 test is P14-V04 `[R2]`, so no R1 task built it. `inspect.inventory` and `inspect.orders` are listed in Phase 13's fixtures, but the Phase 13 and 14 specs call the T13.8 endpoints directly. The journeys need both: P15-V01, V03, V04 and V15 read an email, and P15-V01, V03, V04 and V08 read stock or orders. Found while ordering Phase 15 (OA-95). | Proposal only, not applied: T15.4 builds `readLatestEmail(to)`, `inspect.inventory(sku)` and `inspect.orders(email)` in `web/e2e/fixtures.ts`, next to `run` and `adminLogin`, and its text says "built here" instead of "reused". Test helpers only; no existing spec, Verify ID, assertion or business value changes. | R1 | Open |
+| G73 | 15 | T15.4, T15.6a, T15.6b, P15-V01, P15-V03, P15-V04, P15-V08, P15-V15 | T15.4 says `inspect.*` (13.8) and `readLatestEmail` (Phase 14) are reused, but neither exists in `web/e2e/`. `readLatestEmail` is listed in Phase 14's fixtures, and its only Phase 14 test is P14-V04 `[R2]`, so no R1 task built it. `inspect.inventory` and `inspect.orders` are listed in Phase 13's fixtures, but the Phase 13 and 14 specs call the T13.8 endpoints directly. The journeys need both: P15-V01, V03, V04 and V15 read an email, and P15-V01, V03, V04 and V08 read stock or orders. Found while ordering Phase 15 (OA-95). | Owner chose option A in chat (2026-11-13): T15.4 builds `readLatestEmail(to)`, `inspect.inventory(sku)` and `inspect.orders(email)` in `web/e2e/fixtures.ts`, next to `run` and `adminLogin`, and its text says "built here" instead of "reused". Option not chosen: leave T15.4 as written and let each journey task build what it needs. Test helpers only; no existing spec, Verify ID, assertion or business value changes. | R1 | Decided (OA-96); written into T15.4, which builds it |
 
 #### Design System requests (DSR)
 
@@ -608,6 +608,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-93 | 2026-11-13 | G71: nothing on the site links to `/rastrear`; only the order emails do. Where does the link go? | Option A: in the site footer, when T22.1 builds the footer with the business details. Until then the emails are the way in. Options not chosen: a header link now; no link on the site. The owner then asked for the link to be written into T22.1. No ADR: cheap to reverse, spec text only. |
 | OA-94 | 2026-11-13 | G71: T22.1 now puts the `/rastrear` link in the footer, but no Verify ID proves it. Add one? | Option A: a new automated Verify ID, P22-V24 (Playwright), listed on T22.1: the footer of every storefront page links to `/rastrear`. The test is written when T22.1 runs. Options not chosen: a `[manual]` item; no Verify ID. No ADR: cheap to reverse, spec text only. |
 | OA-95 | 2026-11-13 | Phase 15 task order: the tasks are listed in a valid, linear order, but their numbers do not follow it (T15.6a and T15.6b come before T15.7, and T15.5 is last of Release 1) and the phase has no execution-order note. Add one, or renumber? | Option A: add the note. Execution order: T15.1, T15.2, T15.3, T15.4, T15.6a, T15.6b, T15.7, T15.8, T15.5 (phase close); then, in R2, T15.6c. IDs keep their numbers. The note flags that T15.5 carries the G69 and G72 follow-ups, and that the helpers T15.4 says it reuses do not exist yet, registered as G73 (Open, proposal only). No ADR: cheap to reverse, spec text only. |
+| OA-96 | 2026-11-13 | G73: T15.4 says the `inspect.*` and `readLatestEmail` helpers are reused, but no task built them. Which task builds them? | Option A: T15.4 builds `readLatestEmail(to)`, `inspect.inventory(sku)` and `inspect.orders(email)` in `web/e2e/fixtures.ts`, and its text says so. Option not chosen: leave T15.4 as written and let each journey task build what it needs. Test helpers only; no existing spec, Verify ID or business value changes. No ADR: cheap to reverse, spec text only. |
 
 ---
 
@@ -4634,7 +4635,7 @@ It is accepted when the Release 1 journeys below pass on both Playwright project
 - Phase close: T15.5 (its offline run executes everything the tasks before it built)
 - R2, after R1: T15.6c
 
-IDs keep their numbers (OA-95). T15.1 and T15.2 have no test of their own: P15-V11 (T15.3) and P15-V10 (T15.7) check them, and the journeys use them. T15.2 seeds the `E2E-<spec>` variants of the journey specs before T15.6a and T15.6b write those specs; a journey that needs more data adds it to `seed_e2e` in its own task. T15.6b is the first task that needs the sample CFDI documents, so it adds them, and demo step 9 (T15.7) uses them too. T15.5 also gives the G69 database check a way to work inside the `e2e` service and keeps P12-V25 in its own step (G72). G73 (Open) records that the `inspect.*` and `readLatestEmail` helpers T15.4 says it reuses do not exist yet; its proposal is not applied.
+IDs keep their numbers (OA-95). T15.1 and T15.2 have no test of their own: P15-V11 (T15.3) and P15-V10 (T15.7) check them, and the journeys use them. T15.2 seeds the `E2E-<spec>` variants of the journey specs before T15.6a and T15.6b write those specs; a journey that needs more data adds it to `seed_e2e` in its own task. T15.6b is the first task that needs the sample CFDI documents, so it adds them, and demo step 9 (T15.7) uses them too. T15.5 also gives the G69 database check a way to work inside the `e2e` service and keeps P12-V25 in its own step (G72). T15.4 builds the `inspect.*` and `readLatestEmail` helpers, which earlier phases listed but no task built (G73, OA-96).
 
 #### 15.A Demo dataset
 
@@ -4726,13 +4727,14 @@ Dev command runner `POST /dev/test/run/` — runs one whitelisted management com
   - REQs: —
   - Verifies: [no-test: exercised by the journeys (T15.6a, T15.6b)]
   - Depends on: T15.3
-  - Context: §4.6 (E2E)
+  - Context: §4.6 (E2E); G73
 
 E2E helpers in `web/e2e/fixtures.ts`:
 
 - `run(command, args)` — calls 15.3
 - `adminLogin(page)` — the seeded staff user
-- `inspect.*` from 13.8 and `readLatestEmail` from Phase 14 are reused
+- `inspect.inventory(sku)` and `inspect.orders(email)` — wrappers around the T13.8 endpoints, built here (G73)
+- `readLatestEmail(to)` — reads the newest file for that recipient from `var/emails/`, built here (G73)
 
 - [ ] **T15.6a — Journeys J1, J3 and J4**
   - Release: R1 · Gate: task
@@ -4834,7 +4836,7 @@ The Release 2 journey specs (pickup, pre-orders, mixed carts, cart merge on logi
 **Fixtures and factories introduced:**
 
 - `seed_demo`, `seed_e2e` and the `var/e2e/manifest.json` contract
-- Playwright `run(command, args)` and `adminLogin(page)`; journey specs reuse every earlier helper
+- Playwright `run(command, args)` and `adminLogin(page)`, plus `inspect.inventory`, `inspect.orders` and `readLatestEmail`, which earlier phases listed and T15.4 builds (G73); journey specs reuse every earlier helper
 - `web/e2e/fixtures/cfdi-sample.pdf` and `cfdi-sample.xml` — sample documents for J10 and demo step 9; not real CFDI
 
 Part B — Production (Phases 16–22). Real integrations, deployment, observability and the Release 1 launch. Part B starts only after P15-V14 passes. Most Part B checks need real accounts or the live site, so many of their Verify IDs are `[manual]`; everything that can run offline is automated.
@@ -5646,7 +5648,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 11 | ~~G17~~; DSR-04, DSR-05 released |
 | Phase 12 | ~~G18~~, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03 released (DS 1.3.0, T12.18), DSR-06, DSR-07 released (DS 1.6.0, T12.22), DSR-12 released (DS 1.7.0, T12.23), DSR-13 released (DS 1.8.0, T12.24); DSR-09 or its fallback |
 | Phase 13 | ~~G21~~, ~~G22~~ |
-| Phase 15 | ~~G72~~, G73 |
+| Phase 15 | ~~G72~~, ~~G73~~ |
 | Phase 16 | S2, D6, D7, D13, G45 |
 | Phase 17 | S3, S4 |
 | Phase 18 | S1 |
@@ -5740,6 +5742,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.73 | 2026-11-13 | T22.1 also puts a link to `/rastrear` in the site footer, on every page (G71). Its Context names 14.A and G71. No Verify ID, dependency or schema change. | OA-93; owner request in chat |
 | 1.74 | 2026-11-13 | New Verify ID P22-V24 (E2E), listed on T22.1: the site footer links to `/rastrear` on every storefront page (G71). No task, dependency or schema change. | OA-94 |
 | 1.75 | 2026-11-13 | Phase 15 gets an execution-order note, as Phases 7 to 14 have. G73 registered (Open): the Playwright helpers T15.4 says it reuses (`inspect.*`, `readLatestEmail`) do not exist yet. No task, Verify ID or schema change. | OA-95; owner request in chat |
+| 1.76 | 2026-11-13 | G73 decided: T15.4 builds `readLatestEmail`, `inspect.inventory` and `inspect.orders` instead of reusing them; its body, its Context, the Phase 15 fixtures list and the execution-order note say so. No new task, Verify ID, dependency or schema change. | OA-96 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
