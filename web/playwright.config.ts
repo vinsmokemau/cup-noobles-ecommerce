@@ -6,6 +6,12 @@ const BASE_URL = 'http://localhost:8080'
 const GUARD_SPECS = /p1_guard\.spec\.ts/
 // Pre-launch mode is one switch for the whole stack, so its spec runs alone, after the others.
 const PRELAUNCH_SPECS = /p12_prelaunch\.spec\.ts/
+// P12-V25 starts a second storefront server (compose profile `api-down`). While other specs run,
+// that server takes minutes to answer its first page (G72), so the test has a project of its own
+// and the Makefile runs it as a second step, after the others. It is not a `dependencies` project:
+// a run filtered by file would then execute every spec, and a failure elsewhere would skip it.
+const API_DOWN_SPECS = /p12_errors\.spec\.ts/
+const API_DOWN_TEST = /p12_v25/
 
 export default defineConfig({
   testDir: './e2e',
@@ -35,17 +41,25 @@ export default defineConfig({
       name: 'desktop',
       use: { ...devices['Desktop Chrome'] },
       testIgnore: [GUARD_SPECS, PRELAUNCH_SPECS],
+      grepInvert: API_DOWN_TEST,
     },
     {
       name: 'mobile',
       use: { ...devices['Pixel 7'] },
       testIgnore: [GUARD_SPECS, PRELAUNCH_SPECS],
+      grepInvert: API_DOWN_TEST,
     },
     {
       name: 'prelaunch',
       use: { ...devices['Desktop Chrome'] },
       testMatch: PRELAUNCH_SPECS,
       dependencies: ['desktop', 'mobile'],
+    },
+    {
+      name: 'api-down',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: API_DOWN_SPECS,
+      grep: API_DOWN_TEST,
     },
     // The harness's own checks: they assert the guard and the axe wrapper, so they run once.
     { name: 'selftest', use: { ...devices['Desktop Chrome'] }, testMatch: GUARD_SPECS },

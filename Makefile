@@ -67,6 +67,11 @@ test-all: lint types register scripts-tests web-unit \
 # so `down` also stops the development containers; `docker compose up -d` brings them back.
 E2E_DC := $(DC) -f docker-compose.yml -f docker-compose.e2e.yml
 
+# P12-V25 runs as a second Playwright step, after the other specs: its extra storefront server
+# takes minutes to answer while they run (G72). PW_MAIN is every other project.
+PW_MAIN          := --project=desktop --project=mobile --project=prelaunch --project=selftest
+PW_API_DOWN_STEP := $(STEP) "playwright (API down, P12-V25)" sh -c 'cd web && pnpm exec playwright test --project=api-down'
+
 e2e-reset:
 	@$(STEP) "stop the stack" $(E2E_DC) --profile "*" down --remove-orphans
 	@$(STEP) "remove the E2E database volume" docker volume rm -f cupnoobles_pgdata_e2e
@@ -76,7 +81,8 @@ e2e:
 	@test -n "$(FILES)" || { echo "usage: make e2e FILES=e2e/p1_smoke.spec.ts"; exit 2; }
 	@$(STEP) "start the E2E stack" $(E2E_DC) up -d --wait
 	@$(STEP) "seed_e2e (reset the scarce stock)" $(E2E_DC) exec -T api python manage.py seed_e2e
-	@$(STEP) "playwright $(FILES)" sh -c 'cd web && pnpm exec playwright test $(FILES)'
+	@$(STEP) "playwright $(FILES)" sh -c 'cd web && pnpm exec playwright test $(PW_MAIN) $(FILES)'
+	@case "$(FILES)" in *p12_errors*) $(PW_API_DOWN_STEP);; esac
 
 check-migrations:
 	@$(STEP) "makemigrations --check" $(API_TEST) python manage.py makemigrations --check --dry-run
@@ -149,7 +155,8 @@ migration-roundtrip:
 e2e-all:
 	@$(STEP) "start the E2E stack" $(E2E_DC) up -d --wait
 	@$(STEP) "seed_e2e (reset the scarce stock)" $(E2E_DC) exec -T api python manage.py seed_e2e
-	@$(STEP) "playwright (all specs, axe)" sh -c 'cd web && pnpm exec playwright test'
+	@$(STEP) "playwright (all specs, axe)" sh -c 'cd web && pnpm exec playwright test $(PW_MAIN)'
+	@$(PW_API_DOWN_STEP)
 
 # CI judges the budget; outside CI a score below budget is only a warning (G64, ADR-0073).
 lighthouse:
