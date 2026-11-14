@@ -361,3 +361,21 @@ test('p13_v24 purchase limit message', async ({ page, seed }) => {
   await expect(page).toHaveURL(/\/checkout/)
   expect(await ordersOf(page, email)).toHaveLength(0)
 })
+
+// G68: leaving a field checks it, so its message goes and everything below moves up. A press on
+// "Pagar" made with the corrected field still focused must land all the same.
+test('g68 Pagar pressed right after fixing a field sends the order', async ({ page, seed }) => {
+  await addToCart(page, seed, 1)
+  await openCheckout(page)
+  await fillCheckout(page, '')
+
+  const pay = page.getByRole('button', { name: 'Pagar' })
+  await pay.click()
+  await expect(page.getByText('Este campo es obligatorio.')).toBeVisible()
+
+  // The email is corrected and the button is pressed near its lower edge, with no pause.
+  await page.getByLabel('Correo electrónico').fill(uniqueEmail())
+  const box = (await pay.boundingBox())!
+  await pay.click({ position: { x: box.width / 2, y: box.height - 4 } })
+  await expect(page).toHaveURL(/\/dev\/payments\/checkout\//)
+})
