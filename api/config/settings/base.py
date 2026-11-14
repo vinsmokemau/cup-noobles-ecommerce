@@ -108,6 +108,8 @@ CACHES = {
 }
 SILENCED_SYSTEM_CHECKS = ["django_ratelimit.E003"]
 RATELIMIT_IP_META_KEY = "apps.core.ratelimit.client_ip"
+# Always on here and in production. Only dev.py reads a switch, for the E2E stack (G66).
+RATELIMIT_ENABLE = True
 
 # Set before the first migration; changing it later is very painful (T2.1a).
 AUTH_USER_MODEL = "accounts.Customer"

@@ -36,7 +36,9 @@ const API_DOWN_URL = 'http://localhost:3001'
 
 test('p12_v25 ssr with api down renders error page', async ({ request, seed }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'one shared server')
-  test.setTimeout(240_000)
+  // In a full run this server answers its first page only once the other specs wind down, so
+  // the test lasts about as long as the suite (G72). Alone it takes under a minute.
+  test.setTimeout(480_000)
   const { hoodie } = seed.catalog
   execFileSync('docker', [...COMPOSE, 'up', '-d', '--wait', 'web-api-down'], { stdio: 'inherit' })
   try {

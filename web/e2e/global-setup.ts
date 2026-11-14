@@ -17,6 +17,7 @@ export default async function globalSetup(): Promise<void> {
   const routes = [
     ...catalogRoutes(seed),
     `/buscar?q=${encodeURIComponent(seed.catalog.search.query)}`,
+    '/rastrear',
   ]
   const browser = await chromium.launch()
   try {

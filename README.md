@@ -84,7 +84,7 @@ Every target runs inside the compose environment, so local runs and CI use the s
 | Command | What it runs |
 |---|---|
 | `make test` | Linters (ruff, eslint, prettier, markdownlint), mypy and vue-tsc, the register check, pytest without the `slow` and `sandbox` markers, Vitest. Run it for every task. |
-| `make e2e FILES=e2e/p1_smoke.spec.ts` | The named Playwright specs on desktop and mobile, with axe, against the E2E stack. |
+| `make e2e FILES=e2e/p1_smoke.spec.ts` | The named Playwright specs on desktop and mobile, with axe, against the E2E stack. The E2E stack runs with the API's rate limits off (`RATELIMIT_ENABLE=false` in `docker-compose.e2e.yml`), because every spec reaches the API from one address; the development stack and production keep them on. |
 | `make e2e-reset` | Wipes only the E2E database volume (`pgdata_e2e`) and starts the E2E stack again (migrate, then `seed_e2e`). Your development database (`pgdata`) is not touched. The E2E and development stacks are one Compose project, so this stops the development containers; `docker compose up -d` brings them back on the development database. |
 | `make check-migrations` | `makemigrations --check --dry-run`. |
 | `make test-all` | Everything in `make test`, plus the slow tests, the full schemathesis run, the migration round trip, all Playwright specs, the coverage ratchet and the traceability check. Add `PHASE_CLOSE=1` to enforce the coverage gates. |

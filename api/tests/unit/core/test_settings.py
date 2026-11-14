@@ -15,6 +15,29 @@ def test_p1_v16_prod_forces_dev_tools_off(run_settings, prod_env):
     assert run.values == {"DEV_TOOLS_ENABLED": False}
 
 
+def test_g66_prod_keeps_the_rate_limits_on(run_settings, prod_env):
+    run = run_settings(
+        "config.settings.prod",
+        {**prod_env, "RATELIMIT_ENABLE": "false"},
+        ("RATELIMIT_ENABLE",),
+    )
+
+    assert run.returncode == 0, run.stderr
+    assert run.values == {"RATELIMIT_ENABLE": True}
+
+
+@pytest.mark.parametrize(
+    ("env", "expected"), [({}, True), ({"RATELIMIT_ENABLE": "false"}, False)]
+)
+def test_g66_dev_reads_the_rate_limit_switch(run_settings, secrets_env, env, expected):
+    run = run_settings(
+        "config.settings.dev", {**secrets_env, **env}, ("RATELIMIT_ENABLE",)
+    )
+
+    assert run.returncode == 0, run.stderr
+    assert run.values == {"RATELIMIT_ENABLE": expected}
+
+
 def test_p1_v18_prod_hasher_is_argon2(run_settings, prod_env, secrets_env):
     prod = run_settings("config.settings.prod", prod_env, ("PASSWORD_HASHERS",))
     test = run_settings("config.settings.test", secrets_env, ("PASSWORD_HASHERS",))

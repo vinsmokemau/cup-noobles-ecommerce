@@ -25,14 +25,18 @@ async function addToCart(page: Page, seed: SeedManifest): Promise<void> {
   expect(response.ok()).toBe(true)
 }
 
-/** Fills the checkout for a fresh cart and presses "Pagar": the browser ends on the simulator. */
-export async function startPurchase(page: Page, seed: SeedManifest): Promise<void> {
+/**
+ * Fills the checkout for a fresh cart and presses "Pagar": the browser ends on the simulator.
+ * Returns the email the order was placed with, which is unique to this purchase.
+ */
+export async function startPurchase(page: Page, seed: SeedManifest): Promise<string> {
   await page.context().clearCookies()
   await addToCart(page, seed)
   await page.goto('/checkout')
   await waitForHydration(page)
   await expect(page.getByRole('heading', { level: 1, name: 'Checkout' })).toBeVisible()
-  await page.getByLabel('Correo electrónico').fill(`cliente-${randomUUID()}@example.com`)
+  const email = `cliente-${randomUUID()}@example.com`
+  await page.getByLabel('Correo electrónico').fill(email)
   await page.getByLabel('Teléfono').fill('5555555555')
   await page.getByLabel('Nombre de quien recibe').fill('Cliente de prueba')
   await page.getByLabel('Código postal').fill('06700')
@@ -43,6 +47,7 @@ export async function startPurchase(page: Page, seed: SeedManifest): Promise<voi
   await page.getByRole('option').first().click()
   await page.getByRole('button', { name: 'Pagar' }).click()
   await expect(page).toHaveURL(/\/dev\/payments\/checkout\//)
+  return email
 }
 
 /** Presses one of the simulator's buttons and waits for the landing page it sends the browser to. */

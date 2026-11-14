@@ -119,6 +119,14 @@ def test_p6_v18_guest_lookup_rate_limit(api_client, order, clock):
     assert lookup(api_client, order.number, order.email).status_code == 200
 
 
+def test_g66_lookup_is_not_limited_with_the_switch_off(api_client, order, settings):
+    # The E2E stack's setting (docker-compose.e2e.yml): the sixth lookup still gets its answer.
+    settings.RATELIMIT_ENABLE = False
+
+    for attempt in range(6):
+        assert lookup(api_client, order.number, order.email).status_code == 200, attempt
+
+
 def test_p6_v18_the_limit_is_per_ip(api_client, order):
     for _ in range(5):
         lookup(
