@@ -4491,7 +4491,7 @@ IDs keep their numbers (OA-92). T14.2 waits for DSR-08 (blocking), and so do T14
 
 #### Tasks
 
-- [ ] **T14.6 — Guest order lookup page**
+- [x] **T14.6 — Guest order lookup page** (2026-11-13, a2592e0)
   - Release: R1 · Gate: phase-close
   - REQs: REQ-051
   - Verifies: P14-V09, P14-V17
