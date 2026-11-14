@@ -222,6 +222,32 @@ usePageSeo({ title: 'Rastrea tu pedido', noindex: true })
             >. Después de esa fecha la ficha deja de funcionar.
           </p>
         </template>
+
+        <!-- A shipped order: its tracking number and the carrier's page, as in the shipped email
+             (G70). The carrier's name waits for its display names (Phase 19). -->
+        <div
+          v-for="shipment in order.shipments"
+          :key="shipment.tracking_number"
+          class="flex flex-col gap-2"
+          data-testid="order-shipment"
+        >
+          <p>
+            Número de guía:
+            <span translate="no" class="break-all">{{ shipment.tracking_number }}</span>
+          </p>
+          <UButton
+            v-if="shipment.tracking_url"
+            :href="shipment.tracking_url"
+            target="_blank"
+            rel="noopener"
+            color="primary"
+            variant="solid"
+            size="xl"
+            label="Rastrear mi envío"
+            class="self-start"
+            data-testid="tracking-link"
+          />
+        </div>
       </section>
     </div>
   </main>

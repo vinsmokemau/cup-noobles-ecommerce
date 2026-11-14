@@ -116,3 +116,54 @@ test('p14_v17 axe on rastrear', async ({ page, seed }) => {
     await expectNoA11yViolations(page)
   })
 })
+
+// G70 (owner decision): a shipped order also shows its tracking number and the carrier's page.
+test('g70 a shipped order shows its tracking link', async ({ page, seed }) => {
+  test.setTimeout(120_000)
+  const email = await startPurchase(page, seed)
+  await chooseOutcome(page, 'Aprobar con tarjeta', 'gracias')
+  await expect(page.getByRole('heading', { level: 1, name: 'Pago confirmado' })).toBeVisible({
+    timeout: 20_000,
+  })
+  const number = await orderNumberOf(page, email)
+  await openLookup(page)
+
+  // The order as the API has it: paid, nothing shipped, so no tracking is shown.
+  expect(await lookUp(page, number, email)).toBe(200)
+  const result = page.getByTestId('order-result')
+  await expect(result.getByTestId('order-state')).toBeVisible()
+  await expect(result.getByTestId('order-shipment')).toHaveCount(0)
+
+  // No spec can ship an order before the Phase 15 journeys, so the API's answer is given the
+  // shipment the mock carrier would add: the same fields, with a link on this origin.
+  const trackingNumber = `MOCK-${number}-1`
+  const trackingUrl = `http://localhost:8080/dev/carrier/track/${trackingNumber}/`
+  await page.route('**/api/orders/lookup/', async (route) => {
+    const response = await route.fetch()
+    const order = (await response.json()) as Record<string, unknown>
+    await route.fulfill({
+      response,
+      json: {
+        ...order,
+        state: 'shipped',
+        shipments: [
+          {
+            carrier: 'mock',
+            tracking_number: trackingNumber,
+            tracking_url: trackingUrl,
+            shipped_at: new Date().toISOString(),
+            delivered_at: null,
+          },
+        ],
+      },
+    })
+  })
+  expect(await lookUp(page, number, email)).toBe(200)
+  await expect(result.getByTestId('order-state')).toHaveText('Enviado')
+  await expect(result.getByTestId('order-shipment')).toContainText(trackingNumber)
+  await expect(result.getByRole('link', { name: 'Rastrear mi envío' })).toHaveAttribute(
+    'href',
+    trackingUrl,
+  )
+  await expectNoA11yViolations(page)
+})
