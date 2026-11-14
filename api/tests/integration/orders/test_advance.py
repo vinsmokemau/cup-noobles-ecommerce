@@ -85,3 +85,29 @@ def test_orders_in_other_states_are_left_alone(clock):
         "delivered",
     ]
     assert not OrderEvent.objects.exists()
+
+
+def test_g47_one_failing_order_does_not_stop_the_run(clock, monkeypatch, caplog):
+    from apps.orders.management.commands import advance_orders
+
+    broken = delivered_order()
+    healthy = delivered_order()
+    assert broken.pk < healthy.pk  # the run reaches the broken order first
+    clock.travel(DELIVERED_AT + WEEK)
+
+    real_apply_event = advance_orders.apply_event
+
+    def apply_event(order_id, event, **kwargs):
+        if order_id == broken.pk:
+            raise RuntimeError("boom")
+        return real_apply_event(order_id, event, **kwargs)
+
+    monkeypatch.setattr(advance_orders, "apply_event", apply_event)
+
+    with caplog.at_level("ERROR", logger=advance_orders.__name__):
+        completed = advance_orders.complete_delivered_orders()
+
+    assert completed == 1
+    assert state_of(healthy) == "completed"
+    assert state_of(broken) == "delivered"
+    assert f"Order {broken.pk} could not be completed" in caplog.text

@@ -256,3 +256,17 @@ def test_p8_v20_address_normalisation_ignores_case_accents_and_recipient():
     assert normalise_address(a) == normalise_address(b) != ""
     assert normalise_address({"street": "Calle", "postal_code": ""}) == ""
     assert normalise_address(None) == ""
+
+
+def test_g47_counted_states_are_the_states_that_hold_units():
+    from apps.orders.models import ORDER_STATES
+    from apps.orders.purchase_limits import COUNTED_STATES
+
+    # `partially_refunded` is in the enum but never entered (G26, ADR-0043): a partial refund
+    # keeps the order's state. Every other state either holds its units or gave them back, so a
+    # new state has to be put on one side here.
+    never_entered = {"partially_refunded"}
+    hold_nothing = {"draft", "cancelled", "expired", "refunded"}
+
+    assert set(COUNTED_STATES) == set(ORDER_STATES) - hold_nothing - never_entered
+    assert len(COUNTED_STATES) == len(set(COUNTED_STATES))

@@ -19,7 +19,8 @@ from django.utils import timezone
 from apps.orders.models import OrderLine
 
 # `draft` has not reserved anything yet, and `cancelled`, `expired` and `refunded` gave the
-# units back.
+# units back. No order is ever `partially_refunded`: a partial refund keeps the order's state
+# (G26, ADR-0043), so its units keep counting under that state.
 COUNTED_STATES = (
     "pending_payment",
     "paid",
@@ -30,7 +31,6 @@ COUNTED_STATES = (
     "delivered",
     "picked_up",
     "completed",
-    "partially_refunded",
 )
 
 # A Mexican number is 10 digits; a country code or a leading 1 before them is not part of it.

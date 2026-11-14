@@ -46,6 +46,11 @@ def complete_delivered_orders() -> int:
             # Another run, or a refund or cancellation, moved it first.
             logger.info("Order %s left `delivered` before it could complete", order_id)
             continue
+        except Exception:
+            # One order in an odd shape must not stop the ones after it (G47). `apply_event`
+            # rolled its own transaction back, so the order is as it was.
+            logger.exception("Order %s could not be completed; left alone", order_id)
+            continue
         completed += 1
     return completed
 
