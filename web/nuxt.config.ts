@@ -20,7 +20,12 @@ export default defineNuxtConfig({
   image: { provider: 'none' },
   eslint: { checker: false, config: { stylistic: false } },
   // Icons are bundled into the client, so a page never asks the Iconify API for one (Part A is offline).
-  icon: { clientBundle: { scan: true } },
+  // The scan only finds the names written in the storefront's own files. An icon named by the
+  // Design System layer (a button's loading spinner) is asked from Nuxt Icon's own endpoint, which
+  // serves the installed Phosphor set. Its default path is under `/api`, which Caddy and the Nitro
+  // proxy send to Django, so it lives outside `/api` (G67). The public Iconify API is never a
+  // fallback: when the store's endpoint is slow the browser would ask it instead (CR-41).
+  icon: { clientBundle: { scan: true }, localApiEndpoint: '/_nuxt_icon', fallbackToApi: false },
   site: { url: siteUrl, name: 'Cup Noobles', defaultLocale: 'es-MX' },
   // The sitemap lists the catalog: the source route reads the API (server/routes/_sitemap-source/urls.ts).
   sitemap: { sources: ['/_sitemap-source/urls'], exclude: ['/buscar'] },
