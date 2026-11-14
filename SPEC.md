@@ -4692,7 +4692,7 @@ Every journey runs against `docker compose up` with every provider set to its mo
 
 #### Tasks
 
-- [ ] **T15.1 — Demo dataset**
+- [x] **T15.1 — Demo dataset** (2026-11-13, 377fcaf)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: P15-V10 (T15.7) checks the dataset against the demo script; P15-V11 (T15.3) checks the production guard]
