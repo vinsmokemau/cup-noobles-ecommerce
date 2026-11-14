@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { chromium } from '@playwright/test'
+import { assertE2EDatabase } from './e2e-database'
 import { catalogRoutes } from './routes'
 import type { SeedManifest } from './fixtures'
 
@@ -13,6 +14,8 @@ const MANIFEST_PATH = fileURLToPath(new URL('../../var/e2e/manifest.json', impor
 const BASE_URL = 'http://localhost:8080'
 
 export default async function globalSetup(): Promise<void> {
+  // Before anything touches the stack: never run against the development database (G69).
+  assertE2EDatabase()
   const seed = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')) as SeedManifest
   const routes = [
     ...catalogRoutes(seed),
