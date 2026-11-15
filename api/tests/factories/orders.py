@@ -9,7 +9,9 @@ class OrderFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Order
 
-    number = factory.Sequence(lambda n: f"CN-2026-{n:06d}")
+    # A year the store never numbers in: a real checkout in the same test (`place_order`,
+    # `seed_demo`) takes its number from the current year's sequence, which also starts at 1.
+    number = factory.Sequence(lambda n: f"CN-1999-{n:06d}")
     email = factory.Sequence(lambda n: f"pedido{n}@example.com")
     state = "draft"
     fulfillment_method = "delivery"

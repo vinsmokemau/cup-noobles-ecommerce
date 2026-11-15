@@ -10,10 +10,40 @@ export const A11Y_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
 
 type Ref = { slug: string; name: string }
+// A product with its variants, in the order the product page lists them.
+export type SeededProduct = Ref & { variants: { sku: string; options: Record<string, string> }[] }
+// One copy of a product per Playwright project, for a journey that asserts stock counts: the
+// `desktop` and `mobile` projects run at the same time, so each buys its own.
+export type PerProject = { desktop: SeededProduct; mobile: SeededProduct }
 
-// What `manage.py seed_e2e` wrote to `var/e2e/manifest.json`, so specs never hard-code slugs or
-// SKUs. Each phase adds its own part.
+// What `manage.py seed_e2e` wrote to `var/e2e/manifest.json`, so specs never hard-code slugs,
+// SKUs, emails or order numbers. Each phase adds its own part.
 export interface SeedManifest {
+  // The demo dataset of SPEC.md 15.A, which `seed_e2e` includes (T15.2). A spec that changes
+  // stock buys from `journeys`, never from here.
+  demo: {
+    staff: { email: string; password: string }
+    // The email of the seeded guest order history.
+    guest: { email: string }
+    products: Record<
+      'tcg' | 'fundas' | 'sudadera' | 'playera' | 'figura' | 'artbook',
+      SeededProduct
+    >
+    hidden: { draft: SeededProduct; archived: SeededProduct }
+    // Order numbers: a completed delivery, an OXXO order that is pending when first seeded and
+    // expires with its voucher, and a paid order with a CFDI request.
+    orders: { completed: string; oxxo: string; cfdi: string }
+  }
+  // Each Release 1 journey's own copy of the 15.A product it buys (SKU prefix `E2E-J<n>`).
+  // `seed_e2e` puts the stock back to the 15.A count on every run.
+  journeys: {
+    j1: PerProject
+    j3: PerProject
+    j4: PerProject
+    j8: PerProject
+    j10: SeededProduct
+    j11: SeededProduct
+  }
   catalog: {
     hidden: { draft: Ref; archived: Ref }
     featured: Ref[]
@@ -27,7 +57,7 @@ export interface SeedManifest {
     // A product with a per-customer limit that the purchase-limit spec (P13-V24) asks to exceed.
     checkoutErrors: { scarce: Ref & { sku: string }; limited: Ref & { limit: number } }
   }
-  // A fictional staff account (T12.15).
+  // A fictional staff account (T12.15), apart from the demo staff user.
   staff: { email: string; password: string }
 }
 

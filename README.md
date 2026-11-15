@@ -63,7 +63,7 @@ make check-migrations   # fails if a model change has no migration
 
 | Command | What it does |
 |---|---|
-| `docker compose run --rm api python manage.py seed_e2e` | Seeds the end-to-end data and writes `var/e2e/manifest.json`. The E2E stack (`docker-compose.e2e.yml`) runs it for you after migrating. |
+| `docker compose run --rm api python manage.py seed_e2e` | Seeds the demo dataset (`seed_demo`) plus the data the end-to-end specs own, and writes `var/e2e/manifest.json` (slugs, SKUs, emails, the dev password and order numbers). Each run puts the stock of the spec-owned products back. The E2E stack (`docker-compose.e2e.yml`) runs it for you after migrating. Development and tests only. |
 | `docker compose run --rm api python manage.py seed_states` | Seeds the 32 states into `mx_state`. Idempotent; production runs it in the deploy step (G41). |
 | `docker compose run --rm api python manage.py load_postal_codes [file.csv]` | Loads `mx_postal_code` for the postal-code lookup from a CSV with the columns `postal_code,neighborhood,municipality,state_code` (`#` lines are comments). Never makes a network call. With `POSTAL_CODE_DATASET=sample` and no file it loads the committed sample; `sepomex` needs the file path (G30). Idempotent; needs `seed_states` first. All rows load or none do. |
 | `docker compose run --rm api python manage.py seed_dev_defaults` | Seeds the 32 states, the `[PLACEHOLDER]` warehouse `almacen` and the five launch product types, whose schemas carry the `[PLACEHOLDER]` comment, and the `[PLACEHOLDER]` shipping zones `local` and `nacional` with their rates (SPEC.md §2.5). Idempotent. |

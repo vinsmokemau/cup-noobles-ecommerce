@@ -39,9 +39,9 @@ def test_seed_e2e_writes_manifest(settings, tmp_path):
     call_command("seed_e2e")
 
     # Idempotent, and each phase adds its own part (Phase 12: the catalog and, for T12.15, a staff
-    # account).
+    # account; T15.2: the demo dataset and the journey products).
     assert json.loads(path.read_text()) == first
-    assert set(first) == {"catalog", "staff"}
+    assert set(first) == {"catalog", "staff", "demo", "journeys"}
 
 
 @pytest.mark.django_db
@@ -91,7 +91,10 @@ def test_seed_e2e_gives_back_the_units_that_earlier_orders_hold(settings, tmp_pa
 
     item.refresh_from_db()
     assert (item.on_hand - item.reserved, item.reserved) == (2, 0)
-    assert not InventoryReservation.objects.filter(state="held").exists()
+    # On the scarce variant: the seeded OXXO order of the demo dataset holds its own unit (T15.2).
+    assert not InventoryReservation.objects.filter(
+        variant=item.variant, state="held"
+    ).exists()
     assert Order.objects.get(pk=pending.pk).state == "cancelled"
     assert Order.objects.get(pk=draft.pk).state == "draft"
 

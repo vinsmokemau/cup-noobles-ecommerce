@@ -144,19 +144,38 @@ def _checkout_error_product(
     if variant.purchase_limit != purchase_limit:
         variant.purchase_limit = purchase_limit
         variant.save(update_fields=["purchase_limit"])
+    if exact:
+        set_available(variant, units)
+        return product
     location, _ = Location.objects.get_or_create(
         code="almacen",
         defaults={"name": "Almacén", "kind": Location.Kind.WAREHOUSE},
     )
     item, _ = StockItem.objects.get_or_create(variant=variant, location=location)
-    if exact:
-        _release_earlier_holds(variant)
-        item.refresh_from_db()
     missing = units - (item.on_hand - item.reserved)
     if missing > 0:
         receive_stock(variant, location, missing, note="seed_e2e")
-    elif exact and missing < 0:
-        # Units held by a pending order stay held: only the available surplus is removed.
+    return product
+
+
+def set_available(variant: Variant, units: int) -> None:
+    """Leave exactly `units` of `variant` available, with nothing held by an earlier run.
+
+    The holds of earlier runs are settled first (ADR-0072). Then missing units are received, and a
+    surplus is removed through the inventory service with a `count_correction` row (ADR-0071).
+    """
+    location, _ = Location.objects.get_or_create(
+        code="almacen",
+        defaults={"name": "Almacén", "kind": Location.Kind.WAREHOUSE},
+    )
+    item, _ = StockItem.objects.get_or_create(variant=variant, location=location)
+    _release_earlier_holds(variant)
+    item.refresh_from_db()
+    missing = units - (item.on_hand - item.reserved)
+    if missing > 0:
+        receive_stock(variant, location, missing, note="seed_e2e")
+    elif missing < 0:
+        # Units held by an order in another state stay held: only the available surplus is removed.
         adjust_stock(
             variant,
             location,
@@ -165,7 +184,6 @@ def _checkout_error_product(
             actor=None,
             note="seed_e2e",
         )
-    return product
 
 
 def _test_picture() -> ContentFile:
