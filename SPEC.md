@@ -4706,7 +4706,7 @@ Every journey runs against `docker compose up` with every provider set to its mo
 - `--reset` flushes application tables and the mock stores (`MOCK_STORE_DIR`, `EMAIL_FILE_DIR`, `MEDIA_ROOT`), then reseeds.
 - Refuses to run unless `DEV_TOOLS_ENABLED`.
 
-- [ ] **T15.2 — End-to-end dataset**
+- [x] **T15.2 — End-to-end dataset** (2026-11-15, d5c993b)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: used by every journey; the production guard is P15-V11 (T15.3)]
