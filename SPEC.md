@@ -4720,7 +4720,7 @@ Every journey runs against `docker compose up` with every provider set to its mo
 
 `manage.py seed_e2e` — `seed_demo` plus data owned by individual specs: variants with SKU prefix `E2E-<spec>` for every spec that mutates stock (§4.6). It writes `var/e2e/manifest.json` (slugs, SKUs, emails, passwords, order numbers) for the Playwright `seed` fixture.
 
-- [ ] **T15.3 — Dev command runner**
+- [x] **T15.3 — Dev command runner** (2026-11-15, 6e46f33)
   - Release: R1 · Gate: task
   - REQs: REQ-040
   - Verifies: P15-V11
