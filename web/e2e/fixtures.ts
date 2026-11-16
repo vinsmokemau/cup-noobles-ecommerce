@@ -44,6 +44,9 @@ export interface SeedManifest {
     j8: PerProject
     j10: SeededProduct
     j11: SeededProduct
+    // What J11's staff publish when the store goes live: a product that is not on sale, one per
+    // device the journey runs on. No stock; nobody buys it.
+    j11Launch: PerProject
   }
   catalog: {
     hidden: { draft: Ref; archived: Ref }

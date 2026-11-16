@@ -4,8 +4,11 @@ import { defineConfig, devices } from '@playwright/test'
 // specs reach the same origin a customer does.
 const BASE_URL = 'http://localhost:8080'
 const GUARD_SPECS = /p1_guard\.spec\.ts/
-// Pre-launch mode is one switch for the whole stack, so its spec runs alone, after the others.
-const PRELAUNCH_SPECS = /p12_prelaunch\.spec\.ts/
+// Pre-launch mode is one switch for the whole stack, so the specs that turn it on run after the
+// others and one at a time: P12-V28 and the J11 journey on the desktop device (`prelaunch`), then
+// J11 on the mobile device (`prelaunch-mobile`).
+const J11_SPEC = /j11_prelaunch\.spec\.ts/
+const PRELAUNCH_SPECS = [/p12_prelaunch\.spec\.ts/, J11_SPEC]
 // P12-V25 starts a second storefront server (compose profile `api-down`). While other specs run,
 // that server takes minutes to answer its first page (G72), so the test has a project of its own
 // and the Makefile runs it as a second step, after the others. It is not a `dependencies` project:
@@ -40,13 +43,13 @@ export default defineConfig({
     {
       name: 'desktop',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: [GUARD_SPECS, PRELAUNCH_SPECS],
+      testIgnore: [GUARD_SPECS, ...PRELAUNCH_SPECS],
       grepInvert: API_DOWN_TEST,
     },
     {
       name: 'mobile',
       use: { ...devices['Pixel 7'] },
-      testIgnore: [GUARD_SPECS, PRELAUNCH_SPECS],
+      testIgnore: [GUARD_SPECS, ...PRELAUNCH_SPECS],
       grepInvert: API_DOWN_TEST,
     },
     {
@@ -54,6 +57,13 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
       testMatch: PRELAUNCH_SPECS,
       dependencies: ['desktop', 'mobile'],
+      workers: 1,
+    },
+    {
+      name: 'prelaunch-mobile',
+      use: { ...devices['Pixel 7'] },
+      testMatch: J11_SPEC,
+      dependencies: ['prelaunch'],
     },
     {
       name: 'api-down',

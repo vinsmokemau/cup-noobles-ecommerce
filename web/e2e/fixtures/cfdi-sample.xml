@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sample document for the J10 journey and demo step 9 (SPEC.md Phase 15). Not a real CFDI:
+     it carries no fiscal data and follows no SAT schema. -->
+<documento-de-muestra>Documento de muestra para pruebas y demos. No es un CFDI.</documento-de-muestra>

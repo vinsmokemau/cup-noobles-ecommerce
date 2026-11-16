@@ -38,10 +38,10 @@ export async function openProduct(page: Page, product: SeededProduct): Promise<s
 }
 
 /**
- * A guest buys one unit: product page → cart → checkout with CP 06700 → "Pagar". The browser ends
- * on the payment simulator. Returns the email of the order, which is unique to this purchase.
+ * A guest takes one unit to the checkout: product page → cart → checkout with CP 06700, filled in
+ * and ready for "Pagar". Returns the email of the order, which is unique to this purchase.
  */
-export async function buyAsGuest(page: Page, product: SeededProduct): Promise<string> {
+export async function fillCheckoutAsGuest(page: Page, product: SeededProduct): Promise<string> {
   await openProduct(page, product)
   await page.getByRole('button', { name: 'Agregar al carrito' }).click()
   await page.getByRole('status').getByRole('link', { name: 'Ver carrito' }).click()
@@ -68,10 +68,28 @@ export async function buyAsGuest(page: Page, product: SeededProduct): Promise<st
   // The list of neighborhoods closes before the page is checked as the customer leaves it.
   await expect(page.getByRole('listbox')).toHaveCount(0)
   await expectNoA11yViolations(page)
-  await page.getByRole('button', { name: 'Pagar' }).click()
+  return email
+}
 
+/** Waits for the payment simulator, where "Pagar" sends the browser. */
+export async function expectSimulator(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/dev\/payments\/checkout\//)
   await expect(page.getByRole('heading', { level: 1, name: /^Pedido / })).toBeVisible()
+}
+
+/** From a filled-in checkout: presses "Pagar". The browser ends on the payment simulator. */
+export async function pay(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Pagar' }).click()
+  await expectSimulator(page)
+}
+
+/**
+ * A guest buys one unit: product page → cart → checkout with CP 06700 → "Pagar". The browser ends
+ * on the payment simulator. Returns the email of the order, which is unique to this purchase.
+ */
+export async function buyAsGuest(page: Page, product: SeededProduct): Promise<string> {
+  const email = await fillCheckoutAsGuest(page, product)
+  await pay(page)
   return email
 }
 

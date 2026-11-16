@@ -1,2 +1,5 @@
 # Vendored Design System email HTML: byte-exact, so the sha256 in the manifest holds on every checkout (T11.6).
 api/apps/notifications/templates/email/ds/* -text
+# Sample CFDI documents of the J10 journey (T15.6b): byte-exact, so the PDF's offsets hold and the
+# files compare equal to the email's attachments on every checkout.
+web/e2e/fixtures/* -text

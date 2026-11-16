@@ -9,6 +9,11 @@ the same time, so each has one copy per project. J10 and J11 assert no stock cou
 
 Every run of `seed_e2e` puts each journey variant back to its 15.A count and settles the holds
 earlier runs left (the mechanism of ADR-0071 and ADR-0072), so a journey starts from known stock.
+
+J11 also has staff publish the catalog when the store goes live, so it gets one product that is
+not on sale, per device it runs on. Nobody buys it and it has no stock. It is a draft on a new
+database; once a run has published it, the next `seed_e2e` archives it, so the journey always has
+something to publish.
 """
 
 from dataclasses import dataclass
@@ -16,7 +21,12 @@ from typing import Any
 
 from apps.catalog.e2e_seed import set_available
 from apps.catalog.models import Franchise, Product
-from apps.catalog.services import add_variant, create_product, publish_product
+from apps.catalog.services import (
+    add_variant,
+    archive_product,
+    create_product,
+    publish_product,
+)
 from apps.core import demo
 
 PROJECTS = ("desktop", "mobile")
@@ -39,6 +49,11 @@ JOURNEYS: tuple[Journey, ...] = (
     Journey("j10", f"{demo.DEMO_PREFIX} Playera", False),
     Journey("j11", f"{demo.DEMO_PREFIX} Playera", False),
 )
+
+# The 15.A product J11's unpublished products copy: the hidden draft, an accessory with no stock.
+LAUNCH_SOURCE_NAME = f"{demo.DEMO_PREFIX} Accesorio en borrador"
+LAUNCH_NAME = f"{demo.DEMO_PREFIX} Accesorio"
+LAUNCH_MANIFEST_KEY = "j11Launch"
 
 
 def product_manifest(product: Product) -> dict[str, Any]:
@@ -82,6 +97,24 @@ def _seed_copy(source: demo.DemoProduct, owner: str, franchise: Franchise) -> Pr
     return product
 
 
+def _seed_launch_copy(
+    source: demo.DemoProduct, project: str, franchise: Franchise
+) -> Product:
+    """J11's product to publish on one device: created as a draft, and taken off sale again
+    (archived, through the catalog service) when an earlier run published it."""
+    name = f"{LAUNCH_NAME} (J11 lanzamiento {project})"
+    product = Product.objects.filter(name=name).first()
+    if product is None:
+        product = create_product(
+            source.type_code, name, source.attributes, franchise=franchise
+        )
+        # Not an `E2E-J…` SKU: those are the variants a journey buys.
+        add_variant(product, {}, source.price_cents, _sku(f"LANZAMIENTO-{project}", ()))
+    elif product.status == Product.Status.ACTIVE:
+        archive_product(product)
+    return product
+
+
 def seed_journeys() -> dict[str, Any]:
     """Create the missing journey products, reset their stock, and return the manifest part.
 
@@ -104,4 +137,10 @@ def seed_journeys() -> dict[str, Any]:
             manifest[journey.key] = product_manifest(
                 _seed_copy(source, label, franchise)
             )
+    manifest[LAUNCH_MANIFEST_KEY] = {
+        project: product_manifest(
+            _seed_launch_copy(sources[LAUNCH_SOURCE_NAME], project, franchise)
+        )
+        for project in PROJECTS
+    }
     return manifest

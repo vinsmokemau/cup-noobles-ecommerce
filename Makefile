@@ -74,7 +74,7 @@ E2E_NO_SCHEDULER := $(STEP) "remove the scheduler (off in the E2E stack)" $(E2E_
 
 # P12-V25 runs as a second Playwright step, after the other specs: its extra storefront server
 # takes minutes to answer while they run (G72). PW_MAIN is every other project.
-PW_MAIN          := --project=desktop --project=mobile --project=prelaunch --project=selftest
+PW_MAIN          := --project=desktop --project=mobile --project=prelaunch --project=prelaunch-mobile --project=selftest
 PW_API_DOWN_STEP := $(STEP) "playwright (API down, P12-V25)" sh -c 'cd web && pnpm exec playwright test --project=api-down'
 
 e2e-reset:

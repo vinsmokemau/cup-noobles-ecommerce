@@ -18,6 +18,7 @@ from django.test import override_settings
 import apps.shipping.management.commands.load_postal_codes  # noqa: F401
 from apps.accounts.models import Customer
 from apps.catalog.models import Product, Variant
+from apps.catalog.services import publish_product
 from apps.core import demo
 from apps.inventory import services
 from apps.inventory.models import (
@@ -202,6 +203,49 @@ def test_seed_e2e_gives_each_journey_its_own_variants(seed_e2e, client):
     assert not Product.objects.filter(
         slug__in=slugs, name__in=[product.name for product in demo.DEMO_PRODUCTS]
     ).exists()
+
+
+def test_seed_e2e_gives_j11_a_product_to_publish(seed_e2e, client):
+    """J11 has staff publish the catalog (P15-V16): one product per device that is not on sale."""
+    launch = seed_e2e()["journeys"]["j11Launch"]
+
+    def on_sale(project):
+        slug = launch[project]["slug"]
+        return client.get(f"/api/catalog/products/{slug}/").status_code == 200
+
+    def statuses():
+        return {
+            project: Product.objects.get(slug=entry["slug"]).status
+            for project, entry in launch.items()
+        }
+
+    assert set(launch) == {"desktop", "mobile"}
+    assert launch["desktop"]["slug"] != launch["mobile"]["slug"]
+    for project, entry in launch.items():
+        product = Product.objects.get(slug=entry["slug"])
+        assert entry["name"] == product.name
+        assert product.name.startswith("[DEMO] ")
+        assert product.franchise.name == "Franquicia Demo"
+        assert entry["variants"] == [
+            {"sku": f"E2E-LANZAMIENTO-{project.upper()}", "options": {}}
+        ]
+        # Nobody buys it: it has no stock.
+        assert not StockItem.objects.filter(variant__product=product).exists()
+        assert not on_sale(project)
+    assert statuses() == {"desktop": "draft", "mobile": "draft"}
+
+    # A run published one. The next seed takes it off sale again, and it can be published again.
+    desktop = Product.objects.get(slug=launch["desktop"]["slug"])
+    publish_product(desktop)
+    assert on_sale("desktop")
+
+    assert seed_e2e()["journeys"]["j11Launch"] == launch
+    assert statuses() == {"desktop": "archived", "mobile": "draft"}
+    assert not on_sale("desktop")
+
+    desktop.refresh_from_db()
+    publish_product(desktop)
+    assert on_sale("desktop")
 
 
 def test_seed_e2e_puts_the_journey_stock_back(seed_e2e):
