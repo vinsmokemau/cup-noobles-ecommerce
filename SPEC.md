@@ -4748,7 +4748,7 @@ E2E helpers in `web/e2e/fixtures.ts`:
 - `inspect.inventory(sku)` and `inspect.orders(email)` — wrappers around the T13.8 endpoints, built here (G73)
 - `readLatestEmail(to)` — reads the newest file for that recipient from `var/emails/`, built here (G73)
 
-- [ ] **T15.6a — Journeys J1, J3 and J4**
+- [x] **T15.6a — Journeys J1, J3 and J4** (2026-11-16, cea8240)
   - Release: R1 · Gate: task
   - REQs: REQ-012, REQ-051
   - Verifies: P15-V01, P15-V03, P15-V04
