@@ -13,7 +13,7 @@ import {
 //
 // The accessibility check runs on every storefront page a journey visits (REQ-051). The pages that
 // stand in for a provider's own (the payment simulator, the voucher, the mock tracking page) and
-// the Django admin are not checked: the owner's answer in T15.6a (2026-11-16).
+// the Django admin are not checked (G80, OA-101).
 
 /**
  * The journey's own copy of its product for the Playwright project that is running. `desktop` and
