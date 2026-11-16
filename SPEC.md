@@ -4773,7 +4773,7 @@ The task also gives `advance_orders` an optional `--order <number>` (G79, OA-100
 
 The journey specs for J8 (double-click "Pagar"), J10 (CFDI) and J11 (pre-launch), on the same terms as T15.6a. J10 uses the sample CFDI documents in `web/e2e/fixtures/`.
 
-- [ ] **T15.7 — Demo script and make targets**
+- [x] **T15.7 — Demo script and make targets** (2026-11-16, be88fe8)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: P15-V10
