@@ -1,10 +1,11 @@
-"""`advance_orders`: auto-completion (SPEC.md 8.A T12, §4.8, P8-V13, P8-V14) and the move of
-paid delivery orders to `preparing` (T7; G75, ADR-0075)."""
+"""`advance_orders`: auto-completion (SPEC.md 8.A T12, §4.8, P8-V13, P8-V14), the move of
+paid delivery orders to `preparing` (T7; G75, ADR-0075) and the `--order` option (G79)."""
 
 from datetime import UTC, datetime, timedelta
 
 import pytest
 from django.core.management import call_command
+from django.core.management.base import CommandError
 
 from apps.orders.models import Order, OrderEvent
 from tests.factories.inventory import LocationFactory
@@ -188,3 +189,51 @@ def test_g47_one_failing_order_does_not_stop_the_run(clock, monkeypatch, caplog)
     assert state_of(healthy) == "completed"
     assert state_of(broken) == "delivered"
     assert f"Order {broken.pk} could not be completed" in caplog.text
+
+
+def test_g79_only_the_named_paid_order_moves_to_preparing():
+    named = order_in_state("paid")
+    other = order_in_state("paid")
+
+    call_command("advance_orders", "--order", named.number)
+
+    assert [state_of(named), state_of(other)] == ["preparing", "paid"]
+    assert OrderEvent.objects.get().order_id == named.pk
+
+    # Without the option the job is unchanged: it moves the order that was left out.
+    call_command("advance_orders")
+    assert state_of(other) == "preparing"
+
+
+def test_g79_only_the_named_delivered_order_completes(clock):
+    named = delivered_order()
+    other = delivered_order()
+    clock.travel(DELIVERED_AT + WEEK)
+
+    call_command("advance_orders", "--order", named.number)
+
+    assert [state_of(named), state_of(other)] == ["completed", "delivered"]
+    assert OrderEvent.objects.get().order_id == named.pk
+
+
+def test_g79_the_named_order_is_left_alone_when_it_is_not_due(clock):
+    waiting = order_in_state("pending_payment")
+    early = delivered_order()
+    clock.travel(DELIVERED_AT + WEEK - timedelta(seconds=1))
+
+    call_command("advance_orders", "--order", waiting.number)
+    call_command("advance_orders", "--order", early.number)
+
+    assert [state_of(waiting), state_of(early)] == ["pending_payment", "delivered"]
+    assert not OrderEvent.objects.exists()
+
+
+def test_g79_an_unknown_order_number_fails():
+    paid = order_in_state("paid")
+
+    with pytest.raises(CommandError, match="There is no order CN-0000-000000"):
+        call_command("advance_orders", "--order", "CN-0000-000000")
+
+    # Nothing ran: the order every plain run would move is where it was.
+    assert state_of(paid) == "paid"
+    assert not OrderEvent.objects.exists()

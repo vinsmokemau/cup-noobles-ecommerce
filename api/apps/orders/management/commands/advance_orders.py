@@ -12,14 +12,18 @@ T5 is not fired here: `expire_reservations` owns payment-deadline expiry (G37, A
 Each order goes through `apply_event`, which locks the row and re-reads its state, so running the
 command twice, or two copies at once, moves an order once: the loser finds it already moved and
 skips it. A moved order has left the state the job looks for, so a rerun finds nothing to do.
+
+`--order <number>` limits a run to that one order, for both transitions (G79, OA-100). The
+end-to-end journeys use it: they run beside specs that read their own `paid` orders, which the
+plain job would move.
 """
 
 import logging
 from datetime import timedelta
 from typing import Any
 
-from django.core.management.base import BaseCommand
-from django.db.models import Max
+from django.core.management.base import BaseCommand, CommandError, CommandParser
+from django.db.models import Max, QuerySet
 from django.utils import timezone
 
 from apps.orders.models import Order
@@ -30,10 +34,16 @@ logger = logging.getLogger(__name__)
 AUTO_COMPLETE_AFTER = timedelta(days=7)
 
 
-def _due_for_completion() -> list[int]:
+def _orders(only: int | None) -> QuerySet[Order]:
+    """Every order, or the one order a run was limited to (`--order`)."""
+    return Order.objects.all() if only is None else Order.objects.filter(pk=only)
+
+
+def _due_for_completion(only: int | None = None) -> list[int]:
     cutoff = timezone.now() - AUTO_COMPLETE_AFTER
     return list(
-        Order.objects.filter(state="delivered")
+        _orders(only)
+        .filter(state="delivered")
         .annotate(delivered=Max("shipments__delivered_at"))
         .filter(delivered__lte=cutoff)
         .order_by("pk")
@@ -41,11 +51,10 @@ def _due_for_completion() -> list[int]:
     )
 
 
-def _paid_delivery_orders() -> list[int]:
+def _paid_delivery_orders(only: int | None = None) -> list[int]:
     return list(
-        Order.objects.filter(
-            state="paid", fulfillment_method=Order.FulfillmentMethod.DELIVERY
-        )
+        _orders(only)
+        .filter(state="paid", fulfillment_method=Order.FulfillmentMethod.DELIVERY)
         .order_by("pk")
         .values_list("pk", flat=True)
     )
@@ -70,20 +79,22 @@ def _fire(order_ids: list[int], event: str, *, moved_first: str, failed: str) ->
     return moved
 
 
-def prepare_paid_orders() -> int:
-    """T7 for every `paid` delivery order (G75). Returns how many it moved to `preparing`."""
+def prepare_paid_orders(only: int | None = None) -> int:
+    """T7 for every `paid` delivery order (G75), or for the order with the id `only` alone.
+    Returns how many it moved to `preparing`."""
     return _fire(
-        _paid_delivery_orders(),
+        _paid_delivery_orders(only),
         "auto",
         moved_first="Order %s left `paid` before it could move to preparing",
         failed="Order %s could not be moved to preparing; left alone",
     )
 
 
-def complete_delivered_orders() -> int:
-    """T12 for every order delivered 7 days ago or more. Returns how many it completed."""
+def complete_delivered_orders(only: int | None = None) -> int:
+    """T12 for every order delivered 7 days ago or more, or for the order with the id `only`
+    alone. Returns how many it completed."""
     return _fire(
-        _due_for_completion(),
+        _due_for_completion(only),
         "auto_after_7d",
         moved_first="Order %s left `delivered` before it could complete",
         failed="Order %s could not be completed; left alone",
@@ -96,9 +107,24 @@ class Command(BaseCommand):
         "after 7 days (T12) (SPEC.md §4.8)."
     )
 
+    def add_arguments(self, parser: CommandParser) -> None:
+        parser.add_argument(
+            "--order",
+            metavar="NUMBER",
+            help="Consider this order alone, by its number (CN-2026-000123).",
+        )
+
     def handle(self, *args: Any, **options: Any) -> None:
-        prepared = prepare_paid_orders()
-        completed = complete_delivered_orders()
+        number = options["order"]
+        only = None
+        if number is not None:
+            only = (
+                Order.objects.filter(number=number).values_list("pk", flat=True).first()
+            )
+            if only is None:
+                raise CommandError(f"There is no order {number}")
+        prepared = prepare_paid_orders(only)
+        completed = complete_delivered_orders(only)
         self.stdout.write(
             f"advance_orders: {prepared} order(s) moved to preparing, "
             f"{completed} order(s) completed"

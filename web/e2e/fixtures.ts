@@ -94,7 +94,8 @@ export type SentEmail = {
 export type Helpers = {
   // Runs one job or mock-payment action now and returns what it printed. The E2E stack has no
   // scheduler (§4.8, G77), so a spec moves the clock-driven jobs itself. A job acts on every
-  // order in the stack, not only the spec's own.
+  // order in the stack, not only the spec's own; `advance_orders` takes `['--order', number]` to
+  // act on one order alone (G79).
   run: (command: RunnableCommand, args?: string[]) => Promise<string>
   // Signs the page's browser context in to the admin as the seeded staff user (15.A).
   adminLogin: (page: Page) => Promise<void>
