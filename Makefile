@@ -116,13 +116,23 @@ test-all-offline:
 clean-clone-check:
 	@dir=$$(mktemp -d) && git clone --quiet . "$$dir" && cd "$$dir" && $(MAKE) test-all-offline
 
+# The demo of docs/demo-script.md (15.B) runs on the development stack, never on the E2E one: `up`
+# without the E2E override puts `db` on the development volume and starts the scheduler, whose jobs
+# send the queued email and move paid orders. `seed_demo --reset` empties that database and the
+# var/ stores, and prints the URLs, the staff credentials and the seeded order numbers.
+DEMO_SEED  := $(DC) exec -T api python manage.py seed_demo --reset
+DEMO_NOTES := echo "Emails:      var/emails/ (files on disk; nothing is sent)"; \
+              echo "Demo script: docs/demo-script.md"
+
 demo:
-	@$(DC) up -d --wait
-	@$(DC) exec -T api python manage.py seed_demo --reset
-	@echo "Storefront: http://localhost:8080/   Admin: http://localhost:8080/admin/"
+	@$(STEP) "start the development stack" $(DC) up -d --wait
+	@$(STEP) "migrate" $(DC) exec -T api python manage.py migrate --noinput
+	@$(DEMO_SEED)
+	@$(DEMO_NOTES)
 
 demo-reset:
-	@$(DC) exec -T api python manage.py seed_demo --reset
+	@$(DEMO_SEED)
+	@$(DEMO_NOTES)
 
 # --- Steps ------------------------------------------------------------------------------------
 

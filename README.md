@@ -76,7 +76,20 @@ make check-migrations   # fails if a model change has no migration
 | `docker compose run --rm api python manage.py webhooks <command> <webhook_event id>` | Re-sends a stored notification, rebuilt from the `webhook_event` row and signed again with the active provider's secret. `replay` (same notification id; a no-op, expects 200), `duplicate --count N [--concurrent]` (removes the stored row, then delivers N times; one is processed, the rest answer 200), `tamper` (corrupted signature; expects 401 and records an unverified row), `stale` (signed older than `WEBHOOK_MAX_AGE_SECONDS`; expects 401). `--base-url` defaults to `SITE_URL`. Refuses to run unless `DEV_TOOLS_ENABLED`. |
 | `POST /dev/test/run/` with `{"command": "…", "args": ["…"]}` | The dev command runner (SPEC.md 15.3): runs one command now and answers with what it printed. The end-to-end specs use it to run the clock-driven jobs themselves, because the E2E stack has no scheduler. It runs only these: `expire_reservations`, `advance_orders` (optional `args`: `["--order", "<order number>"]`, which limits the run to that order; an unknown number fails), `reconcile_payments`, `sync_shipments`, `send_outbox`, `mock_payments expire-order` (`args`: the order number) and `mock_payments deliver --once` (in the compose stack, `args`: `["--base-url", "http://proxy:8080"]`, the address the `mock-webhooks` service posts to). Any other command answers 400, and so does a command that fails. Example: `curl -X POST http://localhost:8080/dev/test/run/ -H "Content-Type: application/json" -d '{"command": "advance_orders"}'`. The route exists only where `DEV_TOOLS_ENABLED`; in production it is a 404. |
 
-`make demo` and `make demo-reset` run `seed_demo --reset`, so they empty the development database. The demo script arrives with SPEC.md T15.7. This table grows as tasks land.
+This table grows as tasks land.
+
+## Demo
+
+```sh
+make demo         # start the development stack, migrate, load the demo data
+make demo-reset   # load the demo data again, on a stack that is already running
+```
+
+Both run `seed_demo --reset`, so they **empty the development database and the `var/mocks/`, `var/emails/` and `var/media/` folders**, then print the storefront and admin addresses, the staff user and its dev password, and the numbers of the three seeded guest orders. `make demo` runs on the development stack, with the scheduler on: the queued emails reach `var/emails/` within a minute, and a paid order moves to `preparing` within 5 minutes.
+
+[docs/demo-script.md](docs/demo-script.md) is the walk through the Release 1 store, about 15 minutes, written for the developer to show the owner (SPEC.md 15.B). A test (P15-V10) keeps the products, pages, SKUs, emails and stock counts it names equal to what `seed_demo` creates.
+
+The E2E stack shares the `var/` folders with the development stack, so a demo also removes the mock payment and carrier records and the email files that earlier end-to-end runs left there. `make e2e` starts and seeds the E2E stack as usual after a demo; `make e2e-reset` also gives it a clean database. After an end-to-end run, `make demo` brings the development stack and the demo data back.
 
 ## Run the tests
 

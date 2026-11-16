@@ -42,6 +42,10 @@ class Command(BaseCommand):
             f"seed_demo: {summary.products_created} product(s) and "
             f"{summary.orders_created} order(s) created"
         )
+        # What a demo needs to start (15.B): where the store is and who can log in.
+        site = settings.SITE_URL.rstrip("/")
+        self.stdout.write(f"Storefront:  {site}/")
+        self.stdout.write(f"Admin:       {site}/admin/")
         self.stdout.write(f"Staff: {demo.STAFF_EMAIL} / {demo.DEV_PASSWORD}")
         orders = ", ".join(
             f"{order.number} ({order.state})" for order in demo.demo_orders()
