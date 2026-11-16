@@ -51,6 +51,13 @@ services:
     environment:
       <<: *e2e-env
 
+  # The scheduler is off here (§4.8, G77): no job fires in the middle of a spec, and a spec moves
+  # the clock-driven jobs itself through `POST /dev/test/run/` (T15.3). No command enables this
+  # profile; `make e2e`, `e2e-all` and `e2e-reset` also remove a scheduler the development stack
+  # left running.
+  scheduler:
+    profiles: [scheduler-off-in-e2e]
+
   web:
     healthcheck:
       test:

@@ -5,10 +5,18 @@ storefront both ways (T12.15). It takes `{"on": true|false}` and answers with th
 
 `GET /dev/test/inventory/<sku>/` and `GET /dev/test/orders/?email=<email>` (T13.8) are
 read-only: they let a spec assert stock and order effects without scraping the admin.
+
+`POST /dev/test/run/` (T15.3) runs one management command from `RUNNABLE_COMMANDS`, so a spec
+moves the clock-driven jobs itself: the E2E stack has no scheduler (§4.8, G77). It takes
+`{"command": "<an entry of the list>", "args": ["<more arguments>"]}` and answers with the
+command's output.
 """
 
 import json
+from io import StringIO
 
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db.models import Sum
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -18,6 +26,19 @@ from apps.catalog.models import Variant
 from apps.core.models import SiteSetting
 from apps.inventory.models import StockItem
 from apps.orders.models import Order
+
+# Everything the runner may run (SPEC.md 15.3): five jobs of §4.8 and two actions of the mock
+# payment provider. An entry is the fixed start of the command line; the request's `args` follow
+# it, so `mock_payments expire-order` cannot become another `mock_payments` action.
+RUNNABLE_COMMANDS = (
+    "expire_reservations",
+    "advance_orders",
+    "reconcile_payments",
+    "sync_shipments",
+    "send_outbox",
+    "mock_payments expire-order",
+    "mock_payments deliver --once",
+)
 
 
 @csrf_exempt  # a test helper called by Playwright with no session or CSRF cookie
@@ -62,3 +83,37 @@ def orders(request: HttpRequest) -> HttpResponse:
         return JsonResponse({"detail": "Send ?email=<email>."}, status=400)
     rows = Order.objects.filter(email=email).order_by("-id").values("number", "state")
     return JsonResponse({"orders": list(rows)})
+
+
+@csrf_exempt  # a test helper called by Playwright with no session or CSRF cookie
+@require_POST
+def run(request: HttpRequest) -> HttpResponse:
+    """Run one whitelisted command now and answer with what it printed.
+
+    A command that fails (`CommandError`: an unknown order, an argument it does not take, a job
+    that could not finish) answers 400 with its message and the output so far.
+    """
+    try:
+        body = json.loads(request.body or b"{}")
+    except ValueError:
+        body = None
+    command = body.get("command") if isinstance(body, dict) else None
+    if command not in RUNNABLE_COMMANDS:
+        return JsonResponse(
+            {
+                "detail": "Send a command from the list.",
+                "commands": list(RUNNABLE_COMMANDS),
+            },
+            status=400,
+        )
+    args = body.get("args", [])
+    if not isinstance(args, list) or not all(isinstance(arg, str) for arg in args):
+        return JsonResponse({"detail": '"args" is a list of strings.'}, status=400)
+    output = StringIO()
+    try:
+        call_command(*command.split(), *args, stdout=output, stderr=output)
+    except CommandError as error:
+        return JsonResponse(
+            {"detail": str(error), "output": output.getvalue()}, status=400
+        )
+    return JsonResponse({"command": command, "args": args, "output": output.getvalue()})
