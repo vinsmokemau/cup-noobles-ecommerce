@@ -4762,7 +4762,7 @@ The journey specs for J1, J3 and J4 in `web/e2e/journeys/` (15.C). Each runs on 
 
 The task also gives `advance_orders` an optional `--order <number>` (G79, OA-100). With it, the job considers that order alone for T7 and T12; an unknown number is a `CommandError`; without it, the job is unchanged. J1 passes its own order, `run("advance_orders", ["--order", number])`, because specs run in parallel and the plain job would move the `paid` orders other specs are reading. Tests named `test_g79_…` in `api/tests/integration/orders/test_advance.py` cover the option: only the named order moves, and an unknown number fails.
 
-- [ ] **T15.6b — Journeys J8, J10 and J11**
+- [x] **T15.6b — Journeys J8, J10 and J11** (2026-11-16, de162b4)
   - Release: R1 · Gate: task
   - REQs: REQ-010, REQ-021, REQ-051, REQ-060, REQ-062
   - Verifies: P15-V08, P15-V15, P15-V16
