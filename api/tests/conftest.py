@@ -1,13 +1,15 @@
 import os
 import re
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from contextlib import ExitStack
 from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+import psycopg
 import pytest
 import time_machine
+from django.conf import settings as django_settings
 from django.core.files.base import ContentFile
 from django.core.management import call_command
 from django.db import connection
@@ -42,6 +44,73 @@ def _require_postgres():
         pytest.exit(
             POSTGRES_GUARD_MESSAGE.format(vendor=connection.vendor), returncode=3
         )
+
+
+TEST_DATABASE_BUSY_MESSAGE = (
+    "Another test run is using the test database `{name}` (G81): two runs at once block "
+    "each other. Wait for it to finish, or stop it, then run again."
+)
+
+
+class DatabaseBusy(Exception):
+    """Another test run holds the lock of this test database."""
+
+
+def name_of_test_database() -> str:
+    """The database the tests will run in: the one Django derives from the configured name.
+    Read before the test database is set up, while the settings still name the real one."""
+    database = django_settings.DATABASES["default"]
+    return database.get("TEST", {}).get("NAME") or f"test_{database['NAME']}"
+
+
+def lock_test_database(name: str) -> psycopg.Connection[Any]:
+    """Take the lock that says "a test run is using the test database `name`" (G81).
+
+    The lock is a PostgreSQL advisory lock held by the connection this returns: closing the
+    connection releases it, and PostgreSQL releases it by itself when the run ends or is killed,
+    so it is never left behind. It is taken in the `postgres` maintenance database, which is
+    also where Django creates the test database from. Raises `DatabaseBusy` when another run
+    holds it.
+    """
+    database = django_settings.DATABASES["default"]
+    held = psycopg.connect(
+        dbname="postgres",
+        user=database["USER"],
+        password=database["PASSWORD"],
+        host=database["HOST"] or None,
+        port=database["PORT"] or None,
+        connect_timeout=10,
+        autocommit=True,
+    )
+    row = held.execute(
+        "SELECT pg_try_advisory_lock(hashtext(%s))", [f"pytest:{name}"]
+    ).fetchone()
+    if row is None or not row[0]:
+        held.close()
+        raise DatabaseBusy(TEST_DATABASE_BUSY_MESSAGE.format(name=name))
+    return held
+
+
+@pytest.fixture(scope="session")
+def django_db_modify_db_settings(
+    django_db_modify_db_settings_parallel_suffix: None,
+) -> Iterator[None]:
+    """One test run per test database (G81).
+
+    The test database is kept between runs (`--reuse-db`) and every run uses the same one, so
+    two runs at once wait on each other's rows without failing or timing out. pytest-django
+    asks for this fixture right before it sets the test database up; a second run stops here,
+    at its first test that needs the database, with a message that says why.
+    """
+    if connection.vendor != "postgresql":  # `_require_postgres` reports that (CR-40)
+        yield
+        return
+    try:
+        held = lock_test_database(name_of_test_database())
+    except DatabaseBusy as busy:
+        pytest.exit(str(busy), returncode=4)
+    yield
+    held.close()
 
 
 @pytest.fixture(autouse=True)

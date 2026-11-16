@@ -82,6 +82,8 @@ make check-migrations   # fails if a model change has no migration
 
 Every target runs inside the compose environment, so local runs and CI use the same images. On success a target prints one line per step; on failure it prints the failing step's full output.
 
+Run the backend tests one run at a time. Every run uses the same test database, so a second `make test`, `make test-all` or `pytest` started while one is running stops at once with "Another test run is using the test database" (exit code 4). Wait for the first run to finish, or stop it, and start again.
+
 | Command | What it runs |
 |---|---|
 | `make test` | Linters (ruff, eslint, prettier, markdownlint), mypy and vue-tsc, the register check, pytest without the `slow` and `sandbox` markers, Vitest. Run it for every task. |
