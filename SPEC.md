@@ -4783,7 +4783,7 @@ The journey specs for J8 (double-click "Pagar"), J10 (CFDI) and J11 (pre-launch)
 
 `docs/demo-script.md` (15.B), plus `make demo`, which runs `docker compose up`, then `seed_demo --reset`, then prints the URLs and demo credentials; and `make demo-reset`.
 
-- [ ] **T15.8 — Demo rows fail the placeholder check**
+- [x] **T15.8 — Demo rows fail the placeholder check** (2026-11-16, 64aa45e)
   - Release: R1 · Gate: task
   - REQs: REQ-065
   - Verifies: P15-V12
