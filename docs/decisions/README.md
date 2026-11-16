@@ -79,3 +79,4 @@ One file per decision, from the template [`0000-adr-template.md`](0000-adr-templ
 | [ADR-0072](0072-seed-e2e-settles-earlier-holds.md) | `seed_e2e` settles the holds of earlier runs | accepted | G62; OA-90 |
 | [ADR-0073](0073-lighthouse-judged-on-ci.md) | The Lighthouse budget is judged on CI only | accepted | G64; OA-91 |
 | [ADR-0074](0074-mock-voucher-lasts-the-method-window.md) | A mock voucher lasts the method's window | accepted | G74; OA-97 |
+| [ADR-0075](0075-advance-orders-prepares-paid-orders.md) | `advance_orders` moves paid delivery orders to preparing | accepted | G75; OA-98 |
