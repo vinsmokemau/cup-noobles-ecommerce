@@ -4733,7 +4733,7 @@ Dev command runner `POST /dev/test/run/` — runs one whitelisted management com
 
 The task also turns the scheduler off in the E2E stack, as §4.8 says (G77, OA-99): `docker-compose.e2e.yml` gives the `scheduler` service a profile that the E2E commands never enable. With it off, no job fires in the middle of a spec, and `send_outbox` is on the runner's list because nothing else sends the queued email a journey reads. The task report shows the E2E stack running with no `scheduler` container and the full Playwright suite green.
 
-- [ ] **T15.4 — End-to-end helpers**
+- [x] **T15.4 — End-to-end helpers** (2026-11-15, d51724d)
   - Release: R1 · Gate: task
   - REQs: —
   - Verifies: [no-test: exercised by the journeys (T15.6a, T15.6b)]
