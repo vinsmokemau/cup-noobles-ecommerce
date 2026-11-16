@@ -4,6 +4,7 @@ what each button records and queues."""
 
 import importlib
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,7 @@ from apps.payments.base import NormalizedStatus
 from tests.factories.orders import OrderFactory, OrderLineFactory
 
 BANNER = "SIMULADOR — ningún pago es real"
+VOUCHER_CREATED = datetime(2026, 3, 1, 12, 0, tzinfo=UTC)
 
 
 @pytest.fixture
@@ -121,17 +123,22 @@ def test_expire_records_nothing_and_queues_nothing(
     )
 
 
-@pytest.mark.parametrize("outcome", ["oxxo", "spei"])
-def test_pending_payment_carries_a_voucher_that_expires_with_the_order(
-    client, settings, order, preference_id, outcome
+@pytest.mark.parametrize(
+    ("outcome", "ttl_setting"),
+    [("oxxo", "RESERVATION_TTL_OXXO_HOURS"), ("spei", "RESERVATION_TTL_SPEI_HOURS")],
+)
+def test_pending_payment_carries_a_voucher_that_lasts_the_method_window(
+    client, settings, clock, preference_id, outcome, ttl_setting
 ):
+    """G74, ADR-0074: the voucher lasts the method's window from its creation, not the
+    checkout's 30 minutes."""
+    clock.travel(VOUCHER_CREATED)
     client.post(f"{_checkout_url(preference_id)}{outcome}/")
 
     payment = _records(settings, "mock_pay_")[0]
     assert payment["voucher_url"].endswith(f"/dev/payments/voucher/{payment['id']}/")
-    assert payment["voucher_expires_at"] == (
-        order.payment_deadline_at.isoformat() if order.payment_deadline_at else None
-    )
+    expiry = VOUCHER_CREATED + timedelta(hours=getattr(settings, ttl_setting))
+    assert payment["voucher_expires_at"] == expiry.isoformat()
 
 
 @pytest.mark.parametrize(

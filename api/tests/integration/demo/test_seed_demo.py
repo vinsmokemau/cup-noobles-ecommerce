@@ -235,9 +235,9 @@ def test_seed_demo_guest_order_history(clock, settings):
     assert completed.payments.filter(status="approved").count() == 1
 
     # The OXXO order: an active voucher, and the order waits for it plus the grace period. The
-    # simulator's voucher lasts the card window (G74).
+    # simulator's voucher lasts the OXXO window (G74, ADR-0074).
     voucher = pending.payments.get(status="pending")
-    expiry = NOW + timedelta(minutes=settings.RESERVATION_TTL_CARD_MINUTES)
+    expiry = NOW + timedelta(hours=settings.RESERVATION_TTL_OXXO_HOURS)
     assert voucher.method == "oxxo"
     assert voucher.voucher_url.endswith(
         f"/dev/payments/voucher/{voucher.provider_payment_id}/"

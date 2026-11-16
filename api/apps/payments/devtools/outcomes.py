@@ -4,9 +4,11 @@ The simulator buttons and the `mock_payments` commands share this code, so a com
 what its button does.
 """
 
+from datetime import timedelta
 from typing import Any
 
 from django.conf import settings
+from django.utils import timezone
 
 from apps.payments.base import NormalizedStatus
 
@@ -19,6 +21,16 @@ OUTCOMES: dict[str, tuple[NormalizedStatus | None, str, str]] = {
     "reject": (NormalizedStatus.REJECTED, "credit_card", "failure"),
     "expire": (None, "", "failure"),
 }
+
+
+def voucher_lifetime(method: str) -> timedelta:
+    """How long a mock voucher lasts from its creation: the method's window (9.5, G74)."""
+    hours = (
+        settings.RESERVATION_TTL_OXXO_HOURS
+        if method == "oxxo"
+        else settings.RESERVATION_TTL_SPEI_HOURS
+    )
+    return timedelta(hours=hours)
 
 
 def _fake_digits(payment_id: str, length: int) -> str:
@@ -54,7 +66,9 @@ def record_outcome(
         site_url = str(settings.SITE_URL).rstrip("/")
         fields: dict[str, Any] = {
             "voucher_url": f"{site_url}/dev/payments/voucher/{payment_id}/",
-            "voucher_expires_at": preference["expires_at"],
+            "voucher_expires_at": (
+                timezone.now() + voucher_lifetime(method)
+            ).isoformat(),
         }
         if method == "oxxo":
             fields["reference"] = _fake_digits(payment_id, 14)

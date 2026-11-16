@@ -371,7 +371,7 @@ def _pay_at_simulator(order: Order, outcome: str) -> None:
     does (9.7). `card` is "Aprobar con tarjeta": the order is `paid` and its units leave the stock
     (T2). `oxxo` is "Pagar en OXXO": the order stays `pending_payment` with a voucher, and its
     deadline and holds move to the voucher's expiry plus the grace period (9.5). The voucher
-    lasts what the simulator gives it (G74).
+    lasts the OXXO window from its creation (G74, ADR-0074).
     """
     provider: Any = providers.payment_provider()
     preference = provider.find_preferences(str(order.public_id))[-1]
