@@ -34,12 +34,19 @@ const COMPOSE = [
   'api-down',
 ]
 const API_DOWN_URL = 'http://localhost:3001'
+// Inside the `e2e-api-down` compose service (`make test-all`, T15.5) there is no Docker CLI: the
+// Makefile starts that server before this test and stops it afterwards, and the service shares
+// its network, so the address is the same.
+const docker = (args: string[]) => {
+  if (!process.env.E2E_IN_COMPOSE)
+    execFileSync('docker', [...COMPOSE, ...args], { stdio: 'inherit' })
+}
 
 test('p12_v25 ssr with api down renders error page', async ({ request, seed }, testInfo) => {
   test.skip(testInfo.project.name !== 'api-down', 'one shared server')
   test.setTimeout(240_000)
   const { hoodie } = seed.catalog
-  execFileSync('docker', [...COMPOSE, 'up', '-d', '--wait', 'web-api-down'], { stdio: 'inherit' })
+  docker(['up', '-d', '--wait', 'web-api-down'])
   try {
     for (const path of [`/producto/${hoodie.slug}`, '/', '/catalogo']) {
       // A browser asks for HTML, which is what makes Nuxt render `error.vue`.
@@ -55,6 +62,6 @@ test('p12_v25 ssr with api down renders error page', async ({ request, seed }, t
       expect(html, path).not.toContain('api-unreachable')
     }
   } finally {
-    execFileSync('docker', [...COMPOSE, 'stop', 'web-api-down'], { stdio: 'inherit' })
+    docker(['stop', 'web-api-down'])
   }
 })

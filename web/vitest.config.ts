@@ -5,6 +5,11 @@ import { defineVitestConfig } from '@nuxt/test-utils/config'
 export default defineVitestConfig({
   test: {
     environment: 'nuxt',
+    // The test environment runs without a server, so Nuxt Icon would use its `iconify` provider
+    // and ask the public Iconify API for every icon a mounted component shows: an outbound
+    // request on every run (CR-41), and on an internal network a failure that arrives while the
+    // worker closes (T15.5). No test reads an icon's drawing, so the tests get no provider at all.
+    environmentOptions: { nuxt: { overrides: { icon: { provider: 'none' } } } },
     include: ['tests/**/*.test.ts'],
     // No unit test exists until Phase 12; an empty run must not fail `make test`.
     passWithNoTests: true,

@@ -3,7 +3,12 @@ import { defineConfig, devices } from '@playwright/test'
 // End-to-end harness (SPEC.md §4.6). The stack is the compose E2E stack behind Caddy, so the
 // specs reach the same origin a customer does.
 const BASE_URL = 'http://localhost:8080'
-const GUARD_SPECS = /p1_guard\.spec\.ts/
+// `make test-all` runs Playwright inside the `e2e` compose service (T15.5), which shares the proxy's
+// network, so the address is the same. There is no Docker CLI there: the Makefile starts the stack.
+const IN_COMPOSE = !!process.env.E2E_IN_COMPOSE
+// The harness's own checks: the offline guard and the axe wrapper (Phase 1), and the internal
+// network of the offline run (P15-V13).
+const GUARD_SPECS = [/p1_guard\.spec\.ts/, /p15_offline\.spec\.ts/]
 // Pre-launch mode is one switch for the whole stack, so the specs that turn it on run after the
 // others and one at a time: P12-V28 and the J11 journey on the desktop device (`prelaunch`), then
 // J11 on the mobile device (`prelaunch-mobile`).
@@ -28,28 +33,30 @@ export default defineConfig({
     baseURL: BASE_URL,
     trace: 'retain-on-failure',
   },
-  webServer: {
-    // `up --wait` returns once the stack is healthy; the trailing keep-alive is what lets
-    // Playwright treat the command as a running server. The stack is left up afterwards.
-    command:
-      'docker compose -f ../docker-compose.yml -f ../docker-compose.e2e.yml up --wait && node -e "setInterval(() => {}, 1 << 30)"',
-    url: `${BASE_URL}/api/health/`,
-    // `make e2e` and `make e2e-all` start the E2E stack first (T13.16), so the stack is always
-    // running by now; Playwright only checks it, in CI as well.
-    reuseExistingServer: true,
-    timeout: 10 * 60 * 1000,
-  },
+  webServer: IN_COMPOSE
+    ? undefined
+    : {
+        // `up --wait` returns once the stack is healthy; the trailing keep-alive is what lets
+        // Playwright treat the command as a running server. The stack is left up afterwards.
+        command:
+          'docker compose -f ../docker-compose.yml -f ../docker-compose.e2e.yml up --wait && node -e "setInterval(() => {}, 1 << 30)"',
+        url: `${BASE_URL}/api/health/`,
+        // `make e2e` starts the E2E stack first (T13.16), so the stack is always running by now;
+        // Playwright only checks it.
+        reuseExistingServer: true,
+        timeout: 10 * 60 * 1000,
+      },
   projects: [
     {
       name: 'desktop',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: [GUARD_SPECS, ...PRELAUNCH_SPECS],
+      testIgnore: [...GUARD_SPECS, ...PRELAUNCH_SPECS],
       grepInvert: API_DOWN_TEST,
     },
     {
       name: 'mobile',
       use: { ...devices['Pixel 7'] },
-      testIgnore: [GUARD_SPECS, ...PRELAUNCH_SPECS],
+      testIgnore: [...GUARD_SPECS, ...PRELAUNCH_SPECS],
       grepInvert: API_DOWN_TEST,
     },
     {
@@ -71,7 +78,8 @@ export default defineConfig({
       testMatch: API_DOWN_SPECS,
       grep: API_DOWN_TEST,
     },
-    // The harness's own checks: they assert the guard and the axe wrapper, so they run once.
+    // The harness's own checks: they assert the guard, the axe wrapper and the network, so they
+    // run once.
     { name: 'selftest', use: { ...devices['Desktop Chrome'] }, testMatch: GUARD_SPECS },
   ],
 })

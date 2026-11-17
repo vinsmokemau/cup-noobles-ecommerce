@@ -1,0 +1,19 @@
+# syntax=docker/dockerfile:1
+# The image that runs Playwright and Lighthouse inside the compose network (T15.5), so
+# `make test-all` needs no browser on the host and still works when the network is internal.
+# The official Playwright image carries the browsers. Its tag is the project's `@playwright/test`
+# version; `test_p15_v14_the_e2e_image_is_pinned_to_the_playwright_version` keeps the two equal.
+FROM mcr.microsoft.com/playwright:v1.64.1-noble
+
+RUN npm install --global pnpm@12.6.0
+
+# The repository is mounted at /repo when the container runs; only the dependencies live in the image.
+WORKDIR /repo/web
+
+COPY .npmrc package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# The DS packages are private (S8). The token is a build secret, as in web/Dockerfile (§4.5).
+RUN --mount=type=secret,id=node_auth_token,env=NODE_AUTH_TOKEN \
+    echo '//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}' >> ~/.npmrc \
+    && pnpm install --frozen-lockfile --ignore-scripts \
+    && rm ~/.npmrc

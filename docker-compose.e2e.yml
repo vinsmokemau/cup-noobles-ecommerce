@@ -20,6 +20,35 @@ x-e2e-env: &e2e-env
   # Required while a variant carries a purchase limit; the E2E seed has one (D15, OA-86).
   PURCHASE_LIMIT_WINDOW_DAYS: "30"
 
+# Playwright and Lighthouse run inside the compose network from this image (T15.5): the official
+# Playwright image, pinned to the project's `@playwright/test` version, with the browsers in it.
+# `make test-all` runs it with `docker compose run`. Each runner sits behind a profile, and every
+# `up` that enables one names the services it starts, so `up` never starts a runner.
+# A runner shares the network of the service it tests, so `localhost` inside it is that service:
+# the specs keep the addresses a customer's browser uses, and the offline guard keeps passing.
+x-e2e-runner: &e2e-runner
+  profiles: [e2e]
+  build:
+    context: ./web
+    dockerfile: Dockerfile.e2e
+    secrets:
+      - node_auth_token
+  image: cupnoobles-e2e
+  working_dir: /repo/web
+  # Recommended by Playwright for Chromium in Docker: reaps browser processes; shared memory.
+  init: true
+  ipc: host
+  environment:
+    # Tells the harness there is no Docker CLI here; the Makefile starts and stops the stack.
+    E2E_IN_COMPOSE: "1"
+    CI: ${CI:-}
+  volumes:
+    # The whole repository: the specs, var/ (the seed manifest, the email files) and the reports.
+    - ./:/repo
+    # The image's own dependencies and generated types, never the host's.
+    - e2e_node_modules:/repo/web/node_modules
+    - e2e_nuxt:/repo/web/.nuxt
+
 services:
   # The E2E stack has its own database volume (ADR-0070, G63): the development volume `pgdata` is
   # never mounted here, so an E2E run cannot touch development data and `make e2e-reset` can wipe
@@ -27,6 +56,12 @@ services:
   db:
     volumes:
       - pgdata_e2e:/var/lib/postgresql/data
+    # Only a `db` container made with this file answers to `db-e2e`. Inside the `e2e` service,
+    # where there is no Docker CLI, that is how Playwright tells it is on the E2E volume (G69).
+    networks:
+      default:
+        aliases:
+          - db-e2e
 
   api:
     environment:
@@ -173,9 +208,28 @@ services:
       timeout: 5s
       retries: 20
 
+  # The specs, at http://localhost:8080 (the proxy).
+  e2e:
+    <<: *e2e-runner
+    network_mode: service:proxy
+
+  # P12-V25, at http://localhost:3001 (the storefront with its API unreachable).
+  e2e-api-down:
+    <<: *e2e-runner
+    profiles: [api-down]
+    network_mode: service:web-api-down
+
+  # The Lighthouse budgets, at http://localhost:8081 (the production build behind its own proxy).
+  e2e-lighthouse:
+    <<: *e2e-runner
+    profiles: [lighthouse]
+    network_mode: service:proxy-prod
+
 volumes:
   # A fixed name, so `make e2e-reset` removes exactly this volume whatever the Compose project is.
   pgdata_e2e:
     name: cupnoobles_pgdata_e2e
   web_nuxt_api_down:
   web_nuxt_prod:
+  e2e_node_modules:
+  e2e_nuxt:

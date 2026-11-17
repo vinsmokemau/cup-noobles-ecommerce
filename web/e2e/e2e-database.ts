@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { lookup } from 'node:dns/promises'
 import { fileURLToPath } from 'node:url'
 
 // The E2E and development stacks are one Compose project with two database volumes (ADR-0070).
@@ -8,6 +9,9 @@ import { fileURLToPath } from 'node:url'
 
 /** The fixed name `docker-compose.e2e.yml` gives the E2E database volume. */
 export const E2E_VOLUME = 'cupnoobles_pgdata_e2e'
+
+/** The network name `docker-compose.e2e.yml` gives the `db` container, and no other file does. */
+export const E2E_DATABASE_ALIAS = 'db-e2e'
 
 const COMPOSE = ['compose', '-f', 'docker-compose.yml', '-f', 'docker-compose.e2e.yml']
 
@@ -19,6 +23,20 @@ export function databaseProblem(volumes: string[]): string | null {
     `The db container is not on the E2E database volume (${E2E_VOLUME}); it has ${found}. ` +
     'The specs would use development data, so Playwright will not start. ' +
     'Run the specs with `make e2e FILES=…`, which starts the E2E stack first.'
+  )
+}
+
+/**
+ * The same check from inside the `e2e` compose service (T15.5), where there is no Docker CLI: the
+ * `db` container answers to its E2E alias only when the E2E override made it, volume included.
+ */
+export function aliasProblem(answers: boolean): string | null {
+  if (answers) return null
+  return (
+    `No container answers to ${E2E_DATABASE_ALIAS}, so the db container was not started with ` +
+    `docker-compose.e2e.yml and is not on the E2E database volume (${E2E_VOLUME}). ` +
+    'The specs would use development data, so Playwright will not start. ' +
+    'Run them with `make test-all`, or `make e2e FILES=…`, which start the E2E stack first.'
   )
 }
 
@@ -36,8 +54,18 @@ function databaseVolumes(): string[] {
   return names.split(/\s+/).filter(Boolean)
 }
 
+/** Whether a container on the compose network answers to the E2E database alias. */
+async function aliasAnswers(): Promise<boolean> {
+  return lookup(E2E_DATABASE_ALIAS).then(
+    () => true,
+    () => false,
+  )
+}
+
 /** Throws unless the running `db` container is on the E2E volume. */
-export function assertE2EDatabase(): void {
-  const problem = databaseProblem(databaseVolumes())
+export async function assertE2EDatabase(): Promise<void> {
+  const problem = process.env.E2E_IN_COMPOSE
+    ? aliasProblem(await aliasAnswers())
+    : databaseProblem(databaseVolumes())
   if (problem) throw new Error(problem)
 }

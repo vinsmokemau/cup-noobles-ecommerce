@@ -1,0 +1,22 @@
+# Offline override (SPEC.md §4.1, T15.5). Used on top of the other compose files:
+#   docker compose -f docker-compose.yml -f docker-compose.e2e.yml -f docker-compose.offline.yml …
+# The project network is internal, so no container (api, web, proxy, e2e or any other) can reach
+# the internet, and Docker publishes none of their ports on the host. Images are built and pulled
+# before this file is used: `make test-all-offline` does both, then runs `make test-all` with it.
+#
+# Docker does not change a network that already exists, so the stack must be down when the first
+# command uses this file, and down again before the next one without it. The make target does both.
+
+networks:
+  default:
+    internal: true
+
+services:
+  # P1-V13 asks pytest-socket to block a connection to example.com. Python looks the name up
+  # before it connects, and an internal network answers no outside name, so the test would stop at
+  # the lookup and never reach the guard it checks. Here the name has a fixed address, one reserved
+  # for documentation (203.0.113.0/24, RFC 5737) that no machine has: the lookup needs no network,
+  # and the guard is what refuses the connection, as on any other run.
+  api:
+    extra_hosts:
+      - "example.com:203.0.113.1"

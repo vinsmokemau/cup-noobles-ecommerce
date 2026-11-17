@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 # Static style checks (T1.8): ruff, eslint + prettier, markdownlint.
-# Run by the pre-commit hook and by `make test`. Run from anywhere.
+# Run by the pre-commit hook, on the host. `make test` runs the same checks in the compose images
+# (the `lint` target of the Makefile): keep the two alike. Run from anywhere.
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
 

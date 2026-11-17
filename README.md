@@ -93,7 +93,7 @@ The E2E stack shares the `var/` folders with the development stack, so a demo al
 
 ## Run the tests
 
-Every target runs inside the compose environment, so local runs and CI use the same images. On success a target prints one line per step; on failure it prints the failing step's full output.
+Every target runs inside the compose environment, so local runs and CI use the same images. `make test` and `make test-all` need nothing installed on the host besides Docker, `make` and Git: the linters, Playwright and Lighthouse run in the images too. On success a target prints one line per step; on failure it prints the failing step's full output.
 
 Run the backend tests one run at a time. Every run uses the same test database, so a second `make test`, `make test-all` or `pytest` started while one is running stops at once with "Another test run is using the test database" (exit code 4). Wait for the first run to finish, or stop it, and start again.
 
@@ -103,11 +103,17 @@ Run the backend tests one run at a time. Every run uses the same test database, 
 | `make e2e FILES=e2e/p1_smoke.spec.ts` | The named Playwright specs on desktop and mobile, with axe, against the E2E stack. The E2E stack runs with the API's rate limits off (`RATELIMIT_ENABLE=false` in `docker-compose.e2e.yml`), because every spec reaches the API from one address; the development stack and production keep them on. Always run the specs through this target: Playwright refuses to start when the `db` container is not on the E2E volume, which is where `make test` leaves it. The E2E stack has no scheduler: `docker-compose.e2e.yml` keeps the service behind a profile, and this target removes one the development stack left running. So no job fires in the middle of a spec, and a spec runs the jobs it needs through `POST /dev/test/run/`. `docker compose up -d` starts the scheduler again with the development stack. |
 | `make e2e-reset` | Wipes only the E2E database volume (`pgdata_e2e`) and starts the E2E stack again (migrate, then `seed_e2e`). Your development database (`pgdata`) is not touched. The E2E and development stacks are one Compose project, so this stops the development containers; `docker compose up -d` brings them back on the development database. |
 | `make check-migrations` | `makemigrations --check --dry-run`. |
-| `make test-all` | Everything in `make test`, plus the slow tests, the full schemathesis run, the migration round trip, all Playwright specs, the coverage ratchet and the traceability check. Add `PHASE_CLOSE=1` to enforce the coverage gates. |
-
-The Lighthouse budgets (T12.12) run in `make test-all` against a production build of the storefront, not the dev server. The test starts the `lighthouse` profile of `docker-compose.e2e.yml` (`web-prod` and `proxy-prod`, on <http://localhost:8081>) and stops it afterwards. The first start builds the storefront, so it takes a few minutes.
-| `make schema-update` | Regenerates `api/openapi.snapshot.yml` and `web/app/types/api.d.ts` after an intentional API change. |
+| `make test-all` | Everything in `make test`, plus the slow tests, the full schemathesis run, the migration round trip, all Playwright specs, the Lighthouse budgets, the coverage ratchet and the traceability check. Add `PHASE_CLOSE=1` to enforce the coverage gates. |
+| `make test-all-offline` | The local acceptance check (SPEC.md Phase 15): builds and pulls every image, which is the only step that uses the network, then runs `make test-all` with the project network internal (`docker-compose.offline.yml`), so no container can reach the internet. It stops the stack before and after, because Docker cannot change a network that exists; `docker compose up -d` brings the development stack back. Needs `NODE_AUTH_TOKEN` for the image builds. |
+| `make clean-clone-check` | What the CI job `clean-clone-offline` does, on your machine: clones `HEAD` into a temporary directory and runs `make test-all-offline` there, with a new E2E database. It tests what is committed, not your working files. It stops this checkout's stack and wipes the E2E database volume first; on success it removes the clone with its volumes and images, and a failed clone is kept and its path printed. The `cupnoobles-api` and `cupnoobles-e2e` images are removed with it; the next command builds them again from the cache. |
+| `make schema-update` | Regenerates `api/openapi.snapshot.yml` and `web/app/types/api.d.ts` after an intentional API change. Runs `pnpm` on the host. |
 | `make coverage-ratchet` | Rewrites `coverage-baseline.json` after coverage rises. |
+
+`make test-all` runs Playwright and Lighthouse inside the compose network, in the runner services of `docker-compose.e2e.yml` (`e2e`, `e2e-api-down` and `e2e-lighthouse`). They are built from `web/Dockerfile.e2e`: the official Playwright image, pinned to the project's `@playwright/test` version, with the browsers in it. A runner shares the network of the service it tests, so the specs use the same `http://localhost:8080` a browser on your machine does. `make e2e` runs Playwright on the host instead, which needs `pnpm install` and `pnpm exec playwright install chromium` in `web/` once. When `@playwright/test` changes, change the image tag in `web/Dockerfile.e2e` with it; a test fails until the two are equal.
+
+The Lighthouse budgets (T12.12) run in `make test-all` against a production build of the storefront, not the dev server. The step starts the `lighthouse` profile of `docker-compose.e2e.yml` (`web-prod` and `proxy-prod`, on <http://localhost:8081>) and stops it afterwards. The first start builds the storefront, so it takes a few minutes.
+
+The pre-commit hook runs the linters on the host (`scripts/lint.sh`), so it needs `uv` and the `pnpm install` above; `make test` runs the same linters in the images.
 
 `make help` lists every target. The full list, including the targets that arrive in later phases, is in SPEC.md §0.3.
 

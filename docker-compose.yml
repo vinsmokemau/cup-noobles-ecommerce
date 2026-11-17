@@ -62,6 +62,8 @@ services:
       - web_node_modules:/app/node_modules
       # Generated types differ between the container and the host (eslint, typecheck), so each keeps its own.
       - web_nuxt:/app/.nuxt
+      # The repository root, read-only, so markdownlint reads SPEC.md, README.md and docs/ (T15.5).
+      - ./:/repo:ro
     depends_on:
       - api
 

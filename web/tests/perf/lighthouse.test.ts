@@ -11,6 +11,10 @@ import { afterAll, describe, expect, it } from 'vitest'
 // profile of docker-compose.e2e.yml), because the dev server that the stack's `web` runs is not what
 // a customer gets. The test starts that profile and stops it afterwards. `make test` does not run
 // this file (the web-unit step excludes tests/perf).
+//
+// `make test-all` runs this file inside the `e2e-lighthouse` compose service (T15.5), which shares
+// the network of that Caddy, so the address is the same. There is no Docker CLI there: the Makefile
+// starts the profile before the test and stops it afterwards.
 
 const web = process.cwd()
 const config = resolve(web, 'lighthouserc.json')
@@ -27,8 +31,10 @@ const compose = [
   '--profile',
   'lighthouse',
 ]
-const docker = (args: string[]) =>
+const docker = (args: string[]) => {
+  if (process.env.E2E_IN_COMPOSE) return
   execFileSync('docker', [...compose, ...args], { cwd: root, encoding: 'utf8', stdio: 'pipe' })
+}
 
 const rc = JSON.parse(readFileSync(config, 'utf8')) as {
   ci: {

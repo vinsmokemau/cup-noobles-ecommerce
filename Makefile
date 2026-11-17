@@ -12,7 +12,21 @@ SHELL := /bin/sh
 # Git Bash on Windows would rewrite /repo and /app into Windows paths.
 export MSYS_NO_PATHCONV := 1
 
-DC       := docker compose
+# OFFLINE=1 adds docker-compose.offline.yml to every compose command, which makes the project
+# network internal: no container reaches the internet (T15.5). Only `make test-all-offline` sets
+# it, after it has built and pulled every image and taken the stack down.
+OFFLINE ?= 0
+ifeq ($(OFFLINE),1)
+OFFLINE_FILE := -f docker-compose.offline.yml
+DC           := docker compose -f docker-compose.yml $(OFFLINE_FILE)
+# Tells web/e2e/p15_offline.spec.ts (P15-V13) that the network is internal, so it runs.
+E2E_OFFLINE  := -e E2E_OFFLINE=1
+else
+OFFLINE_FILE :=
+DC           := docker compose
+E2E_OFFLINE  :=
+endif
+
 API      := $(DC) run --rm -T api
 API_TEST := $(DC) run --rm -T -e DJANGO_SETTINGS_MODULE=config.settings.test api
 WEB      := $(DC) run --rm -T --no-deps web
@@ -65,7 +79,7 @@ test-all: lint types register scripts-tests web-unit \
 # Wipes the E2E database volume only (ADR-0070) and starts the E2E stack again, which migrates and
 # runs seed_e2e. The development volume `pgdata` is never touched. The stack is one Compose project,
 # so `down` also stops the development containers; `docker compose up -d` brings them back.
-E2E_DC := $(DC) -f docker-compose.yml -f docker-compose.e2e.yml
+E2E_DC := docker compose -f docker-compose.yml -f docker-compose.e2e.yml $(OFFLINE_FILE)
 
 # The E2E stack has no scheduler (§4.8, G77): docker-compose.e2e.yml keeps the service behind a
 # profile, so `up` never starts it. `up` leaves a running one alone, though, and the development
@@ -76,6 +90,29 @@ E2E_NO_SCHEDULER := $(STEP) "remove the scheduler (off in the E2E stack)" $(E2E_
 # takes minutes to answer while they run (G72). PW_MAIN is every other project.
 PW_MAIN          := --project=desktop --project=mobile --project=prelaunch --project=prelaunch-mobile --project=selftest
 PW_API_DOWN_STEP := $(STEP) "playwright (API down, P12-V25)" sh -c 'cd web && pnpm exec playwright test --project=api-down'
+
+# From Phase 15, `make test-all` runs Playwright and Lighthouse inside the compose network (§4.6),
+# in the runner services of docker-compose.e2e.yml: the run needs no browser on the host and works
+# with the network internal. A runner has no Docker CLI, so the steps below start and stop what a
+# test needs. `make e2e` still runs Playwright on the host.
+E2E_RUN     := run --rm -T $(E2E_OFFLINE)
+API_DOWN_DC := $(E2E_DC) --profile api-down
+LH_DC       := $(E2E_DC) --profile lighthouse
+PW_API_DOWN_IN_COMPOSE = $(STEP) "playwright (API down, P12-V25)" sh -c '\
+  $(API_DOWN_DC) up -d --wait web-api-down && \
+  $(API_DOWN_DC) $(E2E_RUN) e2e-api-down pnpm exec playwright test --project=api-down; s=$$?; \
+  $(API_DOWN_DC) stop web-api-down; exit $$s'
+# Leaves the exit status in $$s; the storefront's production build is stopped either way.
+LH_IN_COMPOSE = $(LH_DC) up -d --wait web-prod proxy-prod && \
+  $(LH_DC) $(E2E_RUN) e2e-lighthouse pnpm exec vitest run tests/perf/lighthouse.test.ts; s=$$?; \
+  $(LH_DC) stop proxy-prod web-prod
+
+# Every image a full run uses, built or pulled now: the only step that needs the network (§0.3).
+IMAGES_DC := docker compose -f docker-compose.yml -f docker-compose.e2e.yml \
+             --profile e2e --profile api-down --profile lighthouse
+# Docker keeps a network as it was created. The stack goes down before the offline run, which then
+# creates the network as internal, and after it, so the next `up` gets an ordinary network again.
+STACK_DOWN := $(STEP) "stop the stack" $(E2E_DC) --profile "*" down --remove-orphans
 
 e2e-reset:
 	@$(STEP) "stop the stack" $(E2E_DC) --profile "*" down --remove-orphans
@@ -108,13 +145,34 @@ test-sandbox:
 	@$(STEP) "integrations group" $(API) uv sync --frozen --group integrations
 	@$(STEP) "pytest sandbox" $(API) pytest -q -m sandbox --force-enable-socket
 
+# The local acceptance exit criterion (15.5, P15-V14): the images first, which is the only step
+# that uses the network, then `make test-all` with the project network internal. It stops this
+# checkout's stack; `docker compose up -d` brings the development stack back afterwards.
 test-all-offline:
-	@$(DC) build
-	@test -f docker-compose.offline.yml || { echo "docker-compose.offline.yml arrives with T15.5; the offline run cannot be checked until then"; exit 1; }
-	@COMPOSE_FILE=docker-compose.yml:docker-compose.offline.yml $(MAKE) test-all
+	@mkdir -p var
+	@$(STEP) "pull the images (network)" $(IMAGES_DC) pull --ignore-buildable
+	@$(STEP) "build the images (network)" $(IMAGES_DC) build
+	@$(STACK_DOWN)
+	@$(MAKE) test-all OFFLINE=1; s=$$?; $(STACK_DOWN); exit $$s
 
+# What the CI job `clean-clone-offline` does, on this machine: a fresh clone of HEAD in a temporary
+# directory, with nothing installed on the host and a new E2E database. The clone is its own
+# Compose project, so this checkout's stack is stopped first (they would share the E2E database
+# volume and the ports). The clone keeps the repository's LF line endings whatever Git is set to
+# here. Git is given `.` and this directory, never the temporary path: Git for Windows reads a
+# `/tmp/…` argument differently from the shell. On success the clone, its volumes and its images
+# are removed (the second `down` takes the development database volume, which the E2E file set
+# does not use); a failed clone is kept. The images the clone shares with this checkout by name
+# go too, and the next command here builds them again from the cache.
 clean-clone-check:
-	@dir=$$(mktemp -d) && git clone --quiet . "$$dir" && cd "$$dir" && $(MAKE) test-all-offline
+	@$(STACK_DOWN)
+	@$(STEP) "remove the E2E database volume" docker volume rm -f cupnoobles_pgdata_e2e
+	@dir=$$(mktemp -d) && \
+	  (cd "$$dir" && git clone --quiet -c core.autocrlf=false "$(CURDIR)" . && $(MAKE) test-all-offline); s=$$?; \
+	  if [ $$s -eq 0 ]; then \
+	    (cd "$$dir" && { $(E2E_DC) --profile "*" down --volumes --rmi local --remove-orphans; $(DC) down --volumes; } >/dev/null 2>&1); \
+	    rm -rf "$${dir:?}"; echo "make clean-clone-check: green"; \
+	  else echo "make clean-clone-check: failed; the clone is kept at $$dir"; fi; exit $$s
 
 # The demo of docs/demo-script.md (15.B) runs on the development stack, never on the E2E one: `up`
 # without the E2E override puts `db` on the development volume and starts the scheduler, whose jobs
@@ -136,8 +194,12 @@ demo-reset:
 
 # --- Steps ------------------------------------------------------------------------------------
 
+# The linters run in the images, so a clean clone needs no toolchain on the host (T15.5). The
+# pre-commit hook runs the same checks on the host, through scripts/lint.sh: keep the two alike.
 lint:
-	@$(STEP) "lint (ruff, eslint, prettier, markdownlint)" sh scripts/lint.sh
+	@$(STEP) "ruff" $(API) sh -c 'ruff check . && ruff format --check .'
+	@$(STEP) "eslint, prettier" $(WEB) sh -c 'pnpm exec nuxt prepare && pnpm exec eslint . && pnpm exec prettier --check .'
+	@$(STEP) "markdownlint" $(WEB) sh -c 'cd /repo && /app/node_modules/.bin/markdownlint-cli2 SPEC.md "docs/**/*.md" README.md'
 
 types:
 	@$(STEP) "mypy" $(API) mypy .
@@ -172,15 +234,15 @@ e2e-all:
 	@$(E2E_NO_SCHEDULER)
 	@$(STEP) "start the E2E stack" $(E2E_DC) up -d --wait
 	@$(STEP) "seed_e2e (reset the scarce stock)" $(E2E_DC) exec -T api python manage.py seed_e2e
-	@$(STEP) "playwright (all specs, axe)" sh -c 'cd web && pnpm exec playwright test $(PW_MAIN)'
-	@$(PW_API_DOWN_STEP)
+	@$(STEP) "playwright (all specs, axe)" $(E2E_DC) $(E2E_RUN) e2e pnpm exec playwright test $(PW_MAIN)
+	@$(PW_API_DOWN_IN_COMPOSE)
 
 # CI judges the budget; outside CI a score below budget is only a warning (G64, ADR-0073).
 lighthouse:
 ifeq ($(CI),true)
-	@$(STEP) "lighthouse budgets" sh -c 'cd web && pnpm exec vitest run tests/perf/lighthouse.test.ts'
+	@$(STEP) "lighthouse budgets" sh -c '$(LH_IN_COMPOSE); exit $$s'
 else
-	@$(STEP) "lighthouse budgets (warning only outside CI)" sh -c 'cd web && pnpm exec vitest run tests/perf/lighthouse.test.ts || echo "WARNING: lighthouse below budget on this machine; CI judges it (ADR-0073)"'
+	@$(STEP) "lighthouse budgets (warning only outside CI)" sh -c '$(LH_IN_COMPOSE); [ $$s -eq 0 ] || echo "WARNING: lighthouse below budget on this machine; CI judges it (ADR-0073)"'
 endif
 
 coverage-report:
@@ -202,7 +264,7 @@ traceability:
 	  $(STEP) "collect pytest names" sh -c '$(API_TEST) pytest --collect-only -q > var/names-pytest.txt' && \
 	  $(STEP) "collect scripts names" sh -c '$(API) python -m pytest --collect-only -q -c /repo/scripts/pytest.ini -p no:django /repo/scripts/tests > var/names-scripts.txt' && \
 	  $(STEP) "collect vitest names" sh -c '$(WEB) pnpm exec vitest list > var/names-vitest.txt' && \
-	  $(STEP) "collect playwright names" sh -c 'cd web && pnpm exec playwright test --list > ../var/names-playwright.txt' && \
+	  $(STEP) "collect playwright names" sh -c '$(E2E_DC) run --rm -T --no-deps e2e pnpm exec playwright test --list > var/names-playwright.txt' && \
 	  $(STEP) "traceability $(RELEASE)" $(API) python /repo/scripts/check_traceability.py --release $(RELEASE) \
 	    --through-phase $(TRACE_THROUGH) --names /repo/var/names-pytest.txt /repo/var/names-scripts.txt /repo/var/names-vitest.txt /repo/var/names-playwright.txt; \
 	else $(SKIP) "traceability $(RELEASE)" "arrives with T1.14b"; fi
