@@ -4792,7 +4792,7 @@ The journey specs for J8 (double-click "Pagar"), J10 (CFDI) and J11 (pre-launch)
 
 Add `[DEMO]` to the markers `check_placeholders` rejects (§2.5; the command is built in T2.9), so demo data can never reach production unnoticed.
 
-- [ ] **T15.5 — Offline execution**
+- [x] **T15.5 — Offline execution** (2026-11-17, 3331df6)
   - Release: R1 · Gate: phase-close
   - REQs: REQ-042, REQ-073
   - Verifies: P15-V13, P15-V14
