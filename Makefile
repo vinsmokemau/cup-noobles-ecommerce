@@ -103,8 +103,10 @@ PW_API_DOWN_IN_COMPOSE = $(STEP) "playwright (API down, P12-V25)" sh -c '\
   $(API_DOWN_DC) $(E2E_RUN) e2e-api-down pnpm exec playwright test --project=api-down; s=$$?; \
   $(API_DOWN_DC) stop web-api-down; exit $$s'
 # Leaves the exit status in $$s; the storefront's production build is stopped either way.
+# Vitest reads web/tsconfig.json, which points at files `nuxt prepare` writes into .nuxt. The runner
+# keeps .nuxt in its own volume, empty on a fresh checkout, so the step writes them first.
 LH_IN_COMPOSE = $(LH_DC) up -d --wait web-prod proxy-prod && \
-  $(LH_DC) $(E2E_RUN) e2e-lighthouse pnpm exec vitest run tests/perf/lighthouse.test.ts; s=$$?; \
+  $(LH_DC) $(E2E_RUN) e2e-lighthouse sh -c "pnpm exec nuxt prepare && pnpm exec vitest run tests/perf/lighthouse.test.ts"; s=$$?; \
   $(LH_DC) stop proxy-prod web-prod
 
 # Every image a full run uses, built or pulled now: the only step that needs the network (§0.3).

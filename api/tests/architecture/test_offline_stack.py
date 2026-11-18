@@ -144,6 +144,16 @@ def test_p15_v13_the_offline_run_tells_the_spec_the_network_is_internal():
     assert "p15_offline" in config
 
 
+def test_p15_v14_the_lighthouse_runner_prepares_nuxt_before_vitest():
+    # Vitest reads web/tsconfig.json, which points at files `nuxt prepare` writes into .nuxt. The
+    # runner keeps .nuxt in a volume of its own, empty on a fresh checkout, and its image installs
+    # with --ignore-scripts, so nothing else writes them: without this the step fails on CI.
+    (step,) = re.findall(r'e2e-lighthouse sh -c "([^"]*)"', read_makefile())
+    assert step.index("pnpm exec nuxt prepare") < step.index("pnpm exec vitest run")
+    runner = services("docker-compose.e2e.yml")["e2e-lighthouse"]
+    assert "e2e_nuxt:/repo/web/.nuxt" in runner["volumes"]
+
+
 def test_p15_v14_ci_runs_the_offline_job_from_a_fresh_checkout():
     workflow = yaml.safe_load(
         (repo_root() / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
