@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Document type | Requirements specification for Spec-Driven Development (SDD) with Claude Code |
-| Spec version | 1.84 |
+| Spec version | 1.85 |
 | Status | Approved for Part A on 2026-10-19 (OA-14). Part B stays draft until P15-V14 passes (local acceptance). |
 | Owner | The owner, a single maintainer who is both developer and business owner (A15, OA-04) |
 | Repository | Public GitHub repository created by the owner; name pending (S5, OA-10) |
@@ -443,7 +443,7 @@ G1–G22 come from plan Appendix F. G23–G30 were found while converting the pl
 | G42 | 20 | 4.5, 20.2 | The Node2Shell fix (CVE-2026-111497) needs Node 22.23.4 or later. Part A pins it in `web/Dockerfile` and CI, but 20.2 runs the production image on the floating tag `node:22-slim`, which is not pinned. | The production `web/Dockerfile` pins `node:22.23.4-slim` or later, and the pin is raised on each Node security release | R1 | Open |
 | G43 | 20 | T6.7b, 20.A | `django-ratelimit` counts in a cache, and the stack has no Redis or memcached (ADR-0006). The api uses the local-memory cache, whose counters are per process: exact for one api process, looser by the number of workers. The library's check `django_ratelimit.E003` is silenced for this reason. | The production topology (20.A) runs the api as a single process (threads allowed), or the owner picks a shared store | R1 | Open |
 | G44 | 7 | T7.6, Phase 13 | The `cart` table has no postal-code column (`spec/schema.sql`), so T7.6 quotes shipping from the postal code the request carries: the `POST /api/cart/fulfillment/` body, or the `postal_code` query parameter of `GET /api/cart/`. T7.1 says the cart response carries a quote once `fulfillment_method` is set, which a stored code would give without the parameter. | Keep the query parameter (OA-46). Phase 13 checks whether the storefront finds it awkward; if so, a nullable `cart.postal_code` is a schema change that goes through `/decide` and an ADR. | R1 | Open |
-| G45 | 16 | T8.1, T16.5 | `apply_event` runs T16's side effects inside the order's database transaction, and one of them calls `provider.refund`. If a later step of the same transaction fails (saving the payment or the order), the database rolls back but the provider's refund stays. A retry of the cancellation then refunds again, unless the real provider treats the call as idempotent. The mock hides this. | Before the refund goes live (T16.5), send the provider an idempotency key derived from the payment (for example `refund:<payment id>`), or record the refund attempt before calling the provider and skip a payment that already has one. Check which of the two Mercado Pago's refunds API supports. | R1 | Open |
+| G45 | 16 | T8.1, T16.5 | `apply_event` runs T16's side effects inside the order's database transaction, and one of them calls `provider.refund`. If a later step of the same transaction fails (saving the payment or the order), the database rolls back but the provider's refund stays. A retry of the cancellation then refunds again, unless the real provider treats the call as idempotent. The mock hides this. | Before the refund goes live (T16.5), send the provider an idempotency key derived from the payment (for example `refund:<payment id>`), or record the refund attempt before calling the provider and skip a payment that already has one. Check which of the two Mercado Pago's refunds API supports. Owner chose the idempotency key in chat (2026-11-17, OA-103): `MercadoPagoProvider.refund` sends `X-Idempotency-Key: refund:<payment id>:<refunded_cents>`, with the payment's running total before this refund. A retry after a rollback sends the same key; a second partial refund sends another (9.8 allows partial refunds, so the payment id alone would not do). The create-refund endpoint requires the header. How long Mercado Pago remembers a key is not documented for it, so P16-V08 checks in the sandbox that one refund sent twice with one key is made once (T16.7). Not chosen: recording the attempt before the call, which needs a data model change and is the fallback if P16-V08 fails. | R1 | Decided (ADR-0076); written into T16.5, which builds it |
 | G46 | 9 | T8.13, T9.8 | T17 and T18 say "Set `refunded_cents` on payment" and `_effects_refund` stores the `refunded_cents` value the caller passes. 8.A does not say whether that value is the running total or only the new refund. If T9.8 passes the new amount, a second partial refund overwrites the first and the payment under-reports what was returned. | T9.8 passes the running total (the payment's current `refunded_cents` plus the new amount), and the guards compare that total with `amount_cents`. A test issues two partial refunds in a row and checks the total after each. Built in T9.8. | R1 | Resolved (ADR-0048) |
 | G47 | 13 | T6.7b, T8.6a, T8.5 | The Phase 8 review found three small defects, none of which breaks a Verify ID. (1) `OrderLookupView` compares the email exactly, so a guest who types it with other capitals than at checkout gets "No encontramos ese pedido", and the miss counts toward the 5-per-hour limit. (2) `advance_orders` catches only `IllegalTransition`, so one unexpected error on an order stops the run for the orders after it. (3) `partially_refunded` is still listed in `COUNTED_STATES` of `purchase_limits.py`, though G26 (ADR-0043) says no order is in that state. | Before the storefront lookup page is built (Phase 13): compare with `email__iexact`; catch and log any exception per order in `advance_orders`, as `expire_reservations` does; drop the dead entry. Add a test for each. A small fix task, or part of the next task that touches these files. Item (1) closed at the owner's request (2026-11-13): it was not a defect. `order.email` is a `citext` column (`spec/schema.sql`), so the lookup's `email=` match already ignores capitals, and `test_p6_v14_guest_lookup` proves it: the order is stored with `Ana.Lopez@Example.com` and found with `ana.lopez@example.com`. No code change. Items (2) and (3) fixed in code at the owner's request (2026-11-13): `advance_orders` logs any error on one order and goes on to the next (`test_g47_one_failing_order_does_not_stop_the_run`), and `partially_refunded` is no longer in `COUNTED_STATES` (`test_g47_counted_states_are_the_states_that_hold_units`). | R1 | Resolved (items 2 and 3 fixed in code at the owner's request, item 1 needed no change; no ADR) |
 | G48 | 9 | T8.6a, T9.5 | `expire_reservations` picks orders by the hold's expiry but T5 only passes when `payment_deadline_at` is in the past. Today both come from the same card window. T9.5 gives payment methods different deadlines; a hold that lapses before its order's deadline makes the job raise `GuardFailed` and log a stack trace for that order every 5 minutes, and the hold stays. | In T9.5, set the hold length so it never ends before the order's `payment_deadline_at`, and have `expire_reservations` log a `GuardFailed` as a one-line warning instead of an exception. Add a test with a method whose deadline is longer than the card window. | R1 | Resolved (ADR-0050) |
@@ -625,6 +625,7 @@ The pickup hold period (`PICKUP_HOLD_DAYS`) leaves R1 with pickup.
 | OA-100 | 2026-11-15 | G79: P15-V01 calls `run("advance_orders")`, which moves every `paid` delivery order in the stack, so it can land between another spec's payment and its read of `paid`. How does J1 move only its own order? | Option A: `advance_orders` takes an optional `--order <number>`; with it the job considers that order alone, for both of its transitions (T7 and T12), and an unknown number is a `CommandError`. Without it the job is unchanged, so the scheduler's run is the same. T15.6a builds it with tests named `test_g79_…`, and J1 calls `run("advance_orders", ["--order", number])` with its own order. Options not chosen: (B) the journeys run in their own Playwright step, one at a time; (C) the specs that read `paid` also accept `preparing`, which edits existing assertions (CR-38). No Verify ID or business value changes. No ADR: cheap to reverse, one optional argument and spec text. |
 | OA-101 | 2026-11-16 | G80: T15.6a says each journey runs axe "on every page it visits", but REQ-051 covers "every storefront page", and the journeys also visit the payment simulator, the voucher page, the mock tracking page and the Django admin, none of which passes axe. Which pages must the journeys check? | Option A: every storefront page a journey visits (product, cart, checkout, `gracias`, `pendiente`, `/rastrear`). The simulator pages stand in for pages the store does not own in production, and the admin is Django's own; neither is checked. Pass: `make e2e` for the journey specs is green on both projects with `expectNoA11yViolations` on each storefront page (6 of 6 for T15.6a). Options not chosen: (B) also check the three simulator pages, after giving their buttons a minimum size; (C) every page, the admin too, which needs labels on the shipment row and either custom admin styles or entries in `a11y-exceptions.ts`. No Verify ID or business value changes. No ADR: cheap to reverse, spec text and the calls in the journey specs. |
 | OA-102 | 2026-11-16 | G82: three rows of the 15.B demo table say what the built store does not show: step 1 expects a filter for each product type and the catalog shows one, "Idioma"; step 3 selects S/negro, which cannot be selected because it is sold out; step 4 expects "¡Gracias!" and `gracias` says "Pago confirmado". Reword the rows, or change the store? | Option A: reword the three 15.B rows to what the store shows, as `docs/demo-script.md` already does. The store is not changed. Options not chosen: (B) A, plus filterable keys on the stand-in launch types, so the demo shows a filter for each type; (C) A for steps 1 and 3, and the `gracias` heading changed to "¡Gracias!". No task, Verify ID, assertion or business value changes. No ADR: cheap to reverse, spec text only. |
+| OA-103 | 2026-11-17 | G45: a refund is sent to the provider inside a database transaction, so a failure after it rolls the database back, leaves the provider's refund, and a retry can refund twice. Which fix, before the refund goes live (T16.5)? | Option A: an idempotency key. `MercadoPagoProvider.refund` sends `X-Idempotency-Key: refund:<payment id>:<refunded_cents>`, with the payment's running total before this refund, so a retry after a rollback repeats the key and a second partial refund does not (the payment id alone, the row's example, would block partial refunds). Mercado Pago's create-refund endpoint requires the header; how long it remembers a key is not documented there, so a new sandbox check, P16-V08 on T16.7, sends one refund twice with one key and passes when the payment shows exactly one refund. Option not chosen: (B) record the refund attempt before calling the provider, which needs a data model change; it is the fallback if P16-V08 fails. ADR-0076. |
 
 ---
 
@@ -4943,9 +4944,11 @@ Confirm the field names for the voucher, the expiry and refunded amounts against
   - Verifies: P16-V07
   - Depends on: T16.4
   - Context: 9.8
-  - Open items: G45 (blocking)
+  - Open items: G45 decided (ADR-0076)
 
 `refund` through Mercado Pago's refunds API. Raise `RefundNotSupported` for payment methods Mercado Pago cannot refund (cash), so the 9.8 admin warning appears exactly as it does with the mock.
+
+Every refund call carries `X-Idempotency-Key: refund:<payment id>:<refunded_cents>`: the id of our `payment` row and its running total before this refund (G45, ADR-0076). A retry after a rollback sends the same key, so the provider does not refund twice; a second partial refund sends a different one. The adapter builds the key, so T16 of `apply_event` and `refund_payment` (9.8) are both covered. An answer that reports the key as already used with a different request is an error, never a refund made.
 
 - [ ] **T16.6 — Sandbox reachability**
   - Release: R1 · Gate: task
@@ -4956,12 +4959,12 @@ Confirm the field names for the voucher, the expiry and refunded amounts against
 
 Webhook reachability for sandbox testing: expose the dev server through a tunnel (`cloudflared tunnel --url http://localhost:8080` or ngrok) and register `https://<tunnel>/api/webhooks/payments/mercadopago/` in the Mercado Pago test application. Sandbox tests are the only tests allowed network access. Mark them `@pytest.mark.sandbox`, exclude them from `make test` and `make test-all`, and run them with `make test-sandbox` without `--disable-socket`.
 
-Tests that import a vendor SDK carry the `integrations` marker and run in `make test-integrations`, which installs the `integrations` dependency group and keeps sockets disabled (§0.3, CR-23); CI runs it as the `test-integrations` job from this phase on. Only the sandbox contract run (P16-V01) carries `sandbox` and needs the network. They import the adapter inside the test function, so `pytest --collect-only` still lists them for traceability (§4.6) in an environment without the group.
+Tests that import a vendor SDK carry the `integrations` marker and run in `make test-integrations`, which installs the `integrations` dependency group and keeps sockets disabled (§0.3, CR-23); CI runs it as the `test-integrations` job from this phase on. Only the sandbox contract run (P16-V01) and the refund key check (P16-V08) carry `sandbox` and need the network. They import the adapter inside the test function, so `pytest --collect-only` still lists them for traceability (§4.6) in an environment without the group.
 
 - [ ] **T16.7 — Sandbox contract driver**
   - Release: R1 · Gate: phase-close
   - REQs: REQ-041
-  - Verifies: P16-V01, P16-V03 [manual]
+  - Verifies: P16-V01, P16-V08, P16-V03 [manual]
   - Depends on: T16.6
   - Context: 9.13; §4.6
   - Done when: the phase-close report includes the `make test-sandbox` output and every skip reason is recorded in `RUNBOOK.md`.
@@ -4975,11 +4978,13 @@ Tests that import a vendor SDK carry the `integrations` marker and run in `make 
 
 Scenarios that don't depend on how a payment is completed still run: PAY-09 to PAY-12 and PAY-19, via the `webhooks …` commands (9.12) against captured Mercado Pago notifications.
 
+The driver also serves P16-V08: with an approved sandbox card payment, the same partial refund is sent twice with one idempotency key, and the payment must show one refund (G45, ADR-0076). If it shows two, stop and tell the owner: the key is not enough and the fallback of ADR-0076 needs a decision.
+
 #### Verify — test specification
 
 > Every ID below is a named test (§4.6). The phase closes when every in-scope ID passes in `make test-all` (§0.2). ⚠️ G# marks a test written against a gap's proposed resolution, `xfail(strict=True, reason="G#")` until the gap is decided (§2.4). `[R2]` marks an ID outside Release 1; `[manual]` an ID checked by hand in the phase-close report.
 
-In this phase, P16-V01 passes in `make test-sandbox`, and the IDs whose layer says `integrations` pass in `make test-integrations`; the phase-close report carries both runs' output. The Part A suite keeps passing unchanged with `PAYMENT_PROVIDER=mock` in `make test-all` (P9-V01).
+In this phase, P16-V01 and P16-V08 pass in `make test-sandbox`, and the IDs whose layer says `integrations` pass in `make test-integrations`; the phase-close report carries both runs' output. The Part A suite keeps passing unchanged with `PAYMENT_PROVIDER=mock` in `make test-all` (P9-V01).
 
 **From the plan's checklist:**
 
@@ -4996,7 +5001,8 @@ In this phase, P16-V01 passes in `make test-sandbox`, and the IDs whose layer sa
 | P16-V04 | unit (`integrations`) | `api/tests/unit/payments/test_mercadopago_adapter.py::test_p16_v04_preference_payload` | With a fake SDK client, `create_checkout` sends `items` with `unit_price` in pesos via `cents_to_pesos`, `external_reference = public_id`, the `notification_url`, the three `back_urls`, installments from `PAYMENT_INSTALLMENT_OPTIONS`, and `expiration_date_to = payment_deadline_at`; it returns the preference's checkout URL. |
 | P16-V05 | unit (`integrations`) | `api/tests/unit/payments/test_mercadopago_adapter.py::test_p16_v05_status_mapping[fixture]` | Each captured sandbox payment response maps to the `NormalizedStatus` in the 16.3 table, amounts convert through `pesos_to_cents`, and a pending OXXO payment yields its voucher URL and expiry. A response with a refunded amount below the transaction amount maps to `partially_refunded`. |
 | P16-V06 | unit (`integrations`) | `api/tests/unit/payments/test_mercadopago_adapter.py::test_p16_v06_verify_captured_notifications` | Captured sandbox notifications verify with `MP_WEBHOOK_SECRET` and return a `WebhookRef` whose `notification_id` is the stable delivery id chosen in 16.4; an altered body, a wrong secret and a stale timestamp return `None`. |
-| P16-V07 | unit (`integrations`) | `api/tests/unit/payments/test_mercadopago_adapter.py::test_p16_v07_refunds` | With a fake SDK client, a card refund calls the refunds API with the amount in pesos and returns a `RefundResult`; a cash (OXXO) payment raises `RefundNotSupported` without calling the API. |
+| P16-V07 | unit (`integrations`) | `api/tests/unit/payments/test_mercadopago_adapter.py::test_p16_v07_refunds` | With a fake SDK client, a card refund calls the refunds API with the amount in pesos and returns a `RefundResult`; a cash (OXXO) payment raises `RefundNotSupported` without calling the API. The call carries `X-Idempotency-Key: refund:<payment id>:<refunded_cents>` (ADR-0076): the same payment state gives the same key, and a payment with a partial refund already recorded gives a different one. |
+| P16-V08 | contract (`sandbox`, network) | `api/tests/contract/payments/test_sandbox_refund_key.py::test_p16_v08_same_key_refunds_once` | Against the sandbox, an approved card payment is refunded in part twice through the adapter without recording the first refund, so both calls carry the same key: Mercado Pago's refunds list for the payment shows exactly one refund, and the second call returns it or is refused, never a second refund (G45, ADR-0076). Skipped only with the reason returned by `MercadoPagoSandboxDriver.supports()`. |
 
 **Fixtures and factories introduced:**
 
@@ -5669,7 +5675,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | Phase 12 | ~~G18~~, ~~G28~~, ~~G32~~, D17; DSR-01, DSR-02, DSR-03 released (DS 1.3.0, T12.18), DSR-06, DSR-07 released (DS 1.6.0, T12.22), DSR-12 released (DS 1.7.0, T12.23), DSR-13 released (DS 1.8.0, T12.24); DSR-09 or its fallback |
 | Phase 13 | ~~G21~~, ~~G22~~ |
 | Phase 15 | ~~G72~~, ~~G73~~, ~~G74~~, ~~G75~~, ~~G77~~, ~~G79~~, ~~G80~~, ~~G81~~, ~~G82~~, ~~G83~~ |
-| Phase 16 | S2, D6, D7, D13, G45, G76 |
+| Phase 16 | S2, D6, D7, D13, ~~G45~~, G76 |
 | Phase 17 | S3, S4 |
 | Phase 18 | S1 |
 | Phase 19 | S7 |
@@ -5771,6 +5777,7 @@ A view of §2.4, ordered by when each item is needed. An item listed under a pha
 | 1.82 | 2026-11-16 | G81 registered (Open): two `make test` runs at the same time share the test database and block each other. §7.2 lists it under Phase 15. No task, Verify ID or schema change. | Owner request in chat |
 | 1.83 | 2026-11-16 | G82 resolved: steps 1, 3 and 4 of the 15.B demo table are reworded to what the store shows (one catalog filter, "Idioma"; a sold-out combination reads "negro · Agotado" and cannot be chosen; `gracias` says "Pago confirmado"). The store and `docs/demo-script.md` are unchanged. No task, Verify ID or schema change. | OA-102 |
 | 1.84 | 2026-11-17 | G83 registered and resolved: outside CI the Lighthouse step warned on every failure, not only on a score below budget (ADR-0073). It now warns only on a score below budget and fails on anything else (`scripts/lighthouse_step.sh`). §7.2 lists it under Phase 15. No task, Verify ID or schema change. | Owner request in chat |
+| 1.85 | 2026-11-17 | G45 decided: the Mercado Pago adapter sends `X-Idempotency-Key: refund:<payment id>:<refunded_cents>` on every refund, built by T16.5, so a retry after a rollback does not refund twice. T16.5's body and Open items, the P16-V07 row, T16.6's body and the Verify note say so. New Verify ID P16-V08 (sandbox), listed on T16.7: one refund sent twice with one key is made once. §7.2 strikes G45. No schema or dependency change. | OA-103; ADR-0076 |
 
 Amendment rule: this file changes only through an ADR, or by the owner directly. Every amendment bumps the spec version, adds a row here, and keeps every ID stable. Removed items are struck through, never renumbered.
 
@@ -5812,7 +5819,7 @@ Generated from §3 and §6; from T1.14b on, `scripts/check_traceability.py` rege
 | REQ-072 | R1 | T1.12a, T2.1c | P1-V04 · P2-V01 · P2-V07 |
 | REQ-073 | R1 | T1.14a, T1.9, T15.5 | P1-V03 · P1-V23 · P15-V14 |
 
-369 Verify IDs in §6; 141 are acceptance criteria of a §3 requirement. The others are feature-level checks of their phase (OA-02).
+370 Verify IDs in §6; 141 are acceptance criteria of a §3 requirement. The others are feature-level checks of their phase (OA-02).
 
 ## Appendix B — ADR index
 
@@ -5895,6 +5902,7 @@ Decision records live in `docs/decisions/`, one file per decision, from the temp
 | ADR-0073 | The Lighthouse budget is judged on CI only | `docs/decisions/0073-lighthouse-judged-on-ci.md` | G64; OA-91 |
 | ADR-0074 | A mock voucher lasts the method's window | `docs/decisions/0074-mock-voucher-lasts-the-method-window.md` | G74; OA-97 |
 | ADR-0075 | `advance_orders` moves paid delivery orders to preparing | `docs/decisions/0075-advance-orders-prepares-paid-orders.md` | G75; OA-98 |
+| ADR-0076 | A provider refund carries an idempotency key built from the payment | `docs/decisions/0076-refund-idempotency-key.md` | G45; OA-103 |
 
 ## Appendix C — Dated market facts
 
