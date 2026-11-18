@@ -24,7 +24,14 @@ test('p13_v20 cart failure stays inside its boundary', async ({ page }) => {
   await expect(page).toHaveURL(/\/$/)
 
   // Once the API answers again, the retry shows the cart.
+  // The page reads the cart again by itself when it is shown. That read must have failed before
+  // the API is let through: the checks below can pass on the error left from the first visit, and
+  // a read that goes out after `unroute` shows the cart with no retry left to press (G84).
+  const reread = page.waitForResponse(
+    (response) => response.url().includes('/api/cart/') && response.status() === 500,
+  )
   await page.goBack()
+  await reread
   await expect(retry).toBeVisible()
   // While the failed read is still running the button is busy and disabled (DS loading pattern).
   await expect(retry).toBeEnabled()
