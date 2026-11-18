@@ -239,13 +239,10 @@ e2e-all:
 	@$(STEP) "playwright (all specs, axe)" $(E2E_DC) $(E2E_RUN) e2e pnpm exec playwright test $(PW_MAIN)
 	@$(PW_API_DOWN_IN_COMPOSE)
 
-# CI judges the budget; outside CI a score below budget is only a warning (G64, ADR-0073).
+# CI judges the budget; outside CI a score below budget is only a warning (G64, ADR-0073). Any
+# other failure fails the step everywhere: scripts/lighthouse_step.sh tells the two apart (G83).
 lighthouse:
-ifeq ($(CI),true)
-	@$(STEP) "lighthouse budgets" sh -c '$(LH_IN_COMPOSE); exit $$s'
-else
-	@$(STEP) "lighthouse budgets (warning only outside CI)" sh -c '$(LH_IN_COMPOSE); [ $$s -eq 0 ] || echo "WARNING: lighthouse below budget on this machine; CI judges it (ADR-0073)"'
-endif
+	@$(STEP) "lighthouse budgets" sh scripts/lighthouse_step.sh sh -c '$(LH_IN_COMPOSE); exit $$s'
 
 coverage-report:
 	@$(STEP) "coverage" $(API) $(RATCHET) --only report
